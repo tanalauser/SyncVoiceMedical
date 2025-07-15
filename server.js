@@ -718,10 +718,10 @@ app.post('/api/send-activation', async (req, res) => {
                         // SAFETY CHECK: Never send localhost links in production
 if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
     console.warn('⚠️ WARNING: Activation link contains localhost, forcing production URL');
-    activationLink = `https://www.syncvoicemedical.com/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
+    activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
 }
 
-console.log('🔗 Generated activation link:', activationLink);
+console.log('🔗 Final activation link:', activationLink);
                         
                         // Create transporter with fresh token
                         let transporter;
