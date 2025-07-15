@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html id="htmlLang" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Payment</title>
+    <link rel="stylesheet" href="payment-success.css">
+    <style>
+        #card-errors {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+        #payment-form {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        #payment-element {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <a href="#" class="logo">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+            </a>
+        </nav>
+
+        <main class="form-container">
+            <div class="success-message">
+                <h1 id="paymentTitle">Payment</h1>
+                <p id="paymentMessage">Processing your payment...</p>
+                <div id="payment-element">
+                    <!-- Stripe Elements Placeholder -->
+                </div>
+                <form id="payment-form">
+                    <button id="submit" type="submit">Pay Now</button>
+                    <div id="card-errors" role="alert"></div>
+                </form>
+                <a href="index.html" class="return-btn" id="returnBtn">Return to Homepage</a>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang') || 'fr';
+            const email = urlParams.get('email');
+            const firstName = urlParams.get('firstName');
+            const lastName = urlParams.get('lastName');
+
+            // Parse additional data
+            let additionalData = {};
+            try {
+                const additionalDataParam = urlParams.get('additionalData');
+                if (additionalDataParam) {
+                    additionalData = JSON.parse(decodeURIComponent(additionalDataParam));
+                }
+            } catch (error) {
+                console.error('Error parsing additional data:', error);
+            }
+
+            // Validate required parameters
+            if (!email || !firstName || !lastName) {
+                alert('Missing required payment information');
+                window.location.href = `form.html?plan=paid&lang=${lang}`;
+                return;
+            }
+
+            // Translations
+            const translations = {
+                fr: {
+                    title: 'Paiement SyncVoice Medical',
+                    message: 'Finalisez votre paiement de 25 €',
+                    payButton: 'Payer maintenant',
+                    returnButton: 'Retour à l\'accueil',
+                    noEmailError: 'Email est requis pour traiter le paiement'
+                },
+                en: {
+                    title: 'SyncVoice Medical - Payment',
+                    message: 'Complete your £25 payment',
+                    payButton: 'Pay Now',
+                    returnButton: 'Return to Homepage',
+                    noEmailError: 'Email is required to process payment'
+                },
+                de: {
+                    title: 'SyncVoice Medical - Zahlung',
+                    message: 'Schließen Sie Ihre 25 € Zahlung ab',
+                    payButton: 'Jetzt bezahlen',
+                    returnButton: 'Zurück zur Startseite',
+                    noEmailError: 'E-Mail ist erforderlich, um die Zahlung zu bearbeiten'
+                },
+                es: {
+                    title: 'SyncVoice Medical - Pago',
+                    message: 'Complete su pago de 25 €',
+                    payButton: 'Pagar ahora',
+                    returnButton: 'Volver a la Página Principal',
+                    noEmailError: 'Se requiere correo electrónico para procesar el pago'
+                },
+                it: {
+                    title: 'SyncVoice Medical - Pagamento',
+                    message: 'Completa il tuo pagamento da 25 €',
+                    payButton: 'Paga ora',
+                    returnButton: 'Torna alla Homepage',
+                    noEmailError: 'L\'email è necessaria per elaborare il pagamento'
+                },
+                pt: {
+                    title: 'SyncVoice Medical - Pagamento',
+                    message: 'Complete seu pagamento de 25 €',
+                    payButton: 'Pagar agora',
+                    returnButton: 'Voltar para a Página Inicial',
+                    noEmailError: 'O e-mail é necessário para processar o pagamento'
+                }
+            };
+
+            // Validate email and language
+            if (!email) {
+                alert(translations[lang].noEmailError);
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Update content based on language
+            const t = translations[lang] || translations['fr'];
+            document.getElementById('htmlLang').lang = lang;
+            document.getElementById('paymentTitle').textContent = t.title;
+            document.getElementById('paymentMessage').textContent = t.message;
+            const submitButton = document.getElementById('submit');
+            submitButton.textContent = t.payButton;
+            const returnBtn = document.getElementById('returnBtn');
+            returnBtn.textContent = t.returnButton;
+            returnBtn.href = `index.html?lang=${lang}`;
+
+            // Stripe setup
+            const stripe = Stripe('pk_test_51QgwsQP3dr2cRIwx5Nll9FKqZotSsNwhKChXjloSZmyy49Z9TfWdnaCvdBhhveHfkJQioLT0gtjc2kax5J6KdX3y006odnigC0');
+            const elements = stripe.elements();
+
+            // Function to determine API base URL
+            function getApiBaseUrl() {
+                const protocol = window.location.protocol;
+                const hostname = window.location.hostname;
+                
+                if (protocol === 'file:') {
+                    return 'http://localhost:3000';
+                }
+                
+                if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                    return `${protocol}//${hostname}:3000`;
+                }
+                
+                // Return empty string for production (current domain) or update with your production URL
+                return '';
+            }
+
+            // Create payment intent with API URL construction
+            async function createPaymentIntent() {
+                try {
+                    const apiUrl = getApiBaseUrl() + '/api/create-payment-intent';
+                    console.log('Fetching from:', apiUrl);
+                    
+                    // Log the payload to help debug
+                    const payload = { 
+                        email: email, 
+                        name: `${firstName} ${lastName}`,
+                        amount: 2500 
+                    };
+                    console.log('Sending payload:', JSON.stringify(payload));
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const responseText = await response.text();
+                    console.log('Server response:', responseText);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}, message: ${responseText}`);
+                    }
+
+                    // Parse the response as JSON
+                    const result = JSON.parse(responseText);
+                    console.log('Payment intent result:', result);
+                    return result.clientSecret;
+                } catch (error) {
+                    console.error('FULL Payment Intent Error:', error);
+                    const errorElement = document.getElementById('card-errors');
+                    errorElement.textContent = `Failed to create payment: ${error.message}`;
+                    throw error;
+                }
+            }
+
+            // Initialize payment
+            async function initializePayment() {
+                try {
+                    const clientSecret = await createPaymentIntent();
+
+                    const paymentElement = elements.create('payment');
+                    paymentElement.mount('#payment-element');
+
+                    const form = document.getElementById('payment-form');
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        submitButton.disabled = true;
+                        const errorElement = document.getElementById('card-errors');
+                        errorElement.textContent = '';
+
+                        // Use the API base URL for return_url as well
+                        const baseUrl = getApiBaseUrl();
+                        const returnUrl = `${baseUrl}/payment-success.html?email=${encodeURIComponent(email)}&lang=${lang}`;
+                        console.log('Return URL:', returnUrl);
+                        
+                        const { error } = await stripe.confirmPayment({
+                            elements,
+                            clientSecret,
+                            confirmParams: {
+                                return_url: returnUrl
+                            }
+                        });
+
+                        if (error) {
+                            errorElement.textContent = error.message;
+                            submitButton.disabled = false;
+                        }
+                    });
+                } catch (error) {
+                    console.error('Payment Initialization Error:', error);
+                    const errorElement = document.getElementById('card-errors');
+                    errorElement.textContent = 'Failed to initialize payment. Please try again.';
+                    submitButton.disabled = false;
+                }
+            }
+
+            // Initialize payment when page loads
+            initializePayment();
+        });
+    </script>
+</body>
+</html>

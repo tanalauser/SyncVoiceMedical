@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html id="htmlLang" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Connexion</title>
+    <link rel="stylesheet" href="form.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <a href="index.html" class="logo">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+            </a>
+            <a href="index.html" id="returnBtn" class="return-btn">Retour</a>
+        </nav>
+
+        <main class="form-container">
+            <h1 id="pageTitle" class="form-title">Connexion</h1>
+            
+            <form id="loginForm" class="form">
+                <div class="form-group">
+                    <label for="email" id="emailLabel">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" id="passwordLabel">Mot de passe:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+                <button type="submit" id="submitButton" class="submit-btn">Se connecter</button>
+            </form>
+            
+            <div class="form-footer">
+                <p id="forgotPasswordText">
+                    <a href="#" id="forgotPasswordLink">Mot de passe oublié?</a>
+                </p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang') || 'fr';
+
+            // Translations
+            const translations = {
+                fr: {
+                    pageTitle: 'Connexion',
+                    emailLabel: 'Email:',
+                    passwordLabel: 'Mot de passe:',
+                    submitButton: 'Se connecter',
+                    returnButton: 'Retour',
+                    forgotPassword: 'Mot de passe oublié?',
+                    invalidCredentials: 'Email ou mot de passe incorrect',
+                    serverError: 'Erreur du serveur. Veuillez réessayer.',
+                    loading: 'Connexion en cours...'
+                },
+                en: {
+                    pageTitle: 'Login',
+                    emailLabel: 'Email:',
+                    passwordLabel: 'Password:',
+                    submitButton: 'Login',
+                    returnButton: 'Return',
+                    forgotPassword: 'Forgot password?',
+                    invalidCredentials: 'Invalid email or password',
+                    serverError: 'Server error. Please try again.',
+                    loading: 'Logging in...'
+                },
+                de: {
+                    pageTitle: 'Anmeldung',
+                    emailLabel: 'E-Mail:',
+                    passwordLabel: 'Passwort:',
+                    submitButton: 'Anmelden',
+                    returnButton: 'Zurück',
+                    forgotPassword: 'Passwort vergessen?',
+                    invalidCredentials: 'Ungültige E-Mail oder Passwort',
+                    serverError: 'Serverfehler. Bitte versuchen Sie es erneut.',
+                    loading: 'Anmelden...'
+                },
+                es: {
+                    pageTitle: 'Iniciar sesión',
+                    emailLabel: 'Correo electrónico:',
+                    passwordLabel: 'Contraseña:',
+                    submitButton: 'Iniciar sesión',
+                    returnButton: 'Volver',
+                    forgotPassword: '¿Olvidó su contraseña?',
+                    invalidCredentials: 'Correo electrónico o contraseña inválidos',
+                    serverError: 'Error del servidor. Por favor, inténtelo de nuevo.',
+                    loading: 'Iniciando sesión...'
+                },
+                it: {
+                    pageTitle: 'Accesso',
+                    emailLabel: 'Email:',
+                    passwordLabel: 'Password:',
+                    submitButton: 'Accedi',
+                    returnButton: 'Indietro',
+                    forgotPassword: 'Password dimenticata?',
+                    invalidCredentials: 'Email o password non validi',
+                    serverError: 'Errore del server. Si prega di riprovare.',
+                    loading: 'Accesso in corso...'
+                },
+                pt: {
+                    pageTitle: 'Entrar',
+                    emailLabel: 'Email:',
+                    passwordLabel: 'Senha:',
+                    submitButton: 'Entrar',
+                    returnButton: 'Voltar',
+                    forgotPassword: 'Esqueceu a senha?',
+                    invalidCredentials: 'Email ou senha inválidos',
+                    serverError: 'Erro do servidor. Por favor, tente novamente.',
+                    loading: 'Entrando...'
+                }
+            };
+
+            // Update content based on language
+            const t = translations[lang] || translations.fr;
+            document.getElementById('htmlLang').lang = lang;
+            document.getElementById('pageTitle').textContent = t.pageTitle;
+            document.getElementById('emailLabel').textContent = t.emailLabel;
+            document.getElementById('passwordLabel').textContent = t.passwordLabel;
+            document.getElementById('submitButton').textContent = t.submitButton;
+            document.getElementById('returnBtn').textContent = t.returnButton;
+            document.getElementById('returnBtn').href = `index.html?lang=${lang}`;
+            document.getElementById('forgotPasswordLink').textContent = t.forgotPassword;
+
+            // Form submission
+            const form = document.getElementById('loginForm');
+            const submitButton = document.getElementById('submitButton');
+            const errorMessage = document.getElementById('errorMessage');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const originalButtonText = submitButton.textContent;
+                submitButton.disabled = true;
+                submitButton.textContent = t.loading;
+                errorMessage.style.display = 'none';
+
+                try {
+                    const formData = new FormData(form);
+                    const email = formData.get('email');
+                    const password = formData.get('password');
+
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        // Store user session
+                        sessionStorage.setItem('userEmail', email);
+                        sessionStorage.setItem('userId', result.userId);
+                        
+                        // Redirect to account page
+                        window.location.href = `account.html?lang=${lang}`;
+                    } else {
+                        errorMessage.textContent = result.message || t.invalidCredentials;
+                        errorMessage.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    errorMessage.textContent = t.serverError;
+                    errorMessage.style.display = 'block';
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonText;
+                }
+            });
+
+            // Forgot password link
+            document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                alert(t.forgotPassword); // You can implement password reset functionality later
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html id="htmlLang" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Mon Compte</title>
+    <link rel="stylesheet" href="form.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        .account-details {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .status-active {
+            color: #28a745;
+            font-weight: 600;
+        }
+        .status-expired {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        .activation-code-box {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .activation-code {
+            font-family: monospace;
+            font-size: 2rem;
+            color: #69B578;
+            font-weight: bold;
+            padding: 1rem;
+            background: white;
+            border: 2px solid #69B578;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 1rem;
+        }
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 2rem;
+        }
+        .logout-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <a href="index.html" class="logo">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+            </a>
+            <a href="index.html" id="returnBtn" class="return-btn">Retour</a>
+        </nav>
+
+        <main class="form-container">
+            <h1 id="pageTitle" class="form-title">Mon Compte</h1>
+            
+            <div class="activation-code-box">
+                <h2 id="activationCodeTitle">Votre code d'activation</h2>
+                <p id="activationCodeDesc">Utilisez ce code pour lancer l'application SyncVoice Medical:</p>
+                <div class="activation-code" id="activationCode">Loading...</div>
+            </div>
+
+            <div class="account-details" id="accountDetails">
+                <h2 id="detailsTitle">Détails du compte</h2>
+                <div id="detailsContent">
+                    <!-- Details will be loaded dynamically -->
+                </div>
+            </div>
+
+            <button id="logoutButton" class="logout-btn">Se déconnecter</button>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is logged in
+            const userEmail = sessionStorage.getItem('userEmail');
+            const userId = sessionStorage.getItem('userId');
+            
+            if (!userEmail || !userId) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang') || 'fr';
+
+            // Translations
+            const translations = {
+                fr: {
+                    pageTitle: 'Mon Compte',
+                    activationCodeTitle: 'Votre code d\'activation',
+                    activationCodeDesc: 'Utilisez ce code pour lancer l\'application SyncVoice Medical:',
+                    detailsTitle: 'Détails du compte',
+                    firstName: 'Prénom',
+                    lastName: 'Nom',
+                    email: 'Email',
+                    company: 'Société',
+                    address: 'Adresse',
+                    postalCode: 'Code Postal',
+                    city: 'Ville',
+                    country: 'Pays',
+                    startDate: 'Date de début',
+                    endDate: 'Date de fin',
+                    status: 'Statut',
+                    statusActive: 'Actif',
+                    statusExpired: 'Expiré',
+                    daysRemaining: 'Jours restants',
+                    autoRenewal: 'Renouvellement automatique',
+                    yes: 'Oui',
+                    no: 'Non',
+                    returnButton: 'Retour',
+                    logoutButton: 'Se déconnecter',
+                    loading: 'Chargement...',
+                    error: 'Erreur lors du chargement des données'
+                },
+                en: {
+                    pageTitle: 'My Account',
+                    activationCodeTitle: 'Your Activation Code',
+                    activationCodeDesc: 'Use this code to launch the SyncVoice Medical application:',
+                    detailsTitle: 'Account Details',
+                    firstName: 'First Name',
+                    lastName: 'Last Name',
+                    email: 'Email',
+                    company: 'Company',
+                    address: 'Address',
+                    postalCode: 'Postal Code',
+                    city: 'City',
+                    country: 'Country',
+                    startDate: 'Start Date',
+                    endDate: 'End Date',
+                    status: 'Status',
+                    statusActive: 'Active',
+                    statusExpired: 'Expired',
+                    daysRemaining: 'Days Remaining',
+                    autoRenewal: 'Auto Renewal',
+                    yes: 'Yes',
+                    no: 'No',
+                    returnButton: 'Return',
+                    logoutButton: 'Logout',
+                    loading: 'Loading...',
+                    error: 'Error loading data'
+                },
+                de: {
+                    pageTitle: 'Mein Konto',
+                    activationCodeTitle: 'Ihr Aktivierungscode',
+                    activationCodeDesc: 'Verwenden Sie diesen Code, um die SyncVoice Medical-Anwendung zu starten:',
+                    detailsTitle: 'Kontodetails',
+                    firstName: 'Vorname',
+                    lastName: 'Nachname',
+                    email: 'E-Mail',
+                    company: 'Unternehmen',
+                    address: 'Adresse',
+                    postalCode: 'Postleitzahl',
+                    city: 'Stadt',
+                    country: 'Land',
+                    startDate: 'Startdatum',
+                    endDate: 'Enddatum',
+                    status: 'Status',
+                    statusActive: 'Aktiv',
+                    statusExpired: 'Abgelaufen',
+                    daysRemaining: 'Verbleibende Tage',
+                    autoRenewal: 'Automatische Verlängerung',
+                    yes: 'Ja',
+                    no: 'Nein',
+                    returnButton: 'Zurück',
+                    logoutButton: 'Abmelden',
+                    loading: 'Laden...',
+                    error: 'Fehler beim Laden der Daten'
+                },
+                es: {
+                    pageTitle: 'Mi Cuenta',
+                    activationCodeTitle: 'Su Código de Activación',
+                    activationCodeDesc: 'Use este código para iniciar la aplicación SyncVoice Medical:',
+                    detailsTitle: 'Detalles de la Cuenta',
+                    firstName: 'Nombre',
+                    lastName: 'Apellido',
+                    email: 'Correo electrónico',
+                    company: 'Empresa',
+                    address: 'Dirección',
+                    postalCode: 'Código Postal',
+                    city: 'Ciudad',
+                    country: 'País',
+                    startDate: 'Fecha de inicio',
+                    endDate: 'Fecha de fin',
+                    status: 'Estado',
+                    statusActive: 'Activo',
+                    statusExpired: 'Expirado',
+                    daysRemaining: 'Días restantes',
+                    autoRenewal: 'Renovación automática',
+                    yes: 'Sí',
+                    no: 'No',
+                    returnButton: 'Volver',
+                    logoutButton: 'Cerrar sesión',
+                    loading: 'Cargando...',
+                    error: 'Error al cargar los datos'
+                },
+                it: {
+                    pageTitle: 'Il mio Account',
+                    activationCodeTitle: 'Il tuo Codice di Attivazione',
+                    activationCodeDesc: 'Usa questo codice per avviare l\'applicazione SyncVoice Medical:',
+                    detailsTitle: 'Dettagli dell\'Account',
+                    firstName: 'Nome',
+                    lastName: 'Cognome',
+                    email: 'Email',
+                    company: 'Azienda',
+                    address: 'Indirizzo',
+                    postalCode: 'Codice Postale',
+                    city: 'Città',
+                    country: 'Paese',
+                    startDate: 'Data di inizio',
+                    endDate: 'Data di fine',
+                    status: 'Stato',
+                    statusActive: 'Attivo',
+                    statusExpired: 'Scaduto',
+                    daysRemaining: 'Giorni rimanenti',
+                    autoRenewal: 'Rinnovo automatico',
+                    yes: 'Sì',
+                    no: 'No',
+                    returnButton: 'Indietro',
+                    logoutButton: 'Esci',
+                    loading: 'Caricamento...',
+                    error: 'Errore nel caricamento dei dati'
+                },
+                pt: {
+                    pageTitle: 'Minha Conta',
+                    activationCodeTitle: 'Seu Código de Ativação',
+                    activationCodeDesc: 'Use este código para iniciar o aplicativo SyncVoice Medical:',
+                    detailsTitle: 'Detalhes da Conta',
+                    firstName: 'Nome',
+                    lastName: 'Sobrenome',
+                    email: 'Email',
+                    company: 'Empresa',
+                    address: 'Endereço',
+                    postalCode: 'Código Postal',
+                    city: 'Cidade',
+                    country: 'País',
+                    startDate: 'Data de início',
+                    endDate: 'Data de fim',
+                    status: 'Status',
+                    statusActive: 'Ativo',
+                    statusExpired: 'Expirado',
+                    daysRemaining: 'Dias restantes',
+                    autoRenewal: 'Renovação automática',
+                    yes: 'Sim',
+                    no: 'Não',
+                    returnButton: 'Voltar',
+                    logoutButton: 'Sair',
+                    loading: 'Carregando...',
+                    error: 'Erro ao carregar dados'
+                }
+            };
+
+            // Update content based on language
+            const t = translations[lang] || translations.fr;
+            document.getElementById('htmlLang').lang = lang;
+            document.getElementById('pageTitle').textContent = t.pageTitle;
+            document.getElementById('activationCodeTitle').textContent = t.activationCodeTitle;
+            document.getElementById('activationCodeDesc').textContent = t.activationCodeDesc;
+            document.getElementById('detailsTitle').textContent = t.detailsTitle;
+            document.getElementById('returnBtn').textContent = t.returnButton;
+            document.getElementById('returnBtn').href = `index.html?lang=${lang}`;
+            document.getElementById('logoutButton').textContent = t.logoutButton;
+
+            // Load user data
+            try {
+                const response = await fetch(`/api/user-details/${userEmail}`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const user = data.user;
+                    
+                    // Display activation code
+                    document.getElementById('activationCode').textContent = user.activationCode;
+
+                    // Format dates
+                    const formatDate = (dateString) => {
+                        const date = new Date(dateString);
+                        return date.toLocaleDateString(lang === 'en' ? 'en-US' : `${lang}-${lang.toUpperCase()}`);
+                    };
+
+                    // Calculate status and days remaining
+                    const isExpired = new Date() > new Date(user.validationEndDate);
+                    const daysRemaining = Math.ceil((new Date(user.validationEndDate) - new Date()) / (1000 * 60 * 60 * 24));
+
+                    // Build details HTML
+                    const detailsHTML = `
+                        <div class="detail-row">
+                            <span class="detail-label">${t.firstName}:</span>
+                            <span class="detail-value">${user.firstName}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.lastName}:</span>
+                            <span class="detail-value">${user.lastName}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.email}:</span>
+                            <span class="detail-value">${user.email}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.company}:</span>
+                            <span class="detail-value">${user.company || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.address}:</span>
+                            <span class="detail-value">${user.address || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.postalCode}:</span>
+                            <span class="detail-value">${user.postalCode || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.city}:</span>
+                            <span class="detail-value">${user.city || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.country}:</span>
+                            <span class="detail-value">${user.country || '-'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.startDate}:</span>
+                            <span class="detail-value">${formatDate(user.validationStartDate)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.endDate}:</span>
+                            <span class="detail-value">${formatDate(user.validationEndDate)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.status}:</span>
+                            <span class="detail-value ${isExpired ? 'status-expired' : 'status-active'}">
+                                ${isExpired ? t.statusExpired : t.statusActive}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.daysRemaining}:</span>
+                            <span class="detail-value">${isExpired ? 0 : daysRemaining}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.autoRenewal}:</span>
+                            <span class="detail-value">${user.autoRenewal ? t.yes : t.no}</span>
+                        </div>
+                    `;
+
+                    document.getElementById('detailsContent').innerHTML = detailsHTML;
+                } else {
+                    throw new Error(data.message || t.error);
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                document.getElementById('activationCode').textContent = t.error;
+                document.getElementById('detailsContent').innerHTML = `<p>${t.error}</p>`;
+            }
+
+            // Logout button
+            document.getElementById('logoutButton').addEventListener('click', () => {
+                sessionStorage.clear();
+                window.location.href = `index.html?lang=${lang}`;
+            });
+        });
+    </script>
+</body>
+</html>

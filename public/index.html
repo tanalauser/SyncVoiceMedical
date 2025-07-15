@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Transcription Médicale</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+</head>
+<body>
+    <div class="hero">
+        
+        <div class="wrapper">
+            <nav class="nav">
+                <div class="logo">
+                    <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+                </div>
+                <div class="nav-controls">
+                    <button class="login-btn">Se connecter</button>
+                    <div class="language-container">
+                        <label for="language-select">Language:</label>
+                        <select id="language-select" class="language-select">
+                            <option value="fr" selected>Français</option>
+                            <option value="en">English</option>
+                            <option value="de">Deutsch</option>
+                            <option value="es">Español</option>
+                            <option value="it">Italiano</option>
+                            <option value="pt">Português</option>
+                        </select>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="content-section">
+                <h1 class="title">TRANSCRIVEZ EN DIRECT VOS COMPTES RENDUS MEDICAUX AVEC L'AIDE DE L'IA.</h1>
+                <p class="subtitle">Convertissez en direct votre voix en texte.<br>Dictées illimitées.</p>
+
+                <div class="plans">
+                    <div class="plan">
+                        <div class="plan-header">
+                            <h3>Essayez gratuitement pendant 7 jours</h3>
+                        </div>
+                        <div class="plan-footer">
+                            <a href="form.html?plan=free&lang=fr" class="btn" data-version="free">Commencez</a>
+                        </div>
+                    </div>
+
+                    <div class="plan">
+                        <div class="plan-header">
+                            <h3>Achetez, arrêtez quand vous voulez.</h3>
+                            <div class="price">25 € TTC / mois</div>
+                        </div>
+                        <div class="plan-footer">
+                            <a href="form.html?plan=paid&lang=fr" class="btn" data-version="paid">Commencez</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="features">
+                    <h4>Il suffit de:</h4>
+                    <ul>
+                        <li>vous connecter à notre plateforme.</li>
+                        <li>taper votre code (Accès direct tant que vous être en ligne avec la plateforme.)</li>
+                        <li>Parler</li>
+                        <li>Copier le texte et coller.</li>
+                    </ul>
+                    <p>Le texte précis sera produit. Copiez et collez.</p>
+                    <p>Aucun téléchargement ni installation de logiciel dans votre ordinateur. Partagez le document avec vos collègues par email.</p>
+                </div>
+
+                <!-- Browser Support Table -->
+                <div class="browser-support-section">
+                    <h4 class="browser-support-title">Compatibilité des navigateurs pour la reconnaissance vocale</h4>
+                    <div class="table-container">
+                        <table class="browser-support-table">
+                            <thead>
+                                <tr>
+                                    <th class="browser-column">Navigateur</th>
+                                    <th class="support-column">Support</th>
+                                    <th class="recommendation-column">Recommandation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/chrome/chrome.svg" alt="Chrome" class="browser-icon"> Chrome</td>
+                                    <td><span class="support-full">Complet</span></td>
+                                    <td class="recommended">Recommandé</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/edge/edge.svg" alt="Edge" class="browser-icon"> Microsoft Edge</td>
+                                    <td><span class="support-full">Complet</span></td>
+                                    <td class="recommended">Recommandé</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/safari/safari.svg" alt="Safari" class="browser-icon"> Safari</td>
+                                    <td><span class="support-partial">Partiel</span></td>
+                                    <td class="limited">Limité</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/firefox/firefox.svg" alt="Firefox" class="browser-icon"> Firefox</td>
+                                    <td><span class="support-limited">Limité</span></td>
+                                    <td class="not-recommended">Non recommandé</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/opera/opera.svg" alt="Opera" class="browser-icon"> Opera</td>
+                                    <td><span class="support-full">Complet</span></td>
+                                    <td class="recommended">Recommandé</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="browser-note">Pour une expérience optimale, nous recommandons l'utilisation de Chrome, Edge ou Opera.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+</html>

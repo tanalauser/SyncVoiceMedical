@@ -1,0 +1,367 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+.hero {
+    min-height: 100vh;
+}
+
+/* Main wrapper for alignment */
+.wrapper {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0;
+    position: relative;
+}
+
+/* Navigation */
+.nav {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    background-color: #f5f5f5;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo img {
+    height: 45px;
+    width: auto;
+}
+
+.nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.login-btn {
+    padding: 0.5rem 1.25rem;
+    background: #1a5f7a;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.language-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+label[for="language-select"] {
+    font-size: 1rem;
+}
+
+.language-select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    min-width: 120px;
+}
+
+/* Main Content */
+.content-section {
+    text-align: left;
+    margin: 2rem 0;
+}
+
+.title {
+    color: #1a5f7a;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    margin-bottom: 1.5rem;
+    line-height: 1.3;
+}
+
+.subtitle {
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    margin-bottom: 2rem;
+}
+
+/* Plans Section */
+.plans {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    justify-content: space-between;
+}
+
+.plan {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    width: calc(50% - 1rem); /* Equal width minus gap */
+}
+
+.plan-header {
+    flex: 1;
+    margin-bottom: 1.5rem;
+}
+
+.plan-header h3 {
+    color: #1a5f7a;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.price {
+    font-size: 1.2rem;
+    color: #1a5f7a;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+.plan-footer {
+    margin-top: auto;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.btn {
+    width: 100%; /* Adjust the width as needed */
+    padding: 1rem;
+    background: #1a5f7a;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+    text-align: center; /* Ensure the text is centered */
+}
+
+.btn:hover {
+    background: #164d63;
+}
+
+/* Features Section */
+.features {
+    text-align: left;
+}
+
+.features h4 {
+    color: #1a5f7a;
+    margin-bottom: 1rem;
+}
+
+.features ul {
+    list-style-type: none;
+    margin-bottom: 1rem;
+}
+
+.features li {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.features li:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #1a5f7a;
+}
+
+.features p {
+    margin-bottom: 1rem;
+}
+
+/* Browser Support Section */
+.browser-support-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.browser-support-title {
+    color: #1a5f7a;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+.table-container {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+}
+
+.browser-support-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.browser-support-table th {
+    background-color: #f8f9fa;
+    padding: 1rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #1a5f7a;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.browser-support-table td {
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+}
+
+.browser-support-table tr:last-child td {
+    border-bottom: none;
+}
+
+.browser-support-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.browser-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+.support-full {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.support-partial {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.support-limited {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.recommended {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.limited {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.not-recommended {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.browser-note {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+}
+
+/* Column widths for better layout */
+.browser-column {
+    width: 40%;
+}
+
+.support-column {
+    width: 25%;
+}
+
+.recommendation-column {
+    width: 35%;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .wrapper {
+        padding: 0 1rem;
+    }
+    
+    .nav-controls {
+        gap: 0.5rem;
+    }
+
+    .plans {
+        flex-direction: column;
+    }
+
+    .plan {
+        width: 100%;
+    }
+
+    .table-container {
+        padding: 1rem;
+    }
+
+    .browser-support-table {
+        font-size: 0.85rem;
+    }
+
+    .browser-support-table th,
+    .browser-support-table td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .browser-icon {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .nav-controls {
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .language-container {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .browser-support-table {
+        font-size: 0.8rem;
+    }
+
+    .browser-support-table th,
+    .browser-support-table td {
+        padding: 0.5rem 0.25rem;
+    }
+
+    .browser-icon {
+        width: 14px;
+        height: 14px;
+        margin-right: 0.25rem;
+    }
+}

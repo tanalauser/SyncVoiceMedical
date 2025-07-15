@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html id="htmlLang" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Transcription</title>
+    <link rel="stylesheet" href="appForm.css">
+    <script src="libs/docx-lib.js"></script>
+    <script src="libs/file-saver.min.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo-container">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical" class="logo">
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="control-group">
+                <button id="startButton" class="btn control-btn">
+                    <svg class="icon mic-icon" viewBox="0 0 24 24">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                    <span class="btn-text">Parlez</span>
+                </button>
+
+                <button id="pauseButton" class="btn control-btn">
+                    <svg class="icon pause-icon" viewBox="0 0 24 24">
+                        <rect x="6" y="4" width="4" height="16"/>
+                        <rect x="14" y="4" width="4" height="16"/>
+                    </svg>
+                    <span class="btn-text">Pause</span>
+                </button>
+
+                <button id="stopButton" class="btn control-btn">
+                    <svg class="icon stop-icon" viewBox="0 0 24 24">
+                        <rect x="6" y="6" width="12" height="12" class="stop-icon-rect"/>
+                    </svg>
+                    <span class="btn-text">Stop</span>
+                </button>
+            </div>
+
+            <div class="transcription-container">
+                <textarea id="transcriptionText" placeholder="Votre transcription apparaîtra ici..."></textarea>
+                <div class="scrollbar"></div>
+                <button id="clearButton">Tout Effacer</button>
+            </div>
+
+            <div class="action-group">
+                <button id="copyButton" class="btn action-btn">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7l-6-6z"/>
+                    </svg>
+                    <span class="btn-text">Copiez tout dans<br>le press-papier</span>
+                </button>
+
+                <button id="templateButton" class="btn action-btn">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                        <path d="M8 14h8v2H8zm0 4h8v2H8zm0-8h3v2H8z"/>
+                    </svg>
+                    <span class="btn-text">Utilisez un modèle<br>Word</span>
+                </button>
+
+                <button id="quitButton" class="btn action-btn">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.1 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                    </svg>
+                    <span class="btn-text">Quitter</span>
+                </button>
+            </div>
+
+            <p class="AICanMakeMistakes" id="AICanMakeMistakes_message">"L'IA peut faire des erreurs. Veuillez vérifier la transcription"</p>
+        </main>
+    </div>
+
+
+
+    <div id="templateModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="templateModalTitle">Choisissez un modèle</h2>
+            <div class="template-list">
+                <div class="template-item" data-template="consultation">
+                    <h3>Consultation Médicale</h3>
+                    <p>Modèle standard pour les consultations médicales générales</p>
+                </div>
+                <div class="template-item" data-template="specialist">
+                    <h3>Compte Rendu Spécialiste</h3>
+                    <p>Format détaillé pour les rapports de spécialistes</p>
+                </div>
+                <div class="template-item" data-template="surgery">
+                    <h3>Rapport Chirurgical</h3>
+                    <p>Structure complète pour les comptes rendus opératoires</p>
+                </div>
+                <div class="template-item" data-template="prescription">
+                    <h3>Ordonnance</h3>
+                    <p>Format standard pour les prescriptions médicales</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang') || 'fr';
+            document.getElementById('htmlLang').lang = lang;
+        });
+    </script>
+    
+    <script src="appForm.js"></script>
+</body>
+</html>
