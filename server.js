@@ -86,6 +86,8 @@ console.log('Crypto module loaded:', typeof crypto);
 // Create Express app instance
 const app = express();
 
+app.use(express.static('public'));
+
 // CORS middleware
 app.use(cors({
     origin: '*', // Be cautious with this in production
