@@ -10,15 +10,17 @@ if (!process.env.NODE_ENV) {
 }
 
 // *** CRITICAL FIX: Never use localhost in production ***
+// In server.js, update the BASE_URL logic
 const BASE_URL = (function() {
-    if (process.env.BASE_URL && !process.env.BASE_URL.includes('localhost') && !process.env.BASE_URL.includes('127.0.0.1')) {
-        // Use environment variable only if it's not localhost
+    if (process.env.BASE_URL && !process.env.BASE_URL.includes('localhost')) {
         return process.env.BASE_URL;
-    } else {
-        // Force production URL if BASE_URL is not set or contains localhost
-        console.log('BASE_URL not set or contains localhost, forcing to production URL');
-        return 'https://www.syncvoicemedical.com';
     }
+    // For Render deployment
+    if (process.env.RENDER_EXTERNAL_URL) {
+        return `https://${process.env.RENDER_EXTERNAL_URL}`;
+    }
+    // Default to your Render URL
+    return 'https://syncvoicemedical.onrender.com';
 })();
 
 console.log('Environment check:', {

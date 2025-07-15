@@ -481,6 +481,9 @@ function ensureCleanStart() {
             
             return false;
         }
+
+
+
         
         // Check if we're on HTTPS (required for microphone access on many browsers)
         const isSecureContext = window.isSecureContext;
@@ -862,68 +865,53 @@ function ensureCleanStart() {
             
             console.log('Using SpeechRecognition API:', SpeechRecognition === window.SpeechRecognition ? 'Standard' : 'Webkit');
         
-            // FIXED: Simple result handler that actually works
-            recognitionInstance.onresult = function(event) {
-                console.log('=== SPEECH RECOGNITION RESULT ===');
-                console.log('Result index:', event.resultIndex, 'Results length:', event.results.length);
-                
-                // Process all results from resultIndex onwards
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const result = event.results[i];
-                    
-                    if (result.isFinal) {
-                        const transcript = result[0].transcript.trim();
-                        
-                        if (transcript) {
-                            console.log(`Final transcript: "${transcript}"`);
-                            
-                            // Add the transcript
-                            if (templateMode) {
-                                processTemplateTranscript(transcript);
-                            } else {
-                                // Add to textarea with proper spacing
-                                if (transcriptionText.value && !transcriptionText.value.endsWith(' ')) {
-                                    transcriptionText.value += ' ';
-                                }
-                                transcriptionText.value += transcript;
-                                
-                                // Auto-scroll
-                                transcriptionText.scrollTop = transcriptionText.scrollHeight;
-                            }
-                        }
-                    }
-                }
-            };
+            
             
             // Handle recognition start
-            recognitionInstance.onstart = function() {
-                console.log('=== RECOGNITION STARTED ===');
+            // FIXED: Simple result handler that actually works
+// FIXED: Simple result handler that actually works
+recognitionInstance.onresult = function(event) {
+    console.log('=== SPEECH RECOGNITION RESULT ===');
+    console.log('Result index:', event.resultIndex, 'Results length:', event.results.length);
+    
+    // Process all results from resultIndex onwards
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        
+        if (result.isFinal) {
+            const transcript = result[0].transcript.trim();
+            
+            if (transcript) {
+                console.log(`Final transcript: "${transcript}"`);
                 
-                // Clear any pending startup timeout
-                if (window.recognitionStartupTimeout) {
-                    clearTimeout(window.recognitionStartupTimeout);
-                    window.recognitionStartupTimeout = null;
-                }
-                
-                // Hide countdown overlay when recognition actually starts
-                if (isStarting) {
-                    isStarting = false;
-                    const t = translations[currentLang] || translations.en;
+                // Add the transcript
+                if (templateMode) {
+                    processTemplateTranscript(transcript);
+                } else {
+                    // Add to textarea with proper spacing
+                    if (transcriptionText.value && !transcriptionText.value.endsWith(' ')) {
+                        transcriptionText.value += ' ';
+                    }
+                    transcriptionText.value += transcript;
                     
-                    countdownText.textContent = t.speakNow;
-                    countdownNumber.style.display = 'none';
-                    
-                    setTimeout(() => {
-                        countdownOverlay.style.display = 'none';
-                        countdownNumber.style.display = 'block';
-                        enableRecordingButtons();
-                    }, 800);
+                    // Auto-scroll
+                    transcriptionText.scrollTop = transcriptionText.scrollHeight;
                 }
-            };
+            }
+        } else {
+            // Log interim results for debugging
+            console.log('Interim result:', result[0].transcript);
+        }
+    }
+};
+
         
             // Enhanced error handling
             recognitionInstance.onerror = function(event) {
-                console.error('Speech recognition error:', event.error);
+    console.error('=== SPEECH RECOGNITION ERROR ===');
+    console.error('Error type:', event.error);
+    console.error('Error message:', event.message);
+    console.error('Full event:', event);
                 
                 // Clear any pending startup timeout
                 if (window.recognitionStartupTimeout) {
