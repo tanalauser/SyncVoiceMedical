@@ -107,6 +107,142 @@ console.log('Crypto module loaded:', typeof crypto);
 // Create Express app instance
 const app = express();
 
+// Store active WebSocket connections
+const activeConnections = new Map();
+
+// WebSocket connection handler
+wss.on('connection', (ws, req) => {
+    const connectionId = crypto.randomBytes(16).toString('hex');
+    console.log(`New WebSocket connection: ${connectionId}`);
+    
+    // Store connection
+    activeConnections.set(connectionId, {
+        ws,
+        authenticated: false,
+        email: null,
+        language: 'en'
+    });
+    
+    // Send connection acknowledgment
+    ws.send(JSON.stringify({
+        type: 'connection',
+        connectionId,
+        status: 'connected'
+    }));
+    
+    ws.on('message', async (message) => {
+        try {
+            const data = JSON.parse(message);
+            const connection = activeConnections.get(connectionId);
+            
+            switch (data.type) {
+                case 'auth':
+                    // Authenticate desktop client
+                    const { email, activationCode } = data;
+                    const user = await User.findOne({ 
+                        email: email.toLowerCase(),
+                        activationCode: activationCode
+                    });
+                    
+                    if (user && user.isActive && !user.isSubscriptionExpired()) {
+                        connection.authenticated = true;
+                        connection.email = email;
+                        connection.language = user.language || 'en';
+                        
+                        ws.send(JSON.stringify({
+                            type: 'auth',
+                            status: 'success',
+                            language: connection.language,
+                            user: {
+                                firstName: user.firstName,
+                                lastName: user.lastName,
+                                daysRemaining: user.daysUntilExpiration()
+                            }
+                        }));
+                    } else {
+                        ws.send(JSON.stringify({
+                            type: 'auth',
+                            status: 'failed',
+                            message: 'Invalid credentials or expired subscription'
+                        }));
+                    }
+                    break;
+                    
+                case 'startTranscription':
+                    if (!connection.authenticated) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Not authenticated'
+                        }));
+                        return;
+                    }
+                    
+                    // Send ready signal
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionReady',
+                        language: connection.language
+                    }));
+                    break;
+                    
+                case 'transcriptionChunk':
+                    if (!connection.authenticated) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Not authenticated'
+                        }));
+                        return;
+                    }
+                    
+                    // In a real implementation, you would process audio here
+                    // For now, we'll simulate by echoing back the transcript
+                    const { transcript, isFinal } = data;
+                    
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionResult',
+                        transcript,
+                        isFinal
+                    }));
+                    break;
+                    
+                case 'stopTranscription':
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionStopped'
+                    }));
+                    break;
+                    
+                case 'ping':
+                    ws.send(JSON.stringify({ type: 'pong' }));
+                    break;
+            }
+        } catch (error) {
+            console.error('WebSocket message error:', error);
+            ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Server error'
+            }));
+        }
+    });
+    
+    ws.on('close', () => {
+        console.log(`WebSocket disconnected: ${connectionId}`);
+        activeConnections.delete(connectionId);
+    });
+    
+    ws.on('error', (error) => {
+        console.error(`WebSocket error for ${connectionId}:`, error);
+        activeConnections.delete(connectionId);
+    });
+});
+
+console.log('WebSocket server running on port 8081');
+
+// Add cleanup on server shutdown
+process.on('SIGTERM', () => {
+    wss.close(() => {
+        console.log('WebSocket server closed');
+    });
+});
+
 app.use(express.static('public'));
 
 // CORS middleware
@@ -1976,11 +2112,152 @@ app._router.stack.forEach(function(r){
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
     console.log(`Server running on http://${HOST}:${PORT}`);
     console.log('Environment variables:');
     console.log('- NODE_ENV:', process.env.NODE_ENV);
     console.log('🔍 MongoDB Connection State:', checkMongoConnection());
+    console.log('WebSocket server is ready on the same port');
+});
+
+// Add this RIGHT AFTER the const server = app.listen(...) line
+
+// Create WebSocket server using the same HTTP server (for Render.com)
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ server });
+
+// Store active WebSocket connections
+const activeConnections = new Map();
+
+// WebSocket connection handler
+wss.on('connection', (ws, req) => {
+    const connectionId = crypto.randomBytes(16).toString('hex');
+    console.log(`New WebSocket connection: ${connectionId}`);
+    
+    // Store connection
+    activeConnections.set(connectionId, {
+        ws,
+        authenticated: false,
+        email: null,
+        language: 'en'
+    });
+    
+    // Send connection acknowledgment
+    ws.send(JSON.stringify({
+        type: 'connection',
+        connectionId,
+        status: 'connected'
+    }));
+    
+    ws.on('message', async (message) => {
+        try {
+            const data = JSON.parse(message);
+            const connection = activeConnections.get(connectionId);
+            
+            switch (data.type) {
+                case 'auth':
+                    // Authenticate desktop client
+                    const { email, activationCode } = data;
+                    const user = await User.findOne({ 
+                        email: email.toLowerCase(),
+                        activationCode: activationCode
+                    });
+                    
+                    if (user && user.isActive && !user.isSubscriptionExpired()) {
+                        connection.authenticated = true;
+                        connection.email = email;
+                        connection.language = user.language || 'en';
+                        
+                        ws.send(JSON.stringify({
+                            type: 'auth',
+                            status: 'success',
+                            language: connection.language,
+                            user: {
+                                firstName: user.firstName,
+                                lastName: user.lastName,
+                                daysRemaining: user.daysUntilExpiration()
+                            }
+                        }));
+                    } else {
+                        ws.send(JSON.stringify({
+                            type: 'auth',
+                            status: 'failed',
+                            message: 'Invalid credentials or expired subscription'
+                        }));
+                    }
+                    break;
+                    
+                case 'startTranscription':
+                    if (!connection.authenticated) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Not authenticated'
+                        }));
+                        return;
+                    }
+                    
+                    // Send ready signal
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionReady',
+                        language: connection.language
+                    }));
+                    break;
+                    
+                case 'transcriptionChunk':
+                    if (!connection.authenticated) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Not authenticated'
+                        }));
+                        return;
+                    }
+                    
+                    // In a real implementation, you would process audio here
+                    // For now, we'll simulate by echoing back the transcript
+                    const { transcript, isFinal } = data;
+                    
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionResult',
+                        transcript,
+                        isFinal
+                    }));
+                    break;
+                    
+                case 'stopTranscription':
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionStopped'
+                    }));
+                    break;
+                    
+                case 'ping':
+                    ws.send(JSON.stringify({ type: 'pong' }));
+                    break;
+            }
+        } catch (error) {
+            console.error('WebSocket message error:', error);
+            ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Server error'
+            }));
+        }
+    });
+    
+    ws.on('close', () => {
+        console.log(`WebSocket disconnected: ${connectionId}`);
+        activeConnections.delete(connectionId);
+    });
+    
+    ws.on('error', (error) => {
+        console.error(`WebSocket error for ${connectionId}:`, error);
+        activeConnections.delete(connectionId);
+    });
+});
+
+// Keep the existing cleanup handler
+process.on('SIGTERM', () => {
+    wss.close(() => {
+        console.log('WebSocket server closed');
+    });
 });
 
 
