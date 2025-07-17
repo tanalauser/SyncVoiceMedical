@@ -1,7 +1,10 @@
 ﻿// Load environment variables
 require('dotenv').config();
 
-
+function calculateValidationEndDate(version, startDate = new Date()) {
+    const daysToAdd = version === 'free' ? 7 : 30;
+    return new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+}
 
 // TEMPORARY FIX - Force production mode
 if (!process.env.NODE_ENV) {
@@ -611,26 +614,30 @@ app.post('/api/send-activation', async (req, res) => {
         
         // Handle paid version first
         if (version === 'paid') {
-            console.log('Processing paid version...');
-            // Create or update user for paid version
-            const userData = {
-                firstName,
-                lastName,
-                email: email.toLowerCase(),
-                version,
-                language,
-                termsAccepted,
-                isActive: false,
-                isPaid: false,
-                updatedAt: new Date(),
-                company: otherData.company,
-                address: otherData.address,
-                addressContinued: otherData.addressContinued,
-                postalCode: otherData.postalCode,
-                city: otherData.city,
-                country: otherData.country,
-                autoRenewal: otherData.autoRenewal
-            };
+    console.log('Processing paid version...');
+    
+    // Create or update user for paid version
+    const userData = {
+        firstName,
+        lastName,
+        email: email.toLowerCase(),
+        version,
+        language,
+        termsAccepted,
+        isActive: false,
+        isPaid: false,
+        updatedAt: new Date(),
+        company: otherData.company,
+        address: otherData.address,
+        addressContinued: otherData.addressContinued,
+        postalCode: otherData.postalCode,
+        city: otherData.city,
+        country: otherData.country,
+        autoRenewal: otherData.autoRenewal,
+        // ADD THESE:
+        validationStartDate: new Date(),
+        validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days for paid
+    };
 
             // Create or update user
             console.log('Looking for existing user...');
@@ -847,7 +854,10 @@ console.log('🔗 Final activation link:', activationLink);
     language,
     termsAccepted,
     isActive: false,
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    // ADD THESE:
+    validationStartDate: new Date(),
+    validationEndDate: expiryDate // For free users, use the 7-day expiry
 };
 
 // Add password for both free and paid users
@@ -864,16 +874,24 @@ if (otherData.password) {
             const existingUser = await User.findOne({ email: email.toLowerCase() });
             
             if (existingUser) {
-                console.log('Updating existing dev user...');
-                // Update existing user
-                Object.assign(existingUser, userData);
-                user = await existingUser.save();
-            } else {
-                console.log('Creating new dev user...');
-                // Create new user
-                user = new User(userData);
-                await user.save();
-            }
+    // Update existing user
+    existingUser.activationCode = activationCode;
+    existingUser.activationCodeExpiry = expiryDate;
+    existingUser.firstName = firstName;
+    existingUser.lastName = lastName;
+    existingUser.language = language;
+    existingUser.termsAccepted = termsAccepted;
+    existingUser.updatedAt = new Date();
+    // ADD THESE if not already present:
+    if (!existingUser.validationStartDate) {
+        existingUser.validationStartDate = existingUser.createdAt || new Date();
+    }
+    if (!existingUser.validationEndDate) {
+        existingUser.validationEndDate = expiryDate;
+    }
+    
+    await existingUser.save();
+}
         } else {
             console.log('Creating new user...');
             // Create new user
@@ -1000,6 +1018,28 @@ console.log('🔗 Generated activation link:', activationLink);
             message: error.message,
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
+    }
+});
+
+app.get('/api/debug-user/:email', async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.params.email.toLowerCase() });
+        if (user) {
+            res.json({
+                email: user.email,
+                version: user.version,
+                isPaid: user.isPaid,
+                isActive: user.isActive,
+                validationStartDate: user.validationStartDate,
+                validationEndDate: user.validationEndDate,
+                daysRemaining: Math.ceil((user.validationEndDate - new Date()) / (1000 * 60 * 60 * 24)),
+                activationCode: user.activationCode
+            });
+        } else {
+            res.status(404).json({ error: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -1213,34 +1253,40 @@ app.post('/api/create-user', async (req, res) => {
         
         // Prepare user data
         const userData = {
-            firstName,
-            lastName,
-            email: email.toLowerCase(),
-            version,
-            language,
-            termsAccepted,
-            isActive: false,
-            updatedAt: new Date()
-        };
+        firstName,
+        lastName,
+        email: email.toLowerCase(),
+        version,
+        language,
+        termsAccepted,
+        isActive: false,
+        updatedAt: new Date(),
+        // ADD THESE:
+        validationStartDate: new Date(),
+        validationEndDate: version === 'free' 
+            ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)  // 7 days for free
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days for paid
+    };
+
 
         // Handle paid version specifics
         if (version === 'paid') {
-            userData.isPaid = true;
-            userData.company = otherData.company;
-            userData.address = otherData.address;
-            userData.addressContinued = otherData.addressContinued;
-            userData.postalCode = otherData.postalCode;
-            userData.city = otherData.city;
-            userData.country = otherData.country;
-            userData.autoRenewal = otherData.autoRenewal;
+        userData.isPaid = true;
+        userData.company = otherData.company;
+        userData.address = otherData.address;
+        userData.addressContinued = otherData.addressContinued;
+        userData.postalCode = otherData.postalCode;
+        userData.city = otherData.city;
+        userData.country = otherData.country;
+        userData.autoRenewal = otherData.autoRenewal;
 
-            // Create Stripe customer
-            const customer = await stripe.customers.create({
-                email: email.toLowerCase(),
-                name: `${firstName} ${lastName}`
-            });
-            userData.stripeCustomerId = customer.id;
-        }
+        // Create Stripe customer
+        const customer = await stripe.customers.create({
+            email: email.toLowerCase(),
+            name: `${firstName} ${lastName}`
+        });
+        userData.stripeCustomerId = customer.id;
+    }
 
         // Log user data before saving
         console.log('User data to be saved:', JSON.stringify(userData, null, 2));
@@ -1363,13 +1409,16 @@ async function handleSuccessfulPayment(paymentIntent) {
             const user = await User.findById(paymentIntent.metadata.userId);
             
             if (user) {
-                user.isPaid = true;
-                user.isActive = true;
-                user.paymentStatus = 'completed';
-                user.lastPaymentDate = new Date();
-                await user.save();
-                console.log(`User ${user.email} marked as paid and active`);
-            }
+        user.isPaid = true;
+        user.isActive = true;
+        user.paymentStatus = 'completed';
+        user.lastPaymentDate = new Date();
+        // ADD THESE:
+        user.validationStartDate = new Date();
+        user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        
+        await user.save();
+    }
         }
     } catch (error) {
         console.error('Error handling successful payment:', error);
@@ -1419,13 +1468,16 @@ async function handleSuccessfulInvoice(invoice) {
             const user = await User.findOne({ stripeCustomerId: invoice.customer });
             
             if (user) {
-                user.isPaid = true;
-                user.isActive = true;
-                user.paymentStatus = 'completed';
-                user.lastPaymentDate = new Date();
-                await user.save();
-                console.log(`Invoice paid for user ${user.email}`);
-            }
+        user.isPaid = true;
+        user.isActive = true;
+        user.paymentStatus = 'completed';
+        user.lastPaymentDate = new Date();
+        // ADD THESE:
+        user.validationStartDate = new Date();
+        user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        
+        await user.save();
+    }
         }
     } catch (error) {
         console.error('Error handling successful invoice:', error);

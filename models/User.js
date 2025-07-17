@@ -63,15 +63,18 @@ const userSchema = new mongoose.Schema({
         required: true
     },
     validationStartDate: {
-        type: Date,
-        default: Date.now
-    },
-    validationEndDate: {
-        type: Date,
-        required: function() {
-            return this.version === 'paid';
-        }
-    },
+    type: Date,
+    default: Date.now,
+    required: true
+},
+validationEndDate: {
+    type: Date,
+    required: true,  // Always required
+    default: function() {
+        // Default to 7 days from now (for free users)
+        return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    }
+},
     
     // Subscription Details
     version: {
