@@ -12,16 +12,29 @@ if (!process.env.NODE_ENV) {
 // *** CRITICAL FIX: Never use localhost in production ***
 // In server.js, update the BASE_URL logic
 const BASE_URL = (function() {
+    // For Render deployment - use the official external URL
+    if (process.env.RENDER_EXTERNAL_URL) {
+        return `https://${process.env.RENDER_EXTERNAL_URL}`;
+    }
+    // Allow manual override via environment variable
     if (process.env.BASE_URL && !process.env.BASE_URL.includes('localhost')) {
         return process.env.BASE_URL;
     }
-    // For Render deployment
-    if (process.env.RENDER_EXTERNAL_URL) {
-        return `https://${process.env.RENDER_EXTERNAL_URL}`;
+    // For local development
+    if (process.env.NODE_ENV === 'development') {
+        return `http://localhost:${process.env.PORT || 8080}`;
     }
     // Default to your Render URL
     return 'https://syncvoicemedical.onrender.com';
 })();
+
+console.log('🌐 Using BASE_URL:', BASE_URL);
+console.log('Environment check:', {
+    NODE_ENV: process.env.NODE_ENV,
+    RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL,
+    BASE_URL_env: process.env.BASE_URL,
+    BASE_URL_final: BASE_URL
+});
 
 console.log('Environment check:', {
     NODE_ENV: process.env.NODE_ENV,
@@ -33,6 +46,7 @@ console.log('🌐 Using BASE_URL:', BASE_URL);
 
 const fs = require('fs');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 
 // server.js or app.js TEST 10062025
 const mongoose = require('mongoose');
@@ -559,6 +573,11 @@ app.get('/test-email', async (req, res) => {
     }
 });
 
+async function hashPassword(password) {
+    const saltRounds = 12;
+    return await bcrypt.hash(password, saltRounds);
+}
+
 // *** FIXED: Send activation code and handle user creation ***
 app.post('/api/send-activation', async (req, res) => {
     console.log('=== SEND-ACTIVATION ROUTE CALLED ===');
@@ -813,17 +832,22 @@ console.log('🔗 Final activation link:', activationLink);
 
         // Prepare user data
         const userData = {
-            firstName,
-            lastName,
-            email: email.toLowerCase(),
-            activationCode,
-            activationCodeExpiry: expiryDate,
-            version,
-            language,
-            termsAccepted,
-            isActive: false,
-            updatedAt: new Date()
-        };
+    firstName,
+    lastName,
+    email: email.toLowerCase(),
+    activationCode,
+    activationCodeExpiry: expiryDate,
+    version,
+    language,
+    termsAccepted,
+    isActive: false,
+    updatedAt: new Date()
+};
+
+// Add password for both free and paid users
+if (otherData.password) {
+    userData.password = await hashPassword(otherData.password);
+}
 
         // Create or update user
         let user;
@@ -1512,31 +1536,93 @@ app.get('/debug-files', (req, res) => {
 // Test login route - accepts any email/password for testing
 app.post('/api/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        
-        // For testing purposes, accept any credentials
-        // In production, you'd validate against a real user database
-        if (email && password) {
-            // Create a fake user ID for testing
-            const testUserId = 'test-' + Date.now();
-            
-            res.json({
-                success: true,
-                message: 'Login successful',
-                userId: testUserId,
-                userEmail: email
-            });
-        } else {
-            res.status(400).json({
+        // CHECK DATABASE CONNECTION FIRST
+        const dbState = checkMongoConnection();
+        if (!dbState.isConnected) {
+            console.error('Database not connected in /api/login');
+            return res.status(503).json({
                 success: false,
-                message: 'Email and password required'
+                message: 'Database connection unavailable'
             });
         }
+
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email and password are required'
+            });
+        }
+
+        // Find user by email
+        const user = await User.findOne({ email: email.toLowerCase() });
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid email or password'
+            });
+        }
+
+        // Check if user has a password (for backward compatibility)
+        if (!user.password) {
+            return res.status(401).json({
+                success: false,
+                message: 'Please complete your account setup. Contact support if needed.'
+            });
+        }
+
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid email or password'
+            });
+        }
+
+        // Check if user account is active
+        if (!user.isActive) {
+            return res.status(401).json({
+                success: false,
+                message: 'Account not activated. Please check your email for activation instructions.'
+            });
+        }
+
+        // Check if subscription is still valid
+        if (user.isSubscriptionExpired()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Your subscription has expired. Please renew to continue.'
+            });
+        }
+
+        // Update login tracking
+        user.loginCount = (user.loginCount || 0) + 1;
+        user.lastLoginAt = new Date();
+        await user.save();
+
+        // Successful login
+        res.json({
+            success: true,
+            message: 'Login successful',
+            userId: user._id.toString(),
+            userEmail: user.email,
+            userInfo: {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                version: user.version,
+                daysRemaining: user.daysUntilExpiration()
+            }
+        });
+
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error'
+            message: 'Server error during login'
         });
     }
 });
@@ -1544,31 +1630,102 @@ app.post('/api/login', async (req, res) => {
 // Test user details route - returns fake user data
 app.get('/api/user-details/:email', async (req, res) => {
     try {
+        // CHECK DATABASE CONNECTION FIRST
+        const dbState = checkMongoConnection();
+        if (!dbState.isConnected) {
+            console.error('Database not connected in /api/user-details');
+            return res.status(503).json({
+                success: false,
+                message: 'Database connection unavailable'
+            });
+        }
+
         const { email } = req.params;
         
-        // Return fake user data for testing
-        const fakeUser = {
-            firstName: 'Test',
-            lastName: 'User',
-            email: email,
-            company: 'Test Company',
-            address: '123 Test Street',
-            postalCode: '12345',
-            city: 'Test City',
-            country: 'France',
-            activationCode: 'ABC123',
-            validationStartDate: new Date(),
-            validationEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-            autoRenewal: false,
-            version: 'free'
+        // Find the user in the database
+        const user = await User.findOne({ email: email.toLowerCase() });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Return real user data
+        const userData = {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            company: user.company || '',
+            address: user.address || '',
+            postalCode: user.postalCode || '',
+            city: user.city || '',
+            country: user.country || '',
+            activationCode: user.activationCode,
+            validationStartDate: user.validationStartDate || user.createdAt,
+            validationEndDate: user.version === 'free' ? user.activationCodeExpiry : user.validationEndDate,
+            autoRenewal: user.autoRenewal || false,
+            version: user.version,
+            isActive: user.isActive,
+            daysRemaining: user.daysUntilExpiration()
         };
         
         res.json({
             success: true,
-            user: fakeUser
+            user: userData
         });
+        
     } catch (error) {
-        console.error('User details error:', error);
+        console.error('Error fetching user details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+});
+
+app.post('/api/forgot-password', async (req, res) => {
+    try {
+        const dbState = checkMongoConnection();
+        if (!dbState.isConnected) {
+            return res.status(503).json({
+                success: false,
+                message: 'Database connection unavailable'
+            });
+        }
+
+        const { email } = req.body;
+        
+        const user = await User.findOne({ email: email.toLowerCase() });
+        
+        if (!user) {
+            // Don't reveal if email exists or not
+            return res.json({
+                success: true,
+                message: 'If an account with that email exists, a password reset link has been sent.'
+            });
+        }
+
+        // Generate new activation code for password reset
+        const resetCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+        const resetExpiry = new Date();
+        resetExpiry.setHours(resetExpiry.getHours() + 1); // 1 hour expiry
+
+        user.activationCode = resetCode;
+        user.activationCodeExpiry = resetExpiry;
+        await user.save();
+
+        // Send password reset email (implement this based on your email system)
+        // ... email sending logic here ...
+
+        res.json({
+            success: true,
+            message: 'If an account with that email exists, a password reset link has been sent.'
+        });
+
+    } catch (error) {
+        console.error('Password reset error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error'

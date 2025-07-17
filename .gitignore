@@ -10,3 +10,4 @@ uploads/
 *.tar
 *.zip
 Doc/*.jpg
+initTestUsers.js

@@ -2,23 +2,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const plan = urlParams.get('plan') || 'free';
-    const urlLang = urlParams.get('lang');
-
-    // Language detection - FIXED to default to French
-    const browserLang = (navigator.language || navigator.userLanguage || '').split('-')[0];
-    let storedLang = null;
-    try {
-        storedLang = localStorage.getItem('selectedLanguage');
-    } catch (e) {
-        console.log('localStorage access error, using fallback');
+    
+    // Use common language detection (assuming languageDetection.js is loaded)
+    let lang;
+    if (typeof detectUserLanguage === 'function') {
+        lang = detectUserLanguage();
+    } else {
+        // Fallback if languageDetection.js is not loaded
+        const urlLang = urlParams.get('lang');
+        const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+        let storedLang = null;
+        try {
+            storedLang = localStorage.getItem('selectedLanguage');
+        } catch (e) {
+            console.log('localStorage access error');
+        }
+        
+        // Check for English variants
+        const isEnglish = browserLang.startsWith('en-') || browserLang === 'en';
+        const browserLangShort = isEnglish ? 'en' : browserLang.split('-')[0];
+        
+        // Priority: URL > stored > browser (with English detection) > English default
+        lang = urlLang || storedLang || browserLangShort || 'en';
+        lang = ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(lang) ? lang : 'en';
     }
-    let lang = urlLang || storedLang || browserLang || 'fr'; // Changed default from 'en' to 'fr'
-    lang = ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(lang) ? lang : 'fr'; // Changed fallback to 'fr'
+    
+    // Save preference
     try {
         localStorage.setItem('selectedLanguage', lang);
     } catch (e) {
-        console.log('localStorage write error, continuing without saving preference');
+        console.log('localStorage write error');
     }
+    
+    console.log('Form page - using language:', lang);
 
     // Get DOM elements
     const form = document.getElementById('registrationForm');
@@ -347,6 +363,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Password translations - ADD THIS SECTION
+const passwordTranslations = {
+    fr: {
+        passwordLabel: 'Mot de passe :',
+        confirmPasswordLabel: 'Confirmer le mot de passe :',
+        passwordHelp: 'Au moins 8 caractères'
+    },
+    en: {
+        passwordLabel: 'Password:',
+        confirmPasswordLabel: 'Confirm Password:',
+        passwordHelp: 'At least 8 characters'
+    },
+    de: {
+        passwordLabel: 'Passwort:',
+        confirmPasswordLabel: 'Passwort bestätigen:',
+        passwordHelp: 'Mindestens 8 Zeichen'
+    },
+    es: {
+        passwordLabel: 'Contraseña:',
+        confirmPasswordLabel: 'Confirmar Contraseña:',
+        passwordHelp: 'Al menos 8 caracteres'
+    },
+    it: {
+        passwordLabel: 'Password:',
+        confirmPasswordLabel: 'Conferma Password:',
+        passwordHelp: 'Almeno 8 caratteri'
+    },
+    pt: {
+        passwordLabel: 'Senha:',
+        confirmPasswordLabel: 'Confirmar Senha:',
+        passwordHelp: 'Pelo menos 8 caracteres'
+    }
+};
+
     // Function to determine API base URL based on environment
     function getApiBaseUrl() {
     const protocol = window.location.protocol;
@@ -438,6 +488,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 label.textContent = text;
             }
         });
+
+
+        const passwordT = passwordTranslations[language] || passwordTranslations.fr;
+    const passwordLabel = document.getElementById('passwordLabel');
+    const confirmPasswordLabel = document.getElementById('confirmPasswordLabel');
+    const passwordHelp = document.getElementById('passwordHelp');
+    
+    if (passwordLabel) passwordLabel.textContent = passwordT.passwordLabel;
+    if (confirmPasswordLabel) confirmPasswordLabel.textContent = passwordT.confirmPasswordLabel;
+    if (passwordHelp) passwordHelp.textContent = passwordT.passwordHelp;
 
         const termsLink = document.getElementById('termsLink');
         const termsAcceptLabel = document.getElementById('termsAcceptLabel');
@@ -592,314 +652,349 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ENHANCED: Form submission handler with better error handling and redirect
     if (form) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            console.log('Form submitted');
-            console.log('Current plan:', plan);
-            console.log('Current language:', lang);
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        console.log('Form submitted');
+        console.log('Current plan:', plan);
+        console.log('Current language:', lang);
 
-            const t = translations[lang] || translations.fr;
-            const originalButtonText = submitButton.textContent;
+        const t = translations[lang] || translations.fr;
+        const originalButtonText = submitButton.textContent;
 
-            try {
-                submitButton.disabled = true;
-                submitButton.textContent = t.loading;
+        try {
+            submitButton.disabled = true;
+            submitButton.textContent = t.loading;
 
-                const formData = new FormData(form);
+            const formData = new FormData(form);
+            
+            // Log form data for debugging
+            console.log('Form data collected:', {
+                firstName: formData.get('prenom'),
+                lastName: formData.get('nom'),
+                email: formData.get('email'),
+                version: plan,
+                language: lang
+            });
+
+            // Validate required fields
+            const email = formData.get('email');
+            const firstName = formData.get('prenom');
+            const lastName = formData.get('nom');
+            const password = formData.get('password');           // ← ADDED
+            const confirmPassword = formData.get('confirmPassword'); // ← ADDED
+            
+            if (!email || !firstName || !lastName) {
+                alert('Please fill in all required fields');
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+                return;
+            }
+
+            // Password validation                                  // ← ADDED SECTION
+            if (!password || password.length < 8) {
+                const passwordErrors = {
+                    fr: 'Le mot de passe doit contenir au moins 8 caractères',
+                    en: 'Password must be at least 8 characters long',
+                    de: 'Das Passwort muss mindestens 8 Zeichen lang sein',
+                    es: 'La contraseña debe tener al menos 8 caracteres',
+                    it: 'La password deve avere almeno 8 caratteri',
+                    pt: 'A senha deve ter pelo menos 8 caracteres'
+                };
+                alert(passwordErrors[lang] || passwordErrors['en']);
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                const matchErrors = {
+                    fr: 'Les mots de passe ne correspondent pas',
+                    en: 'Passwords do not match',
+                    de: 'Passwörter stimmen nicht überein',
+                    es: 'Las contraseñas no coinciden',
+                    it: 'Le password non corrispondono',
+                    pt: 'As senhas não coincidem'
+                };
+                alert(matchErrors[lang] || matchErrors['en']);
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+                return;
+            }
+            // END Password validation                             // ← END ADDED SECTION
+
+            // Check if terms are accepted
+            if (!termsAcceptCheckbox.checked) {
+                alert('Please accept the terms and conditions');
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+                return;
+            }
+
+            // For free plan, first check if email is within trial period
+            if (plan === 'free') {
+                const apiBaseUrl = getApiBaseUrl();
+                const checkEmailUrl = `${apiBaseUrl}/api/check-email`;
                 
-                // Log form data for debugging
-                console.log('Form data collected:', {
-                    firstName: formData.get('prenom'),
-                    lastName: formData.get('nom'),
-                    email: formData.get('email'),
-                    version: plan,
-                    language: lang
-                });
+                try {
+                    const checkResponse = await fetch(checkEmailUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email })
+                    });
 
-                // Validate required fields
-                const email = formData.get('email');
-                const firstName = formData.get('prenom');
-                const lastName = formData.get('nom');
-                
-                if (!email || !firstName || !lastName) {
-                    alert('Please fill in all required fields');
-                    submitButton.disabled = false;
-                    submitButton.textContent = originalButtonText;
-                    return;
-                }
+                    const checkResult = await checkResponse.json();
+                    console.log('Email check result:', checkResult);
 
-                // Check if terms are accepted
-                if (!termsAcceptCheckbox.checked) {
-                    alert('Please accept the terms and conditions');
-                    submitButton.disabled = false;
-                    submitButton.textContent = originalButtonText;
-                    return;
-                }
+                    if (!checkResponse.ok && !checkResult.withinTrial) {
+                        // Show appropriate error message
+                        const errorMessages = {
+                            fr: checkResult.message || 'Cet email a déjà été utilisé pour un essai',
+                            en: checkResult.message || 'This email has already been used for a trial',
+                            de: checkResult.message || 'Diese E-Mail wurde bereits für eine Testversion verwendet',
+                            es: checkResult.message || 'Este correo electrónico ya ha sido utilizado para una prueba',
+                            it: checkResult.message || 'Questa email è già stata utilizzata per una prova',
+                            pt: checkResult.message || 'Este email já foi usado para um teste'
+                        };
+                        
+                        alert(errorMessages[lang] || errorMessages['en']);
+                        submitButton.disabled = false;
+                        submitButton.textContent = originalButtonText;
+                        return;
+                    }
 
-                // For free plan, first check if email is within trial period
-                if (plan === 'free') {
-                    const apiBaseUrl = getApiBaseUrl();
-                    const checkEmailUrl = `${apiBaseUrl}/api/check-email`;
-                    
-                    try {
-                        const checkResponse = await fetch(checkEmailUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ email })
-                        });
-
-                        const checkResult = await checkResponse.json();
-                        console.log('Email check result:', checkResult);
-
-                        if (!checkResponse.ok && !checkResult.withinTrial) {
-                            // Show appropriate error message
-                            const errorMessages = {
-                                fr: checkResult.message || 'Cet email a déjà été utilisé pour un essai',
-                                en: checkResult.message || 'This email has already been used for a trial',
-                                de: checkResult.message || 'Diese E-Mail wurde bereits für eine Testversion verwendet',
-                                es: checkResult.message || 'Este correo electrónico ya ha sido utilizado para una prueba',
-                                it: checkResult.message || 'Questa email è già stata utilizzata per una prova',
-                                pt: checkResult.message || 'Este email já foi usado para um teste'
-                            };
-                            
-                            alert(errorMessages[lang] || errorMessages['en']);
+                    // If within trial, show remaining days
+                    if (checkResult.withinTrial && checkResult.daysRemaining !== undefined) {
+                        const confirmMessages = {
+                            fr: `Vous avez encore ${checkResult.daysRemaining} jours dans votre période d'essai. Voulez-vous recevoir un nouveau code d'activation ?`,
+                            en: `You have ${checkResult.daysRemaining} days remaining in your trial. Would you like to receive a new activation code?`,
+                            de: `Sie haben noch ${checkResult.daysRemaining} Tage in Ihrer Testphase. Möchten Sie einen neuen Aktivierungscode erhalten?`,
+                            es: `Tiene ${checkResult.daysRemaining} días restantes en su prueba. ¿Desea recibir un nuevo código de activación?`,
+                            it: `Hai ancora ${checkResult.daysRemaining} giorni nel tuo periodo di prova. Vuoi ricevere un nuovo codice di attivazione?`,
+                            pt: `Você tem ${checkResult.daysRemaining} dias restantes em seu teste. Gostaria de receber um novo código de ativação?`
+                        };
+                        
+                        if (!confirm(confirmMessages[lang] || confirmMessages['en'])) {
                             submitButton.disabled = false;
                             submitButton.textContent = originalButtonText;
                             return;
                         }
-
-                        // If within trial, show remaining days
-                        if (checkResult.withinTrial && checkResult.daysRemaining !== undefined) {
-                            const confirmMessages = {
-                                fr: `Vous avez encore ${checkResult.daysRemaining} jours dans votre période d'essai. Voulez-vous recevoir un nouveau code d'activation ?`,
-                                en: `You have ${checkResult.daysRemaining} days remaining in your trial. Would you like to receive a new activation code?`,
-                                de: `Sie haben noch ${checkResult.daysRemaining} Tage in Ihrer Testphase. Möchten Sie einen neuen Aktivierungscode erhalten?`,
-                                es: `Tiene ${checkResult.daysRemaining} días restantes en su prueba. ¿Desea recibir un nuevo código de activación?`,
-                                it: `Hai ancora ${checkResult.daysRemaining} giorni nel tuo periodo di prova. Vuoi ricevere un nuovo codice di attivazione?`,
-                                pt: `Você tem ${checkResult.daysRemaining} dias restantes em seu teste. Gostaria de receber um novo código de ativação?`
-                            };
-                            
-                            if (!confirm(confirmMessages[lang] || confirmMessages['en'])) {
-                                submitButton.disabled = false;
-                                submitButton.textContent = originalButtonText;
-                                return;
-                            }
-                        }
-                    } catch (checkError) {
-                        console.error('Error checking email:', checkError);
-                        // Continue with the submission even if check fails
                     }
+                } catch (checkError) {
+                    console.error('Error checking email:', checkError);
+                    // Continue with the submission even if check fails
                 }
+            }
 
-                // Prepare base request data
-                const requestData = {
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    version: plan,
-                    language: lang,
-                    termsAccepted: true
-                };
+            // Prepare base request data
+            const requestData = {
+    firstName: firstName,
+    lastName: lastName,
+    email: email,
+    password: password,  // ← THIS LINE IS ALREADY THERE (line 880)
+    version: plan,
+    language: lang,
+    termsAccepted: true
+};
 
-                // Add currency and amount based on country
-                if (plan === 'paid') {
+            // Add currency and amount based on country
+            if (plan === 'paid') {
+                const countryInput = formData.get('pays') || '';
+                const countryCode = getCountryCode(countryInput);
+                
+                // Determine currency based on country
+                let currency = 'EUR';
+                let amount = 2500;
+                
+                if (countryCode === 'GB' || countryCode === 'UK') {
+                    currency = 'GBP';
+                    amount = 2500; // £25.00
+                } else {
+                    currency = 'EUR';
+                    amount = 2500; // €25.00
+                }
+                
+                requestData.company = formData.get('societe') || '';
+                requestData.address = formData.get('adresse') || '';
+                requestData.addressContinued = formData.get('adresseSuite') || '';
+                requestData.postalCode = formData.get('codePostal') || '';
+                requestData.city = formData.get('ville') || '';
+                requestData.country = formData.get('pays') || '';
+                requestData.autoRenewal = document.getElementById('autoRenewal')?.checked || false;
+                
+                // Include payment information with country-based currency
+                requestData.currency = currency;
+                requestData.amount = amount;
+            }
+
+            console.log('Sending request data:', requestData);
+
+            // Determine API endpoint
+            const apiBaseUrl = getApiBaseUrl();
+            const apiUrl = `${apiBaseUrl}/api/send-activation`;
+
+            // Send activation request
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let result;
+
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                // If not JSON, get text to see what we received
+                const text = await response.text();
+                console.error('Non-JSON response received:', text);
+                throw new Error(`Server returned non-JSON response. Status: ${response.status}. Content: ${text.substring(0, 200)}...`);
+            }
+
+            console.log('API response:', result);
+
+            if (!response.ok) {
+                throw new Error(result.message || `Server error: ${response.status}`);
+            }
+
+            if (result.success) {
+                // Handle successful API response
+                if (result.requiresPayment && plan === 'paid') {
+                    // For paid plan, handle payment
+                    if (!stripe) {
+                        throw new Error('Stripe is not initialized');
+                    }
+
+                    submitButton.textContent = t.processingPayment;
+                    
+                    // Get country code from the country input
                     const countryInput = formData.get('pays') || '';
                     const countryCode = getCountryCode(countryInput);
+                    console.log('Country input:', countryInput, '→ Country code:', countryCode);
                     
-                    // Determine currency based on country
-                    let currency = 'EUR';
-                    let amount = 2500;
-                    
-                    if (countryCode === 'GB' || countryCode === 'UK') {
-                        currency = 'GBP';
-                        amount = 2500; // £25.00
-                    } else {
-                        currency = 'EUR';
-                        amount = 2500; // €25.00
-                    }
-                    
-                    requestData.company = formData.get('societe') || '';
-                    requestData.address = formData.get('adresse') || '';
-                    requestData.addressContinued = formData.get('adresseSuite') || '';
-                    requestData.postalCode = formData.get('codePostal') || '';
-                    requestData.city = formData.get('ville') || '';
-                    requestData.country = formData.get('pays') || '';
-                    requestData.autoRenewal = document.getElementById('autoRenewal')?.checked || false;
-                    
-                    // Include payment information with country-based currency
-                    requestData.currency = currency;
-                    requestData.amount = amount;
-                }
-
-                console.log('Sending request data:', requestData);
-
-                // Determine API endpoint
-                const apiBaseUrl = getApiBaseUrl();
-                const apiUrl = `${apiBaseUrl}/api/send-activation`;
-
-                // Send activation request
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestData)
-                });
-
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-
-                // Check if response is JSON before parsing
-                const contentType = response.headers.get('content-type');
-                let result;
-
-                if (contentType && contentType.includes('application/json')) {
-                    result = await response.json();
-                } else {
-                    // If not JSON, get text to see what we received
-                    const text = await response.text();
-                    console.error('Non-JSON response received:', text);
-                    throw new Error(`Server returned non-JSON response. Status: ${response.status}. Content: ${text.substring(0, 200)}...`);
-                }
-
-                console.log('API response:', result);
-
-                if (!response.ok) {
-                    throw new Error(result.message || `Server error: ${response.status}`);
-                }
-
-                if (result.success) {
-                    // Handle successful API response
-                    if (result.requiresPayment && plan === 'paid') {
-                        // For paid plan, handle payment
-                        if (!stripe) {
-                            throw new Error('Stripe is not initialized');
-                        }
-
-                        submitButton.textContent = t.processingPayment;
+                    // Process the payment with Stripe
+                    try {
+                        console.log('Confirming card payment with client secret:', result.clientSecret);
                         
-                        // Get country code from the country input
-                        const countryInput = formData.get('pays') || '';
-                        const countryCode = getCountryCode(countryInput);
-                        console.log('Country input:', countryInput, '→ Country code:', countryCode);
-                        
-                        // Process the payment with Stripe
-                        try {
-                            console.log('Confirming card payment with client secret:', result.clientSecret);
-                            
-                            const { error, paymentIntent } = await stripe.confirmCardPayment(
-                                result.clientSecret,
-                                {
-                                    payment_method: {
-                                        card: cardElement,
-                                        billing_details: {
-                                            name: `${firstName} ${lastName}`,
-                                            email: email,
-                                            address: {
-                                                line1: requestData.address,
-                                                line2: requestData.addressContinued,
-                                                city: requestData.city,
-                                                postal_code: requestData.postalCode,
-                                                country: countryCode // Use the converted country code
-                                            }
+                        const { error, paymentIntent } = await stripe.confirmCardPayment(
+                            result.clientSecret,
+                            {
+                                payment_method: {
+                                    card: cardElement,
+                                    billing_details: {
+                                        name: `${firstName} ${lastName}`,
+                                        email: email,
+                                        address: {
+                                            line1: requestData.address,
+                                            line2: requestData.addressContinued,
+                                            city: requestData.city,
+                                            postal_code: requestData.postalCode,
+                                            country: countryCode // Use the converted country code
                                         }
                                     }
                                 }
-                            );
+                            }
+                        );
 
-                            if (error) {
-                                console.error('Payment error:', error);
-                                throw new Error(t.paymentError + error.message);
-                            } else {
-                                // Payment succeeded
-                                console.log('Payment successful:', paymentIntent);
-                                alert(t.paymentSuccess);
-                                
-                                // Preserve the 'paid' parameter in the success URL
-                                window.location.href = `success.html?lang=${lang}&paid=true`;
-                            }
-                        } catch (paymentError) {
-                            console.error('Stripe payment error:', paymentError);
-                            throw new Error(t.paymentError + paymentError.message);
+                        if (error) {
+                            console.error('Payment error:', error);
+                            throw new Error(t.paymentError + error.message);
+                        } else {
+                            // Payment succeeded
+                            console.log('Payment successful:', paymentIntent);
+                            alert(t.paymentSuccess);
+                            
+                            // Preserve the 'paid' parameter in the success URL
+                            window.location.href = `success.html?lang=${lang}&paid=true`;
                         }
-                    } else {
-                        // ENHANCED: For free plan, show success message and redirect properly
-                        console.log('Free plan activation successful, preparing redirect...');
-                        
-                        let successMessage = t.activationCodeMessage;
-                        
-                        // Add remaining days info if available
-                        if (result.daysRemaining !== undefined) {
-                            const daysMessages = {
-                                fr: `\n\nVous avez ${result.daysRemaining} jours restants dans votre période d'essai.`,
-                                en: `\n\nYou have ${result.daysRemaining} days remaining in your trial period.`,
-                                de: `\n\nSie haben noch ${result.daysRemaining} Tage in Ihrer Testphase.`,
-                                es: `\n\nTiene ${result.daysRemaining} días restantes en su período de prueba.`,
-                                it: `\n\nHai ${result.daysRemaining} giorni rimanenti nel tuo periodo di prova.`,
-                                pt: `\n\nVocê tem ${result.daysRemaining} dias restantes em seu período de teste.`
-                            };
-                            successMessage += daysMessages[lang] || daysMessages['en'];
-                        }
-                        
-                        alert(successMessage);
-                        
-                        // ENHANCED: Ensure redirect happens with better error handling
-                        console.log('Redirecting to success page...');
-                        const successUrl = `success.html?lang=${lang}`;
-                        console.log('Success URL:', successUrl);
-                        
-                        // Check if success.html exists by trying to navigate
-                        try {
-                            // Force immediate redirect
-                            window.location.replace(successUrl);
-                        } catch (redirectError) {
-                            console.error('Redirect error:', redirectError);
-                            // Fallback: try alternative redirect method
-                            window.location.href = successUrl;
-                        }
-                        
-                        // Additional fallback if redirect still doesn't work
-                        setTimeout(() => {
-                            if (window.location.pathname.includes('form.html')) {
-                                console.warn('Redirect failed, trying alternative...');
-                                // Create a success message in the current page
-                                document.body.innerHTML = `
-                                    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-                                        <h1 style="color: #69B578;">✓ ${lang === 'fr' ? 'Succès!' : 'Success!'}</h1>
-                                        <p style="font-size: 18px; margin: 20px 0;">
-                                            ${t.activationCodeMessage}
-                                        </p>
-                                        <a href="index.html?lang=${lang}" style="display: inline-block; margin-top: 30px; padding: 15px 30px; background: #69B578; color: white; text-decoration: none; border-radius: 5px;">
-                                            ${lang === 'fr' ? 'Retour à l\'accueil' : 'Back to Home'}
-                                        </a>
-                                    </div>
-                                `;
-                            }
-                        }, 2000);
+                    } catch (paymentError) {
+                        console.error('Stripe payment error:', paymentError);
+                        throw new Error(t.paymentError + paymentError.message);
                     }
                 } else {
-                    throw new Error(result.message || 'Unknown error occurred');
+                    // ENHANCED: For free plan, show success message and redirect properly
+                    console.log('Free plan activation successful, preparing redirect...');
+                    
+                    let successMessage = t.activationCodeMessage;
+                    
+                    // Add remaining days info if available
+                    if (result.daysRemaining !== undefined) {
+                        const daysMessages = {
+                            fr: `\n\nVous avez ${result.daysRemaining} jours restants dans votre période d'essai.`,
+                            en: `\n\nYou have ${result.daysRemaining} days remaining in your trial period.`,
+                            de: `\n\nSie haben noch ${result.daysRemaining} Tage in Ihrer Testphase.`,
+                            es: `\n\nTiene ${result.daysRemaining} días restantes en su período de prueba.`,
+                            it: `\n\nHai ${result.daysRemaining} giorni rimanenti nel tuo periodo di prova.`,
+                            pt: `\n\nVocê tem ${result.daysRemaining} dias restantes em seu período de teste.`
+                        };
+                        successMessage += daysMessages[lang] || daysMessages['en'];
+                    }
+                    
+                    alert(successMessage);
+                    
+                    // ENHANCED: Ensure redirect happens with better error handling
+                    console.log('Redirecting to success page...');
+                    const successUrl = `success.html?lang=${lang}`;
+                    console.log('Success URL:', successUrl);
+                    
+                    // Check if success.html exists by trying to navigate
+                    try {
+                        // Force immediate redirect
+                        window.location.replace(successUrl);
+                    } catch (redirectError) {
+                        console.error('Redirect error:', redirectError);
+                        // Fallback: try alternative redirect method
+                        window.location.href = successUrl;
+                    }
+                    
+                    // Additional fallback if redirect still doesn't work
+                    setTimeout(() => {
+                        if (window.location.pathname.includes('form.html')) {
+                            console.warn('Redirect failed, trying alternative...');
+                            // Create a success message in the current page
+                            document.body.innerHTML = `
+                                <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+                                    <h1 style="color: #69B578;">✓ ${lang === 'fr' ? 'Succès!' : 'Success!'}</h1>
+                                    <p style="font-size: 18px; margin: 20px 0;">
+                                        ${t.activationCodeMessage}
+                                    </p>
+                                    <a href="index.html?lang=${lang}" style="display: inline-block; margin-top: 30px; padding: 15px 30px; background: #69B578; color: white; text-decoration: none; border-radius: 5px;">
+                                        ${lang === 'fr' ? 'Retour à l\'accueil' : 'Back to Home'}
+                                    </a>
+                                </div>
+                            `;
+                        }
+                    }, 2000);
                 }
-            } catch (error) {
-                console.error('Form Submission Error:', error);
-                
-                // Show user-friendly error messages
-                const errorMessages = {
-                    fr: error.message || 'Une erreur est survenue',
-                    en: error.message || 'An error occurred',
-                    de: error.message || 'Ein Fehler ist aufgetreten',
-                    es: error.message || 'Ocurrió un error',
-                    it: error.message || 'Si è verificato un errore',
-                    pt: error.message || 'Ocorreu um erro'
-                };
-                
-                alert(errorMessages[lang] || errorMessages['en']);
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = originalButtonText;
+            } else {
+                throw new Error(result.message || 'Unknown error occurred');
             }
-        });
-    }
+        } catch (error) {
+            console.error('Form Submission Error:', error);
+            
+            // Show user-friendly error messages
+            const errorMessages = {
+                fr: error.message || 'Une erreur est survenue',
+                en: error.message || 'An error occurred',
+                de: error.message || 'Ein Fehler ist aufgetreten',
+                es: error.message || 'Ocurrió un error',
+                it: error.message || 'Si è verificato un errore',
+                pt: error.message || 'Ocorreu um erro'
+            };
+            
+            alert(errorMessages[lang] || errorMessages['en']);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+        }
+    });
+}
 });

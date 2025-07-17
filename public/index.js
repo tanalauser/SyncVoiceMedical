@@ -235,27 +235,38 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Fixed language detection that defaults to French
-    function detectBrowserLanguage() {
-        console.log('Detecting browser language...');
-        
-        // Get browser language
-        const browserLang = navigator.language || navigator.userLanguage;
-        console.log('Browser language:', browserLang);
-        
-        // Extract language code (e.g., 'en' from 'en-US')
-        const langCode = browserLang.split('-')[0].toLowerCase();
-        
-        // Check if we support this language
-        const supportedLanguages = Object.keys(translations);
-        
-        // If we support the browser language, use it
-        if (supportedLanguages.includes(langCode)) {
-            return langCode;
-        }
-        
-        // Default to French for European/unrecognized locales
-        return 'fr';
+    // Here's the complete updated section for index.js
+// Replace from line ~280 (detectBrowserLanguage function) to the end of the file
+
+function detectBrowserLanguage() {
+    console.log('Detecting browser language...');
+    
+    // Get browser language and convert to lowercase
+    const browserLang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+    console.log('Browser language:', browserLang);
+    
+    // IMPORTANT: Check for English variants FIRST
+    // This includes en-GB, en-US, en-AU, etc.
+    if (browserLang === 'en' || browserLang.startsWith('en-')) {
+        console.log('Detected English variant, returning: en');
+        return 'en';
     }
+    
+    // Extract the base language code (e.g., 'fr' from 'fr-FR')
+    const langCode = browserLang.split('-')[0];
+    
+    // Check if we support this language
+    const supportedLanguages = Object.keys(translations);
+    
+    if (supportedLanguages.includes(langCode)) {
+        console.log('Found supported language:', langCode);
+        return langCode;
+    }
+    
+    // Default to ENGLISH (not French) for any unrecognized language
+    console.log('Unrecognized language, defaulting to English');
+    return 'en';  // ← CHANGED: Default to English instead of French
+}
 
     function updateBrowserTable(lang) {
         const content = translations[lang];
@@ -392,14 +403,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set up language change listener
     if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            updateContent(this.value);
-            // Update URL with new language parameter
-            const url = new URL(window.location);
-            url.searchParams.set('lang', this.value);
-            window.history.replaceState({}, '', url);
-        });
-    }
+    languageSelect.addEventListener('change', function() {
+        const newLang = this.value;
+        
+        // Update content
+        updateContent(newLang);
+        
+        // Save preference
+        try {
+            localStorage.setItem('selectedLanguage', newLang);
+        } catch (e) {
+            console.log('Could not save language preference');
+        }
+        
+        // Update URL
+        const url = new URL(window.location);
+        url.searchParams.set('lang', newLang);
+        window.history.replaceState({}, '', url);
+    });
+}
 
     // Initialize language with better priority system:
     // 1. URL parameter (highest priority)
@@ -409,45 +431,54 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // First check URL parameter
     selectedLanguage = urlParams.get('lang');
+    console.log('URL lang param:', selectedLanguage);
     
     // If no URL parameter, check localStorage
     if (!selectedLanguage) {
-        try {
-            selectedLanguage = localStorage.getItem('selectedLanguage');
-        } catch (e) {
-            // localStorage not available
-        }
+    try {
+        selectedLanguage = localStorage.getItem('selectedLanguage');
+        console.log('Stored language:', selectedLanguage);
+    } catch (e) {
+        console.log('localStorage not available');
     }
+}
     
     // If still no language, use browser detection with French default
     if (!selectedLanguage) {
-        selectedLanguage = detectBrowserLanguage();
-    }
+    selectedLanguage = detectBrowserLanguage();
+    console.log('Browser detected language:', selectedLanguage);
+}
     
     // Ensure we have a supported language, fallback to French
     const supportedLanguages = Object.keys(translations);
-    if (!supportedLanguages.includes(selectedLanguage)) {
-        selectedLanguage = 'fr';
-    }
-    
-    console.log('Final selected language:', selectedLanguage);
+if (!supportedLanguages.includes(selectedLanguage)) {
+    console.log('Invalid language, defaulting to English');
+    selectedLanguage = 'en';
+}
+
+console.log('Final selected language:', selectedLanguage);
+
+// Store the selected language
+try {
+    localStorage.setItem('selectedLanguage', selectedLanguage);
+} catch (e) {
+    console.log('Could not save language preference');
+}
+
     updateContent(selectedLanguage);
 
     // Fix login button event listener - ensure it's properly attached
-    if (elements.loginBtn) {
-        // Remove any existing listeners first
-        const newLoginBtn = elements.loginBtn.cloneNode(true);
-        elements.loginBtn.parentNode.replaceChild(newLoginBtn, elements.loginBtn);
+    const currentLanguage = selectedLanguage;
+if (elements.loginBtn) {
+    elements.loginBtn.addEventListener('click', function(e) {
+        e.preventDefault();
         
-        // Add click event to the new button
-        newLoginBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Login button clicked, redirecting to login.html with lang:', selectedLanguage);
-            window.location.href = `login.html?lang=${selectedLanguage}`;
-        });
+        // Get the CURRENT language from the dropdown
+        const languageDropdown = document.getElementById('language-select');
+        const currentLang = languageDropdown.value;
         
-        console.log('Login button listener attached');
-    } else {
-        console.error('Login button not found! Check if element with class .login-btn exists');
-    }
+        console.log('Login button clicked, current language from dropdown:', currentLang);
+        window.location.href = `login.html?lang=${currentLang}`;
+    });
+}
 });
