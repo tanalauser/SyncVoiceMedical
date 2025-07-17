@@ -216,6 +216,55 @@ app.use((req, res, next) => {
     next();
 });
 
+app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+    let event;
+
+    try {
+        const signature = req.headers['stripe-signature'];
+        
+        if (!signature) {
+            return res.status(400).json({ error: 'Stripe signature missing' });
+        }
+
+        event = stripe.webhooks.constructEvent(
+            req.body,
+            signature,
+            process.env.STRIPE_WEBHOOK_SECRET
+        );
+    } catch (err) {
+        console.error('Webhook signature verification failed:', err.message);
+        return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    }
+
+    // Handle specific events
+    try {
+        switch (event.type) {
+            case 'payment_intent.succeeded':
+                const paymentIntent = event.data.object;
+                await handleSuccessfulPayment(paymentIntent);
+                break;
+            case 'payment_intent.payment_failed':
+                const failedPayment = event.data.object;
+                await handleFailedPayment(failedPayment);
+                break;
+            case 'invoice.payment_succeeded':
+                const invoice = event.data.object;
+                await handleSuccessfulInvoice(invoice);
+                break;
+            case 'customer.subscription.updated':
+            case 'customer.subscription.deleted':
+                const subscription = event.data.object;
+                await handleSubscriptionChange(subscription);
+                break;
+        }
+
+        res.json({received: true});
+    } catch (error) {
+        console.error('Webhook processing error:', error);
+        res.status(500).json({ error: 'Webhook processing error' });
+    }
+});
+
 // Body parser middleware - MUST come before routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -1343,54 +1392,7 @@ app.get('/reset-trials', async (req, res) => {
 });
 
 // Stripe webhook
-app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
-    let event;
 
-    try {
-        const signature = req.headers['stripe-signature'];
-        
-        if (!signature) {
-            return res.status(400).json({ error: 'Stripe signature missing' });
-        }
-
-        event = stripe.webhooks.constructEvent(
-            req.body,
-            signature,
-            process.env.STRIPE_WEBHOOK_SECRET
-        );
-    } catch (err) {
-        console.error('Webhook signature verification failed:', err.message);
-        return res.status(400).json({ error: `Webhook Error: ${err.message}` });
-    }
-
-    // Handle specific events
-    try {
-        switch (event.type) {
-            case 'payment_intent.succeeded':
-                const paymentIntent = event.data.object;
-                await handleSuccessfulPayment(paymentIntent);
-                break;
-            case 'payment_intent.payment_failed':
-                const failedPayment = event.data.object;
-                await handleFailedPayment(failedPayment);
-                break;
-            case 'invoice.payment_succeeded':
-                const invoice = event.data.object;
-                await handleSuccessfulInvoice(invoice);
-                break;
-            case 'customer.subscription.updated':
-            case 'customer.subscription.deleted':
-                const subscription = event.data.object;
-                await handleSubscriptionChange(subscription);
-                break;
-        }
-
-        res.json({received: true});
-    } catch (error) {
-        console.error('Webhook processing error:', error);
-        res.status(500).json({ error: 'Webhook processing error' });
-    }
-});
 
 async function handleSuccessfulPayment(paymentIntent) {
     try {
@@ -1401,7 +1403,6 @@ async function handleSuccessfulPayment(paymentIntent) {
             return;
         }
         
-        // Implement payment success logic
         console.log('Payment successful:', paymentIntent.id);
         
         // Find the user by metadata
@@ -1409,16 +1410,85 @@ async function handleSuccessfulPayment(paymentIntent) {
             const user = await User.findById(paymentIntent.metadata.userId);
             
             if (user) {
-        user.isPaid = true;
-        user.isActive = true;
-        user.paymentStatus = 'completed';
-        user.lastPaymentDate = new Date();
-        // ADD THESE:
-        user.validationStartDate = new Date();
-        user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        
-        await user.save();
-    }
+                // Generate activation code if not already set
+                if (!user.activationCode) {
+                    user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+                }
+                
+                // Update user status
+                user.isPaid = true;
+                user.isActive = true;
+                user.paymentStatus = 'completed';
+                user.lastPaymentDate = new Date();
+                user.validationStartDate = new Date();
+                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                
+                await user.save();
+                console.log(`User ${user.email} marked as paid and active`);
+                
+                // SEND ACTIVATION EMAIL
+                const lang = user.language || 'en';
+                const t = messages[lang] || messages.en;
+                
+                try {
+                    // Create activation link
+                    let activationLink = `${BASE_URL}/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    
+                    // Safety check
+                    if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
+                        activationLink = `https://syncvoicemedical.onrender.com/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    }
+                    
+                    console.log('Sending activation email for paid user:', user.email);
+                    
+                    // Create transporter
+                    const transporter = await createTransporter();
+                    
+                    // Email content
+                    const mailOptions = {
+                        from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                        to: user.email,
+                        subject: t.subject,
+                        html: `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        </head>
+                        <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
+                            <p style="margin: 40px 0; font-size: 24px; color: #333333;">
+                                ${t.greeting} ${user.firstName} ${user.lastName},
+                            </p>
+                            <div style="text-align: center;">
+                                <p style="margin: 20px 0; color: #666666;">
+                                    ${t.thankyou}<br>
+                                    ${t.clickToActivate}
+                                </p>
+                                <p style="margin: 20px 0; color: #69B578; font-weight: bold;">
+                                    Your payment was successful! You now have 30 days of access.
+                                </p>
+                                <div style="margin: 20px 0;">
+                                    <a href="${activationLink}"
+                                       style="display: inline-block; background-color: #69B578; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; font-family: monospace; font-size: 24px; font-weight: bold;">
+                                        ${user.activationCode}
+                                    </a>
+                                </div>
+                            </div>
+                        </body>
+                        </html>`
+                    };
+                    
+                    // Send email
+                    await transporter.sendMail(mailOptions);
+                    console.log('Activation email sent successfully to:', user.email);
+                    
+                } catch (emailError) {
+                    console.error('Error sending activation email:', emailError);
+                    // Don't throw - payment was successful even if email fails
+                }
+            }
         }
     } catch (error) {
         console.error('Error handling successful payment:', error);
@@ -1461,23 +1531,86 @@ async function handleSuccessfulInvoice(invoice) {
             return;
         }
         
-        // Process successful invoice payment
         console.log('Invoice payment successful:', invoice.id);
         
         if (invoice.customer) {
             const user = await User.findOne({ stripeCustomerId: invoice.customer });
             
             if (user) {
-        user.isPaid = true;
-        user.isActive = true;
-        user.paymentStatus = 'completed';
-        user.lastPaymentDate = new Date();
-        // ADD THESE:
-        user.validationStartDate = new Date();
-        user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        
-        await user.save();
-    }
+                // Generate activation code if not already set
+                if (!user.activationCode) {
+                    user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                }
+                
+                // Update user status
+                user.isPaid = true;
+                user.isActive = true;
+                user.paymentStatus = 'completed';
+                user.lastPaymentDate = new Date();
+                user.validationStartDate = new Date();
+                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                
+                await user.save();
+                console.log(`Invoice paid for user ${user.email}`);
+                
+                // SEND ACTIVATION EMAIL (same logic as above)
+                const lang = user.language || 'en';
+                const t = messages[lang] || messages.en;
+                
+                try {
+                    // Create activation link
+                    let activationLink = `${BASE_URL}/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    
+                    if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
+                        activationLink = `https://syncvoicemedical.onrender.com/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    }
+                    
+                    console.log('Sending activation email for paid user (invoice):', user.email);
+                    
+                    const transporter = await createTransporter();
+                    
+                    const mailOptions = {
+                        from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                        to: user.email,
+                        subject: t.subject,
+                        html: `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        </head>
+                        <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
+                            <p style="margin: 40px 0; font-size: 24px; color: #333333;">
+                                ${t.greeting} ${user.firstName} ${user.lastName},
+                            </p>
+                            <div style="text-align: center;">
+                                <p style="margin: 20px 0; color: #666666;">
+                                    ${t.thankyou}<br>
+                                    ${t.clickToActivate}
+                                </p>
+                                <p style="margin: 20px 0; color: #69B578; font-weight: bold;">
+                                    Your payment was successful! You now have 30 days of access.
+                                </p>
+                                <div style="margin: 20px 0;">
+                                    <a href="${activationLink}"
+                                       style="display: inline-block; background-color: #69B578; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; font-family: monospace; font-size: 24px; font-weight: bold;">
+                                        ${user.activationCode}
+                                    </a>
+                                </div>
+                            </div>
+                        </body>
+                        </html>`
+                    };
+                    
+                    await transporter.sendMail(mailOptions);
+                    console.log('Activation email sent successfully to:', user.email);
+                    
+                } catch (emailError) {
+                    console.error('Error sending activation email:', emailError);
+                }
+            }
         }
     } catch (error) {
         console.error('Error handling successful invoice:', error);
