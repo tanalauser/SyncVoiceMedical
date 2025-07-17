@@ -14,7 +14,13 @@ if (!process.env.NODE_ENV) {
 const BASE_URL = (function() {
     // For Render deployment - use the official external URL
     if (process.env.RENDER_EXTERNAL_URL) {
-        return `https://${process.env.RENDER_EXTERNAL_URL}`;
+        // Check if the URL already has a protocol
+        const renderUrl = process.env.RENDER_EXTERNAL_URL;
+        if (renderUrl.startsWith('http://') || renderUrl.startsWith('https://')) {
+            return renderUrl;
+        } else {
+            return `https://${renderUrl}`;
+        }
     }
     // Allow manual override via environment variable
     if (process.env.BASE_URL && !process.env.BASE_URL.includes('localhost')) {

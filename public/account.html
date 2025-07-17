@@ -47,17 +47,27 @@
             margin: 2rem 0;
         }
         .activation-code {
-            font-family: monospace;
-            font-size: 2rem;
-            color: #69B578;
-            font-weight: bold;
-            padding: 1rem;
-            background: white;
-            border: 2px solid #69B578;
-            border-radius: 8px;
-            display: inline-block;
-            margin-top: 1rem;
-        }
+    font-family: monospace;
+    font-size: 2rem;
+    color: #69B578;
+    font-weight: bold;
+    padding: 1rem;
+    background: white;
+    border: 2px solid #69B578;
+    border-radius: 8px;
+    display: inline-block;
+    margin-top: 1rem;
+    cursor: pointer;            /* Add this */
+    transition: all 0.3s ease;  /* Add this */
+    text-decoration: none;      /* Add this */
+}
+
+.activation-code:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(105, 181, 120, 0.3);
+    background: #69B578;
+    color: white;
+}
         .logout-btn {
             background: #dc3545;
             color: white;
@@ -88,7 +98,7 @@
             <div class="activation-code-box">
                 <h2 id="activationCodeTitle">Votre code d'activation</h2>
                 <p id="activationCodeDesc">Utilisez ce code pour lancer l'application SyncVoice Medical:</p>
-                <div class="activation-code" id="activationCode">Loading...</div>
+                <a href="#" class="activation-code" id="activationCode">Loading...</a>
             </div>
 
             <div class="account-details" id="accountDetails">
@@ -303,7 +313,20 @@
                     const user = data.user;
                     
                     // Display activation code
-                    document.getElementById('activationCode').textContent = user.activationCode;
+                    // Display activation code as clickable link
+const activationCodeElement = document.getElementById('activationCode');
+activationCodeElement.textContent = user.activationCode;
+
+// Set the href for the activation link
+const activationUrl = `/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+activationCodeElement.href = activationUrl;
+
+// Add click event for better control
+activationCodeElement.addEventListener('click', (e) => {
+    e.preventDefault();
+    console.log('Navigating to app with activation code:', user.activationCode);
+    window.location.href = activationUrl;
+});
 
                     // Format dates
                     const formatDate = (dateString) => {
