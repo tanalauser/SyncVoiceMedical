@@ -14,7 +14,7 @@
     "medical",
     "healthcare"
   ],
-  "author": "Your Name",
+  "author": "Nicolas Tanala",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -27,7 +27,8 @@
     "mongodb": "^2.2.12",
     "mongoose": "^8.16.4",
     "nodemailer": "^7.0.3",
-    "stripe": "^17.7.0"
+    "stripe": "^17.7.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
