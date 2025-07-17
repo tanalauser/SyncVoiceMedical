@@ -108,16 +108,6 @@ console.log('Crypto module loaded:', typeof crypto);
 const app = express();
 
 
-
-console.log('WebSocket server running on port 8081');
-
-// Add cleanup on server shutdown
-process.on('SIGTERM', () => {
-    wss.close(() => {
-        console.log('WebSocket server closed');
-    });
-});
-
 app.use(express.static('public'));
 
 // CORS middleware
@@ -892,19 +882,19 @@ console.log('🔗 Final activation link:', activationLink);
         console.log('About to generate activation code...');
         
         let activationCode;
-        try {
-            activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-            console.log('Code generated successfully:', activationCode);
-        } catch (genError) {
-            console.error('Error generating code:', genError);
-            throw genError;
-        }
-        
-        const expiryDate = getExpiryDate();
-        console.log('Generated activation code:', activationCode);
+try {
+    activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    console.log('Code generated successfully:', activationCode);
+} catch (genError) {
+    console.error('Error generating code:', genError);
+    throw genError;
+}
 
-        // Prepare user data
-        const userData = {
+const expiryDate = getExpiryDate();
+console.log('Generated activation code:', activationCode);
+
+// Prepare user data
+const userData = {
     firstName,
     lastName,
     email: email.toLowerCase(),
@@ -915,9 +905,8 @@ console.log('🔗 Final activation link:', activationLink);
     termsAccepted,
     isActive: false,
     updatedAt: new Date(),
-    // ADD THESE:
     validationStartDate: new Date(),
-    validationEndDate: expiryDate // For free users, use the 7-day expiry
+    validationEndDate: expiryDate
 };
 
 // Add password for both free and paid users
@@ -925,44 +914,56 @@ if (otherData.password) {
     userData.password = await hashPassword(otherData.password);
 }
 
-        // Create or update user
-        let user;
-        // Check if email is in bypass list
-        if (DEV_EMAILS.includes(email.toLowerCase())) {
-            console.log('Processing dev email...');
-            // For bypass emails, first check if user exists
-            const existingUser = await User.findOne({ email: email.toLowerCase() });
-            
-            if (existingUser) {
-    // Update existing user
-    existingUser.activationCode = activationCode;
-    existingUser.activationCodeExpiry = expiryDate;
-    existingUser.firstName = firstName;
-    existingUser.lastName = lastName;
-    existingUser.language = language;
-    existingUser.termsAccepted = termsAccepted;
-    existingUser.updatedAt = new Date();
-    // ADD THESE if not already present:
-    if (!existingUser.validationStartDate) {
-        existingUser.validationStartDate = existingUser.createdAt || new Date();
-    }
-    if (!existingUser.validationEndDate) {
-        existingUser.validationEndDate = expiryDate;
-    }
-    
-    await existingUser.save();
-}
-        } else {
-            console.log('Creating new user...');
-            // Create new user
-            user = new User(userData);
-            await user.save();
-        }
+// *** ADD THIS LINE ***
+let user;
 
-        // Verify user was created/updated successfully
-        if (!user) {
-            throw new Error('Failed to create or update user');
+        // Create or update user
+        if (DEV_EMAILS.includes(email.toLowerCase())) {
+    console.log('Processing dev email...');
+    // For bypass emails, first check if user exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    
+    if (existingUser) {
+        // Update existing user
+        existingUser.activationCode = activationCode;
+        existingUser.activationCodeExpiry = expiryDate;
+        existingUser.firstName = firstName;
+        existingUser.lastName = lastName;
+        existingUser.language = language;
+        existingUser.termsAccepted = termsAccepted;
+        existingUser.updatedAt = new Date();
+        
+        // Add password if provided
+        if (otherData.password) {
+            existingUser.password = await hashPassword(otherData.password);
         }
+        
+        // ADD THESE if not already present:
+        if (!existingUser.validationStartDate) {
+            existingUser.validationStartDate = existingUser.createdAt || new Date();
+        }
+        if (!existingUser.validationEndDate) {
+            existingUser.validationEndDate = expiryDate;
+        }
+        
+        await existingUser.save();
+        console.log('Existing dev user updated successfully');
+        
+        // *** FIX: Assign the updated user to the user variable ***
+        user = existingUser;
+    } else {
+        // Create new dev user
+        console.log('Creating new dev user...');
+        user = new User(userData);
+        await user.save();
+        console.log('New dev user created successfully');
+    }
+} else {
+    console.log('Creating new user...');
+    // Create new user
+    user = new User(userData);
+    await user.save();
+}
         console.log('User saved successfully with ID:', user._id);
 
         // FIXED: Create activation link using global BASE_URL
