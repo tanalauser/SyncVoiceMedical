@@ -758,15 +758,61 @@ function ensureCleanStart() {
         }
     }
 
-    // Check microphone access function
+    // Enhanced microphone access function
     async function checkMicrophoneAccess() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // First check if we're on HTTPS (required for getUserMedia)
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                console.error('HTTPS required for microphone access');
+                throw new Error('HTTPS required');
+            }
+            
+            // Check if getUserMedia is available
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error('getUserMedia not supported');
+                throw new Error('getUserMedia not supported');
+            }
+            
+            // Request microphone permission with specific constraints
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                } 
+            });
+            
+            // Log audio track info
+            const audioTracks = stream.getAudioTracks();
+            console.log('Audio tracks:', audioTracks.length);
+            audioTracks.forEach(track => {
+                console.log('Track:', {
+                    label: track.label,
+                    enabled: track.enabled,
+                    muted: track.muted,
+                    readyState: track.readyState
+                });
+            });
+            
             // Microphone access granted, close the stream
             stream.getTracks().forEach(track => track.stop());
             return true;
         } catch (error) {
             console.error('Microphone access error:', error);
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            
+            // Provide specific error messages
+            if (error.name === 'NotAllowedError') {
+                showNotification('Microphone permission denied. Please allow microphone access and refresh the page.', 'error');
+            } else if (error.name === 'NotFoundError') {
+                showNotification('No microphone found. Please connect a microphone and refresh the page.', 'error');
+            } else if (error.message === 'HTTPS required') {
+                showNotification('This site must be accessed via HTTPS to use the microphone.', 'error');
+            } else {
+                showNotification('Microphone access failed: ' + error.message, 'error');
+            }
+            
             return false;
         }
     }
@@ -865,53 +911,71 @@ function ensureCleanStart() {
             
             console.log('Using SpeechRecognition API:', SpeechRecognition === window.SpeechRecognition ? 'Standard' : 'Webkit');
         
-            
-            
-            // Handle recognition start
-            // FIXED: Simple result handler that actually works
-// FIXED: Simple result handler that actually works
-recognitionInstance.onresult = function(event) {
-    console.log('=== SPEECH RECOGNITION RESULT ===');
-    console.log('Result index:', event.resultIndex, 'Results length:', event.results.length);
-    
-    // Process all results from resultIndex onwards
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        
-        if (result.isFinal) {
-            const transcript = result[0].transcript.trim();
-            
-            if (transcript) {
-                console.log(`Final transcript: "${transcript}"`);
+            // FIXED: Add the missing onstart handler
+            recognitionInstance.onstart = function() {
+                console.log('=== SPEECH RECOGNITION STARTED ===');
+                console.log('Recognition started at:', new Date().toISOString());
                 
-                // Add the transcript
-                if (templateMode) {
-                    processTemplateTranscript(transcript);
-                } else {
-                    // Add to textarea with proper spacing
-                    if (transcriptionText.value && !transcriptionText.value.endsWith(' ')) {
-                        transcriptionText.value += ' ';
-                    }
-                    transcriptionText.value += transcript;
-                    
-                    // Auto-scroll
-                    transcriptionText.scrollTop = transcriptionText.scrollHeight;
+                // Clear any startup timeout since we've successfully started
+                if (window.recognitionStartupTimeout) {
+                    clearTimeout(window.recognitionStartupTimeout);
+                    window.recognitionStartupTimeout = null;
                 }
-            }
-        } else {
-            // Log interim results for debugging
-            console.log('Interim result:', result[0].transcript);
-        }
-    }
-};
+                
+                // Clear the starting flag and hide countdown
+                isStarting = false;
+                countdownOverlay.style.display = 'none';
+                countdownNumber.style.display = 'block';
+                
+                // IMPORTANT: Update button states
+                enableRecordingButtons();
+                
+                console.log('Speech recognition is now active and listening');
+            };
+            
+            // Handle recognition results
+            recognitionInstance.onresult = function(event) {
+                console.log('=== SPEECH RECOGNITION RESULT ===');
+                console.log('Result index:', event.resultIndex, 'Results length:', event.results.length);
+                
+                // Process all results from resultIndex onwards
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    
+                    if (result.isFinal) {
+                        const transcript = result[0].transcript.trim();
+                        
+                        if (transcript) {
+                            console.log(`Final transcript: "${transcript}"`);
+                            
+                            // Add the transcript
+                            if (templateMode) {
+                                processTemplateTranscript(transcript);
+                            } else {
+                                // Add to textarea with proper spacing
+                                if (transcriptionText.value && !transcriptionText.value.endsWith(' ')) {
+                                    transcriptionText.value += ' ';
+                                }
+                                transcriptionText.value += transcript;
+                                
+                                // Auto-scroll
+                                transcriptionText.scrollTop = transcriptionText.scrollHeight;
+                            }
+                        }
+                    } else {
+                        // Log interim results for debugging
+                        console.log('Interim result:', result[0].transcript);
+                    }
+                }
+            };
 
         
             // Enhanced error handling
             recognitionInstance.onerror = function(event) {
-    console.error('=== SPEECH RECOGNITION ERROR ===');
-    console.error('Error type:', event.error);
-    console.error('Error message:', event.message);
-    console.error('Full event:', event);
+                console.error('=== SPEECH RECOGNITION ERROR ===');
+                console.error('Error type:', event.error);
+                console.error('Error message:', event.message);
+                console.error('Full event:', event);
                 
                 // Clear any pending startup timeout
                 if (window.recognitionStartupTimeout) {
@@ -1102,13 +1166,28 @@ recognitionInstance.onresult = function(event) {
 
     // Function to show countdown before starting recognition
     function startWithCountdown() {
+        console.log('=== PRODUCTION DEBUG START ===');
+        console.log('Current URL:', window.location.href);
+        console.log('Protocol:', window.location.protocol);
+        console.log('User Agent:', navigator.userAgent);
+        console.log('Secure Context:', window.isSecureContext);
+        
+        // Check Web Speech API availability
+        console.log('SpeechRecognition available:', 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+        
+        // Check media devices
+        console.log('MediaDevices available:', !!navigator.mediaDevices);
+        console.log('getUserMedia available:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+        
         const t = translations[currentLang] || translations.en;
         
         // Ensure clean state before starting
         resetRecognitionState();
         
-        // Check microphone access first
+        // Check microphone access first with detailed logging
         checkMicrophoneAccess().then(hasAccess => {
+            console.log('Microphone access check result:', hasAccess);
+            
             if (!hasAccess) {
                 const lang = currentLang || 'en';
                 const messages = {
@@ -1194,17 +1273,45 @@ recognitionInstance.onresult = function(event) {
                             };
                             const lang = currentLang || 'en';
                             showNotification(errorMessages[lang] || errorMessages['en'], 'error');
-                        }, 5000); // 5 second timeout
+                        }, 10000); // Increased from 5000 to 10000 (10 seconds)
                         
                         // Try to start recognition with enhanced error handling
                         try {
                             console.log('Calling recognition.start()...');
                             recognition.start();
-                            isRecording = true;
+                            
+                            // Don't set isRecording to true yet - wait for onstart event
                             console.log('recognition.start() called successfully');
                             
-                            // Note: The actual UI update happens in the onstart event handler
-                            // This prevents the UI from updating before recognition actually starts
+                            // Add an additional check after a short delay
+                            setTimeout(() => {
+                                // If we haven't received onstart event yet, try to detect if recognition is actually running
+                                if (isStarting && !isRecording) {
+                                    console.warn('Recognition may not have started properly - no onstart event received');
+                                    
+                                    // Try to trigger a manual state check
+                                    if (recognition) {
+                                        try {
+                                            // Some browsers might already be recording without firing onstart
+                                            // Force enable buttons if we detect this condition
+                                            console.log('Forcing button state update due to missing onstart event');
+                                            isStarting = false;
+                                            isRecording = true;
+                                            countdownOverlay.style.display = 'none';
+                                            countdownNumber.style.display = 'block';
+                                            enableRecordingButtons();
+                                            
+                                            // Clear the timeout since we're handling it manually
+                                            if (window.recognitionStartupTimeout) {
+                                                clearTimeout(window.recognitionStartupTimeout);
+                                                window.recognitionStartupTimeout = null;
+                                            }
+                                        } catch (e) {
+                                            console.error('Error in fallback handler:', e);
+                                        }
+                                    }
+                                }
+                            }, 2000); // Check after 2 seconds
                             
                         } catch (startError) {
                             console.error('Error starting recognition:', startError);
@@ -1261,6 +1368,9 @@ recognitionInstance.onresult = function(event) {
                 const lang = currentLang || 'en';
                 showNotification(generalErrorMessages[lang] || generalErrorMessages['en'], 'error');
             }
+        }).catch(error => {
+            console.error('Microphone access check failed:', error);
+            resetButtons();
         });
     }
 
@@ -2592,4 +2702,4 @@ setTimeout(debugSpeechRecognition, 1000);
             }
         }
     });
-// Force redeploy 07/15/2025 22:59:51
+// Force redeploy 07/16/2025

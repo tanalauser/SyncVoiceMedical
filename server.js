@@ -31,8 +31,6 @@ console.log('Environment check:', {
 
 console.log('🌐 Using BASE_URL:', BASE_URL);
 
-
-
 const fs = require('fs');
 const crypto = require('crypto');
 
@@ -112,6 +110,7 @@ app.use((req, res, next) => {
         "connect-src 'self' https:; " +
         "img-src 'self' data: https:; " +
         "style-src 'self' 'unsafe-inline' https:; " +
+        "media-src 'self' blob: mediastream:; " +  // ← ADD THIS LINE
         "object-src 'none'; " +
         "base-uri 'self';"
     );
@@ -1635,6 +1634,7 @@ app.listen(PORT, HOST, () => {
     console.log('- NODE_ENV:', process.env.NODE_ENV);
     console.log('🔍 MongoDB Connection State:', checkMongoConnection());
 });
+
 
 // Export only the app - remove the conflicting module.exports
 module.exports = app;
