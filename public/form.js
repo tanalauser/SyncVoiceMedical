@@ -1,12 +1,13 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const plan = urlParams.get('plan') || 'free';
     
-    // Use common language detection (assuming languageDetection.js is loaded)
+    // Use shared language detection module
     let lang;
-    if (typeof detectUserLanguage === 'function') {
-        lang = detectUserLanguage();
+    if (typeof LanguageDetection !== 'undefined' && LanguageDetection.detectLanguage) {
+        lang = await LanguageDetection.detectLanguage();
+        console.log('Form: Using shared language detection:', lang);
     } else {
         // Fallback if languageDetection.js is not loaded
         const urlLang = urlParams.get('lang');
@@ -18,20 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('localStorage access error');
         }
         
-        // Check for English variants
-        const isEnglish = browserLang.startsWith('en-') || browserLang === 'en';
-        const browserLangShort = isEnglish ? 'en' : browserLang.split('-')[0];
+        // Extract the base language code
+        const langCode = browserLang.split('-')[0];
         
-        // Priority: URL > stored > browser (with English detection) > English default
-        lang = urlLang || storedLang || browserLangShort || 'en';
-        lang = ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(lang) ? lang : 'en';
-    }
-    
-    // Save preference
-    try {
-        localStorage.setItem('selectedLanguage', lang);
-    } catch (e) {
-        console.log('localStorage write error');
+        // Priority: URL > stored > browser > French default
+        lang = urlLang || storedLang || langCode || 'fr';
+        lang = ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(lang) ? lang : 'fr';
+        
+        // Save preference
+        try {
+            localStorage.setItem('selectedLanguage', lang);
+        } catch (e) {
+            console.log('localStorage write error');
+        }
     }
     
     console.log('Form page - using language:', lang);
@@ -700,7 +700,7 @@ const passwordTranslations = {
                     it: 'La password deve avere almeno 8 caratteri',
                     pt: 'A senha deve ter pelo menos 8 caracteres'
                 };
-                alert(passwordErrors[lang] || passwordErrors['en']);
+                alert(passwordErrors[lang] || passwordErrors['fr']);
                 submitButton.disabled = false;
                 submitButton.textContent = originalButtonText;
                 return;
@@ -715,7 +715,7 @@ const passwordTranslations = {
                     it: 'Le password non corrispondono',
                     pt: 'As senhas não coincidem'
                 };
-                alert(matchErrors[lang] || matchErrors['en']);
+                alert(matchErrors[lang] || matchErrors['fr']);
                 submitButton.disabled = false;
                 submitButton.textContent = originalButtonText;
                 return;
@@ -758,7 +758,7 @@ const passwordTranslations = {
                             pt: checkResult.message || 'Este email já foi usado para um teste'
                         };
                         
-                        alert(errorMessages[lang] || errorMessages['en']);
+                        alert(errorMessages[lang] || errorMessages['fr']);
                         submitButton.disabled = false;
                         submitButton.textContent = originalButtonText;
                         return;
@@ -775,7 +775,7 @@ const passwordTranslations = {
                             pt: `Você tem ${checkResult.daysRemaining} dias restantes em seu teste. Gostaria de receber um novo código de ativação?`
                         };
                         
-                        if (!confirm(confirmMessages[lang] || confirmMessages['en'])) {
+                        if (!confirm(confirmMessages[lang] || confirmMessages['fr'])) {
                             submitButton.disabled = false;
                             submitButton.textContent = originalButtonText;
                             return;
@@ -935,7 +935,7 @@ const passwordTranslations = {
                             it: `\n\nHai ${result.daysRemaining} giorni rimanenti nel tuo periodo di prova.`,
                             pt: `\n\nVocê tem ${result.daysRemaining} dias restantes em seu período de teste.`
                         };
-                        successMessage += daysMessages[lang] || daysMessages['en'];
+                        successMessage += daysMessages[lang] || daysMessages['fr'];
                     }
                     
                     alert(successMessage);
@@ -990,7 +990,7 @@ const passwordTranslations = {
                 pt: error.message || 'Ocorreu um erro'
             };
             
-            alert(errorMessages[lang] || errorMessages['en']);
+            alert(errorMessages[lang] || errorMessages['fr']);
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = originalButtonText;

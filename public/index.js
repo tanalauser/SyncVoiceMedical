@@ -1,4 +1,5 @@
-document.addEventListener('DOMContentLoaded', function() {
+// index.js - Complete file with all original functionality using the shared languageDetection.js module
+document.addEventListener('DOMContentLoaded', async function() {
     const languageSelect = document.getElementById('language-select');
     const urlParams = new URLSearchParams(window.location.search);
 
@@ -234,39 +235,129 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Fixed language detection that defaults to French
-    // Here's the complete updated section for index.js
-// Replace from line ~280 (detectBrowserLanguage function) to the end of the file
+    // Country to language mapping (ONLY IF languageDetection.js is not available)
+    // This is kept as a fallback - primary detection should come from the shared module
+    const countryToLanguage = {
+        'FR': 'fr', // France
+        'BE': 'fr', // Belgium (French part)
+        'CH': 'fr', // Switzerland (French part)
+        'CA': 'fr', // Canada (French part)
+        'LU': 'fr', // Luxembourg
+        'MC': 'fr', // Monaco
+        'GB': 'en', // United Kingdom
+        'US': 'en', // United States
+        'AU': 'en', // Australia
+        'NZ': 'en', // New Zealand
+        'IE': 'en', // Ireland
+        'DE': 'de', // Germany
+        'AT': 'de', // Austria
+        'ES': 'es', // Spain
+        'MX': 'es', // Mexico
+        'AR': 'es', // Argentina
+        'CO': 'es', // Colombia
+        'IT': 'it', // Italy
+        'PT': 'pt', // Portugal
+        'BR': 'pt', // Brazil
+    };
 
-function detectBrowserLanguage() {
-    console.log('Detecting browser language...');
-    
-    // Get browser language and convert to lowercase
-    const browserLang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
-    console.log('Browser language:', browserLang);
-    
-    // IMPORTANT: Check for English variants FIRST
-    // This includes en-GB, en-US, en-AU, etc.
-    if (browserLang === 'en' || browserLang.startsWith('en-')) {
-        console.log('Detected English variant, returning: en');
-        return 'en';
+    // Fallback language detection functions (ONLY IF languageDetection.js is not loaded)
+    async function fallbackDetectCountryLanguage() {
+        try {
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+            
+            console.log('Fallback geolocation data:', data);
+            
+            if (data.country_code) {
+                const countryCode = data.country_code.toUpperCase();
+                const language = countryToLanguage[countryCode];
+                
+                if (language && translations[language]) {
+                    console.log(`Fallback detected country: ${countryCode}, setting language to: ${language}`);
+                    return language;
+                }
+            }
+        } catch (error) {
+            console.log('Fallback geolocation detection failed:', error);
+        }
+        
+        return null;
     }
-    
-    // Extract the base language code (e.g., 'fr' from 'fr-FR')
-    const langCode = browserLang.split('-')[0];
-    
-    // Check if we support this language
-    const supportedLanguages = Object.keys(translations);
-    
-    if (supportedLanguages.includes(langCode)) {
-        console.log('Found supported language:', langCode);
-        return langCode;
+
+    function fallbackDetectBrowserLanguage() {
+        console.log('Fallback detecting browser language...');
+        
+        const browserLang = (navigator.language || navigator.userLanguage || 'fr').toLowerCase();
+        console.log('Fallback browser language:', browserLang);
+        
+        const langCode = browserLang.split('-')[0];
+        const supportedLanguages = Object.keys(translations);
+        
+        if (supportedLanguages.includes(langCode)) {
+            console.log('Fallback found supported language:', langCode);
+            return langCode;
+        }
+        
+        console.log('Fallback unrecognized language, defaulting to French');
+        return 'fr';
     }
-    
-    // Default to ENGLISH (not French) for any unrecognized language
-    console.log('Unrecognized language, defaulting to English');
-    return 'en';  // ← CHANGED: Default to English instead of French
-}
+
+    async function detectLanguage() {
+        // Check if the shared LanguageDetection module is available
+        if (typeof LanguageDetection !== 'undefined' && LanguageDetection.detectLanguage) {
+            console.log('Using shared LanguageDetection module');
+            return await LanguageDetection.detectLanguage();
+        }
+        
+        console.log('LanguageDetection module not found, using fallback');
+        
+        // Fallback detection logic
+        let selectedLanguage;
+        
+        // 1. Check URL parameter
+        selectedLanguage = urlParams.get('lang');
+        console.log('URL lang param:', selectedLanguage);
+        
+        // 2. Check localStorage
+        if (!selectedLanguage) {
+            try {
+                selectedLanguage = localStorage.getItem('selectedLanguage');
+                console.log('Stored language:', selectedLanguage);
+            } catch (e) {
+                console.log('localStorage not available');
+            }
+        }
+        
+        // 3. Try country detection
+        if (!selectedLanguage) {
+            selectedLanguage = await fallbackDetectCountryLanguage();
+            console.log('Country detected language:', selectedLanguage);
+        }
+        
+        // 4. Use browser language
+        if (!selectedLanguage) {
+            selectedLanguage = fallbackDetectBrowserLanguage();
+            console.log('Browser detected language:', selectedLanguage);
+        }
+        
+        // Ensure we have a supported language
+        const supportedLanguages = Object.keys(translations);
+        if (!supportedLanguages.includes(selectedLanguage)) {
+            console.log('Invalid language, defaulting to French');
+            selectedLanguage = 'fr';
+        }
+
+        console.log('Final selected language:', selectedLanguage);
+
+        // Store the selected language
+        try {
+            localStorage.setItem('selectedLanguage', selectedLanguage);
+        } catch (e) {
+            console.log('Could not save language preference');
+        }
+
+        return selectedLanguage;
+    }
 
     function updateBrowserTable(lang) {
         const content = translations[lang];
@@ -321,7 +412,7 @@ function detectBrowserLanguage() {
     }
 
     function updateContent(lang) {
-        const content = translations[lang];
+        const content = translations[lang] || translations['fr'];
         
         // Update language label
         if (elements.languageLabel) {
@@ -394,91 +485,57 @@ function detectBrowserLanguage() {
             console.log('Could not save language preference');
         }
         
+        // Update document language
         document.documentElement.lang = lang;
 
+        // Update language selector
         if (languageSelect) {
             languageSelect.value = lang;
         }
     }
 
+    // Initialize with language detection
+    const currentLanguage = await detectLanguage();
+    updateContent(currentLanguage);
+
     // Set up language change listener
     if (languageSelect) {
-    languageSelect.addEventListener('change', function() {
-        const newLang = this.value;
-        
-        // Update content
-        updateContent(newLang);
-        
-        // Save preference
-        try {
-            localStorage.setItem('selectedLanguage', newLang);
-        } catch (e) {
-            console.log('Could not save language preference');
-        }
-        
-        // Update URL
-        const url = new URL(window.location);
-        url.searchParams.set('lang', newLang);
-        window.history.replaceState({}, '', url);
-    });
-}
-
-    // Initialize language with better priority system:
-    // 1. URL parameter (highest priority)
-    // 2. localStorage (if available)
-    // 3. Browser language detection (with French as default)
-    let selectedLanguage;
-    
-    // First check URL parameter
-    selectedLanguage = urlParams.get('lang');
-    console.log('URL lang param:', selectedLanguage);
-    
-    // If no URL parameter, check localStorage
-    if (!selectedLanguage) {
-    try {
-        selectedLanguage = localStorage.getItem('selectedLanguage');
-        console.log('Stored language:', selectedLanguage);
-    } catch (e) {
-        console.log('localStorage not available');
+        languageSelect.addEventListener('change', function() {
+            const newLang = this.value;
+            
+            // Update content
+            updateContent(newLang);
+            
+            // Save preference
+            try {
+                localStorage.setItem('selectedLanguage', newLang);
+            } catch (e) {
+                console.log('Could not save language preference');
+            }
+            
+            // Update URL
+            const url = new URL(window.location);
+            url.searchParams.set('lang', newLang);
+            window.history.replaceState({}, '', url);
+            
+            // If shared module is available, use it to switch language
+            if (typeof LanguageDetection !== 'undefined' && LanguageDetection.switchLanguage) {
+                LanguageDetection.switchLanguage(newLang);
+            }
+        });
     }
-}
-    
-    // If still no language, use browser detection with French default
-    if (!selectedLanguage) {
-    selectedLanguage = detectBrowserLanguage();
-    console.log('Browser detected language:', selectedLanguage);
-}
-    
-    // Ensure we have a supported language, fallback to French
-    const supportedLanguages = Object.keys(translations);
-if (!supportedLanguages.includes(selectedLanguage)) {
-    console.log('Invalid language, defaulting to English');
-    selectedLanguage = 'en';
-}
 
-console.log('Final selected language:', selectedLanguage);
-
-// Store the selected language
-try {
-    localStorage.setItem('selectedLanguage', selectedLanguage);
-} catch (e) {
-    console.log('Could not save language preference');
-}
-
-    updateContent(selectedLanguage);
-
-    // Fix login button event listener - ensure it's properly attached
-    const currentLanguage = selectedLanguage;
-if (elements.loginBtn) {
-    elements.loginBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Get the CURRENT language from the dropdown
-        const languageDropdown = document.getElementById('language-select');
-        const currentLang = languageDropdown.value;
-        
-        console.log('Login button clicked, current language from dropdown:', currentLang);
-        window.location.href = `login.html?lang=${currentLang}`;
-    });
-}
+    // Fix login button event listener
+    if (elements.loginBtn) {
+        elements.loginBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Get the CURRENT language from the dropdown
+            const languageDropdown = document.getElementById('language-select');
+            const currentLang = languageDropdown.value;
+            
+            console.log('Login button clicked, current language from dropdown:', currentLang);
+            window.location.href = `login.html?lang=${currentLang}`;
+        });
+    }
 });

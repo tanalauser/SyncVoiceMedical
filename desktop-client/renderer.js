@@ -51,6 +51,207 @@ elements.languageSelect.value = config.language;
 elements.serverUrlInput.value = config.serverUrl;
 elements.insertMethodSelect.value = config.insertMethod;
 
+
+
+class WebSocketManager {
+  constructor(config) {
+    this.config = config;
+    this.ws = null;
+    this.reconnectTimer = null;
+    this.reconnectDelay = 1000;
+    this.maxReconnectDelay = 30000;
+    this.reconnectDecay = 1.5;
+  }
+
+  connect() {
+    if (this.ws?.readyState === WebSocket.OPEN) return;
+    
+    try {
+      this.ws = new WebSocket(this.config.serverUrl);
+      this.setupEventHandlers();
+    } catch (error) {
+      this.scheduleReconnect();
+    }
+  }
+
+  scheduleReconnect() {
+    if (this.reconnectTimer) return;
+    
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, this.reconnectDelay);
+    
+    // Exponential backoff
+    this.reconnectDelay = Math.min(
+      this.reconnectDelay * this.reconnectDecay,
+      this.maxReconnectDelay
+    );
+  }
+
+  setupEventHandlers() {
+    this.ws.onopen = () => {
+      this.reconnectDelay = 1000; // Reset delay
+      // ... rest of onopen handler
+    };
+    
+    this.ws.onclose = () => {
+      this.scheduleReconnect();
+    };
+  }
+}
+
+
+function createRecordingOverlay() {
+  const overlay = new BrowserWindow({
+    width: 200,
+    height: 60,
+    x: screen.width - 220,
+    y: 20,
+    frame: false,
+    alwaysOnTop: true,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    focusable: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+  
+  overlay.loadFile('recording-overlay.html');
+  overlay.setIgnoreMouseEvents(true);
+  return overlay;
+}
+
+
+class VoiceActivityDetector {
+  constructor(threshold = -50, silenceDelay = 2000) {
+    this.threshold = threshold;
+    this.silenceDelay = silenceDelay;
+    this.silenceTimer = null;
+    this.audioContext = new AudioContext();
+    this.analyser = this.audioContext.createAnalyser();
+  }
+
+  async init(stream) {
+    const source = this.audioContext.createMediaStreamSource(stream);
+    source.connect(this.analyser);
+    this.analyser.fftSize = 2048;
+    this.startMonitoring();
+  }
+
+  startMonitoring() {
+    const bufferLength = this.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    const checkAudio = () => {
+      if (!this.monitoring) return;
+      
+      this.analyser.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+      const db = 20 * Math.log10(average / 255);
+      
+      if (db > this.threshold) {
+        // Voice detected, clear silence timer
+        if (this.silenceTimer) {
+          clearTimeout(this.silenceTimer);
+          this.silenceTimer = null;
+        }
+      } else {
+        // Silence detected, start timer
+        if (!this.silenceTimer) {
+          this.silenceTimer = setTimeout(() => {
+            this.onSilenceDetected?.();
+          }, this.silenceDelay);
+        }
+      }
+      
+      requestAnimationFrame(checkAudio);
+    };
+    
+    this.monitoring = true;
+    checkAudio();
+  }
+}
+
+
+// 6. Add keyboard shortcuts for text manipulation
+const textCommands = {
+  'new paragraph': () => '\n\n',
+  'new line': () => '\n',
+  'comma': () => ', ',
+  'period': () => '. ',
+  'question mark': () => '? ',
+  'exclamation': () => '! ',
+  'colon': () => ': ',
+  'semicolon': () => '; ',
+  'open quote': () => '"',
+  'close quote': () => '"',
+  'open paren': () => '(',
+  'close paren': () => ')'
+};
+
+// Process voice commands in transcription
+function processVoiceCommands(transcript) {
+  let processed = transcript;
+  
+  for (const [command, replacement] of Object.entries(textCommands)) {
+    const regex = new RegExp(`\\b${command}\\b`, 'gi');
+    processed = processed.replace(regex, replacement());
+  }
+  
+  return processed;
+}
+
+// 7. Add medical terminology shortcuts
+const medicalShortcuts = {
+  'bp': 'blood pressure',
+  'hr': 'heart rate',
+  'rr': 'respiratory rate',
+  'temp': 'temperature',
+  'ox sat': 'oxygen saturation',
+  'mg': 'milligrams',
+  'ml': 'milliliters',
+  'po': 'by mouth',
+  'prn': 'as needed',
+  'bid': 'twice daily',
+  'tid': 'three times daily',
+  'qid': 'four times daily'
+};
+
+// 8. Add secure credential storage (instead of localStorage)
+const keytar = require('keytar');
+
+async function saveCredentials(email, activationCode) {
+  await keytar.setPassword('SyncVoiceMedical', email, activationCode);
+}
+
+async function getCredentials(email) {
+  return await keytar.getPassword('SyncVoiceMedical', email);
+}
+
+// 9. Add better error handling and user feedback
+function showErrorDialog(title, message, details) {
+  const { dialog } = require('electron');
+  
+  dialog.showMessageBox({
+    type: 'error',
+    title: title,
+    message: message,
+    detail: details,
+    buttons: ['OK', 'Report Issue'],
+  }).then(result => {
+    if (result.response === 1) {
+      // Open issue reporter
+      shell.openExternal('https://syncvoicemedical.com/support');
+    }
+  });
+}
+
+
+
 // WebSocket connection
 function connectWebSocket() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -104,6 +305,8 @@ function connectWebSocket() {
         updateStatus('error', 'Failed to connect');
     }
 }
+
+
 
 // Handle WebSocket messages
 function handleWebSocketMessage(data) {

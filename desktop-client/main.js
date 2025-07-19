@@ -5,6 +5,20 @@ let mainWindow = null;
 let tray = null;
 let isRecording = false;
 
+// 1. Add auto-updater support in main.js
+const { autoUpdater } = require('electron-updater');
+
+// Configure auto-updater
+autoUpdater.checkForUpdatesAndNotify();
+
+// 2. Add error reporting
+const { crashReporter } = require('electron');
+crashReporter.start({
+  submitURL: 'https://your-error-reporting-url.com',
+  productName: 'SyncVoice Medical Desktop',
+  uploadToServer: true
+});
+
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
 

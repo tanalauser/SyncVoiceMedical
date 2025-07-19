@@ -1,14 +1,21 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Check browser compatibility first
     checkBrowserCompatibility();
     
     // Add browser recommendation banner for Firefox users
     addBrowserRecommendationBanner();
-});
-
-    // Get URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentLang = urlParams.get('lang') || 'en'; // Default to English if no language specified
+    
+    // Get language using shared module
+    let currentLang;
+    if (typeof LanguageDetection !== 'undefined' && LanguageDetection.detectLanguage) {
+        currentLang = await LanguageDetection.detectLanguage();
+        console.log('AppForm: Using shared language detection:', currentLang);
+    } else {
+        // Fallback if languageDetection.js is not loaded
+        const urlParams = new URLSearchParams(window.location.search);
+        currentLang = urlParams.get('lang') || 'fr'; // Default to French as per your requirements
+        console.log('AppForm: Fallback language detection:', currentLang);
+    }
 
     // Update HTML lang attribute
     document.documentElement.lang = currentLang;
@@ -454,8 +461,8 @@ function ensureCleanStart() {
                     pt: 'O Firefox tem suporte limitado para reconhecimento de voz. Para a melhor experiência, recomendamos Chrome, Edge ou Safari.'
                 };
                 
-                const lang = currentLang || 'en';
-                showNotification(warningMessages[lang] || warningMessages['en'], 'warning');
+                const lang = currentLang || 'fr';
+                showNotification(warningMessages[lang] || warningMessages['fr'], 'warning');
             }
         }
         
@@ -469,8 +476,8 @@ function ensureCleanStart() {
                 pt: 'Seu navegador não suporta reconhecimento de voz. Use Chrome, Edge ou Safari.'
             };
             
-            const lang = currentLang || 'en';
-            alert(messages[lang] || messages['en']);
+            const lang = currentLang || 'fr';
+            alert(messages[lang] || messages['fr']);
             
             // Disable the start button
             if (startButton) {
@@ -499,15 +506,15 @@ function ensureCleanStart() {
                 it: 'Questo sito deve essere accessibile tramite HTTPS per utilizzare il microfono.',
                 pt: 'Este site deve ser acessado via HTTPS para usar o microfone.'
             };
-            const lang = currentLang || 'en';
-            showNotification(messages[lang] || messages['en'], 'warning');
+            const lang = currentLang || 'fr';
+            showNotification(messages[lang] || messages['fr'], 'warning');
         }
         
         return true;
     }
 
     function showFirefoxInstructions() {
-        const lang = currentLang || 'en';
+        const lang = currentLang || 'fr';
         
         const instructions = {
             fr: {
@@ -614,7 +621,7 @@ function ensureCleanStart() {
             }
         };
         
-        const instr = instructions[lang] || instructions['en'];
+        const instr = instructions[lang] || instructions['fr'];
         
         // Create a detailed modal/overlay with instructions
         const overlay = document.createElement('div');
@@ -706,7 +713,7 @@ function ensureCleanStart() {
     // Add a browser recommendation banner at the top of the page
     function addBrowserRecommendationBanner() {
         if (/Firefox/.test(navigator.userAgent)) {
-            const lang = currentLang || 'en';
+            const lang = currentLang || 'fr';
             const messages = {
                 fr: '🔊 Pour une meilleure expérience de transcription vocale, nous recommandons Chrome, Edge ou Safari.',
                 en: '🔊 For the best voice transcription experience, we recommend Chrome, Edge, or Safari.',
@@ -729,7 +736,7 @@ function ensureCleanStart() {
                 z-index: 9999;
                 font-size: 14px;
             `;
-            banner.textContent = messages[lang] || messages['en'];
+            banner.textContent = messages[lang] || messages['fr'];
             
             const closeBtn = document.createElement('button');
             closeBtn.textContent = '✕';
@@ -892,7 +899,7 @@ function ensureCleanStart() {
             // Configure recognition
             recognitionInstance.continuous = true;
             recognitionInstance.interimResults = true;
-            recognitionInstance.lang = languageMap[currentLang] || 'en-US';
+            recognitionInstance.lang = languageMap[currentLang] || 'fr-FR';
             recognitionInstance.maxAlternatives = 1;
             
             // Add Firefox-specific configuration if detected
@@ -1037,9 +1044,9 @@ function ensureCleanStart() {
                 
                 // Get the appropriate error message
                 const errorType = event.error;
-                const lang = currentLang || 'en';
+                const lang = currentLang || 'fr';
                 const errorMessageSet = errorMessages[errorType] || errorMessages['no-speech'];
-                const errorMessage = errorMessageSet[lang] || errorMessageSet['en'];
+                const errorMessage = errorMessageSet[lang] || errorMessageSet['fr'];
                 
                 // Handle startup errors specially (Android compatibility)
                 if (isStarting) {
@@ -1059,7 +1066,7 @@ function ensureCleanStart() {
                             it: 'Impossibile avviare il riconoscimento vocale. Il dispositivo potrebbe non supportare questa funzione.',
                             pt: 'Não é possível iniciar o reconhecimento de voz. Seu dispositivo pode não suportar este recurso.'
                         };
-                        showNotification(startupErrorMessages[lang] || startupErrorMessages['en'], 'error');
+                        showNotification(startupErrorMessages[lang] || startupErrorMessages['fr'], 'error');
                     }
                     resetButtons();
                     return;
@@ -1117,8 +1124,8 @@ function ensureCleanStart() {
                         it: 'Impossibile avviare il riconoscimento vocale. Riprova.',
                         pt: 'Falha ao iniciar o reconhecimento de voz. Tente novamente.'
                     };
-                    const lang = currentLang || 'en';
-                    showNotification(startupFailureMessages[lang] || startupFailureMessages['en'], 'error');
+                    const lang = currentLang || 'fr';
+                    showNotification(startupFailureMessages[lang] || startupFailureMessages['fr'], 'error');
                     return;
                 }
                 
@@ -1141,8 +1148,8 @@ function ensureCleanStart() {
                                     it: 'Errore nel riprendere il riconoscimento vocale.',
                                     pt: 'Erro ao retomar o reconhecimento de voz.'
                                 };
-                                const lang = currentLang || 'en';
-                                showNotification(restartErrorMessages[lang] || restartErrorMessages['en'], 'error');
+                                const lang = currentLang || 'fr';
+                                showNotification(restartErrorMessages[lang] || restartErrorMessages['fr'], 'error');
                             }
                         }
                     }, 300); // Increased delay for better Android compatibility
@@ -1179,7 +1186,7 @@ function ensureCleanStart() {
         console.log('MediaDevices available:', !!navigator.mediaDevices);
         console.log('getUserMedia available:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
         
-        const t = translations[currentLang] || translations.en;
+        const t = translations[currentLang] || translations.fr;
         
         // Ensure clean state before starting
         resetRecognitionState();
@@ -1189,7 +1196,7 @@ function ensureCleanStart() {
             console.log('Microphone access check result:', hasAccess);
             
             if (!hasAccess) {
-                const lang = currentLang || 'en';
+                const lang = currentLang || 'fr';
                 const messages = {
                     fr: 'Veuillez autoriser l\'accès au microphone pour utiliser la transcription vocale.',
                     en: 'Please allow microphone access to use voice transcription.',
@@ -1198,7 +1205,7 @@ function ensureCleanStart() {
                     it: 'Consentire l\'accesso al microfono per utilizzare la trascrizione vocale.',
                     pt: 'Por favor, permita o acesso ao microfone para usar a transcrição de voz.'
                 };
-                showNotification(messages[lang] || messages['en'], 'error');
+                showNotification(messages[lang] || messages['fr'], 'error');
                 resetButtons();
                 return;
             }
@@ -1248,7 +1255,7 @@ function ensureCleanStart() {
                         clearInterval(countdownInterval);
                         
                         // Update to "Getting ready..." message
-                        countdownText.textContent = t.gettingReady || "Getting ready...";
+                        countdownText.textContent = t.gettingReady || "Préparation...";
                         countdownNumber.style.display = 'none';
                         
                         // FIXED: Better Android compatibility for speech recognition startup
@@ -1271,8 +1278,8 @@ function ensureCleanStart() {
                                 it: 'Impossibile avviare il riconoscimento vocale. Riprova.',
                                 pt: 'Não foi possível iniciar o reconhecimento de voz. Tente novamente.'
                             };
-                            const lang = currentLang || 'en';
-                            showNotification(errorMessages[lang] || errorMessages['en'], 'error');
+                            const lang = currentLang || 'fr';
+                            showNotification(errorMessages[lang] || errorMessages['fr'], 'error');
                         }, 10000); // Increased from 5000 to 10000 (10 seconds)
                         
                         // Try to start recognition with enhanced error handling
@@ -1338,8 +1345,8 @@ function ensureCleanStart() {
                                 it: 'Errore nell\'avvio del riconoscimento vocale. Controlla le impostazioni.',
                                 pt: 'Erro ao iniciar o reconhecimento de voz. Verifique suas configurações.'
                             };
-                            const lang = currentLang || 'en';
-                            showNotification(startErrorMessages[lang] || startErrorMessages['en'], 'error');
+                            const lang = currentLang || 'fr';
+                            showNotification(startErrorMessages[lang] || startErrorMessages['fr'], 'error');
                         }
                     }
                 }, 1000);
@@ -1365,8 +1372,8 @@ function ensureCleanStart() {
                     it: 'Si è verificato un errore durante l\'inizializzazione. Riprova.',
                     pt: 'Ocorreu um erro durante a inicialização. Tente novamente.'
                 };
-                const lang = currentLang || 'en';
-                showNotification(generalErrorMessages[lang] || generalErrorMessages['en'], 'error');
+                const lang = currentLang || 'fr';
+                showNotification(generalErrorMessages[lang] || generalErrorMessages['fr'], 'error');
             }
         }).catch(error => {
             console.error('Microphone access check failed:', error);
@@ -2509,7 +2516,9 @@ function ensureCleanStart() {
     // Quit button functionality
     quitButton.addEventListener('click', () => {
         if (confirm(translations[currentLang].confirmQuit)) {
-            window.close();
+            // If using shared module, get language param
+            const langParam = typeof LanguageDetection !== 'undefined' ? LanguageDetection.getLanguageParam() : `lang=${currentLang}`;
+            window.location.href = `index.html?${langParam}`;
         }
     });
 
@@ -2702,4 +2711,5 @@ setTimeout(debugSpeechRecognition, 1000);
             }
         }
     });
+});
 // Force redeploy 07/16/2025
