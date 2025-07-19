@@ -1,7 +1,26 @@
 // index.js - Complete file with all original functionality using the shared languageDetection.js module
 document.addEventListener('DOMContentLoaded', async function() {
-    const languageSelect = document.getElementById('language-select');
+    // FORCE FRENCH DEFAULT - Add this block at the very beginning
     const urlParams = new URLSearchParams(window.location.search);
+    const urlLang = urlParams.get('lang');
+    
+    // If no language in URL, redirect to French version
+    if (!urlLang) {
+        console.log('No language parameter found, redirecting to French version');
+        window.location.href = window.location.pathname + '?lang=fr';
+        return; // Stop execution while redirecting
+    }
+    
+    // If English is in localStorage but not in URL, clear it
+    try {
+        const storedLang = localStorage.getItem('selectedLanguage');
+        if (storedLang === 'en' && urlLang !== 'en') {
+            console.log('Clearing stored English preference');
+            localStorage.removeItem('selectedLanguage');
+        }
+    } catch (e) {
+        console.log('localStorage error:', e);
+    }
 
     const elements = {
         title: document.querySelector('.title'),
