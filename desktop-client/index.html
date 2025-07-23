@@ -3,6 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SECURITY FIX: Add Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline';
+        connect-src 'self' ws: wss: https:;
+        media-src 'self' blob: mediastream:;
+        img-src 'self' data: blob:;
+        font-src 'self';
+        object-src 'none';
+        base-uri 'self';
+    ">
+    
     <title>SyncVoice Medical Desktop</title>
     <style>
         /* Base styles inspired by your existing CSS */
@@ -68,10 +82,15 @@
             padding: 0.5rem;
             border-radius: 4px;
             transition: background 0.2s;
+            font-size: 16px;
         }
         
         .icon-btn:hover {
             background: rgba(255,255,255,0.1);
+        }
+        
+        .icon-btn:active {
+            background: rgba(255,255,255,0.2);
         }
         
         /* Status Bar */
@@ -128,6 +147,7 @@
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s;
+            font-size: 14px;
         }
         
         .connect-btn:hover {
@@ -325,6 +345,15 @@
         .footer a:hover {
             text-decoration: underline;
         }
+        
+        /* Debug styles for button visibility */
+        #settingsToggle {
+            border: 1px solid rgba(255,255,255,0.3) !important;
+        }
+        
+        #settingsToggle:hover {
+            border-color: rgba(255,255,255,0.6) !important;
+        }
     </style>
 </head>
 <body>
@@ -332,7 +361,7 @@
         <!-- Header -->
         <div class="header">
             <div class="logo">
-                <img src="assets/icon.png" alt="SyncVoice Medical">
+                <img src="assets/icon.png" alt="SyncVoice Medical" onerror="this.style.display='none'">
                 <span class="logo-text">SyncVoice Medical</span>
             </div>
             <div class="header-controls">
@@ -363,7 +392,9 @@
             </div>
             
             <!-- Transcription Preview -->
-            <div class="transcription-preview" id="transcriptionPreview"></div>
+            <div class="transcription-preview" id="transcriptionPreview">
+                Transcribed text will appear here...
+            </div>
             
             <!-- Settings Panel -->
             <div class="settings-panel hidden" id="settingsPanel">
@@ -398,8 +429,8 @@
                     
                     <div class="form-group">
                         <label for="serverUrl">Server URL:</label>
-                        <input type="text" id="serverUrl" placeholder="ws://localhost:8081">
-                        <small>Default: ws://localhost:8081 (Local) or wss://your-server.com:8081 (Production)</small>
+                        <input type="text" id="serverUrl" placeholder="wss://syncvoicemedical.onrender.com">
+                        <small>Default: wss://syncvoicemedical.onrender.com (Production)</small>
                     </div>
                     
                     <div class="form-group">

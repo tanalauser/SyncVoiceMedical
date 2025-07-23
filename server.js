@@ -466,6 +466,7 @@ app.get('/api/status', (req, res) => {
         const isFullyConfigured = missingVars.length === 0;
         
         // Check service availability
+        // Check service availability
         const services = {
             database: {
                 configured: !!(process.env.APP_DB_USER && process.env.APP_DB_PASS && process.env.APP_DB_INSTANCE),
@@ -479,8 +480,19 @@ app.get('/api/status', (req, res) => {
             payments: {
                 configured: !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID),
                 status: 'unknown'
+            },
+            transcription: {
+                service: 'Deepgram',
+                configured: !!process.env.DEEPGRAM_API_KEY,
+                status: process.env.DEEPGRAM_API_KEY ? 'configured' : 'missing',
+                apiKeyPrefix: process.env.DEEPGRAM_API_KEY ? 
+                    process.env.DEEPGRAM_API_KEY.substring(0, 8) + '...' : 
+                    'not configured',
+                apiKeyLength: process.env.DEEPGRAM_API_KEY ? process.env.DEEPGRAM_API_KEY.length : 0,
+                required: 'For desktop client transcription'
             }
         };
+
         
         res.json({
             success: true,
@@ -1936,6 +1948,79 @@ app.post('/api/forgot-password', async (req, res) => {
     }
 });
 
+app.get('/api/test-deepgram', async (req, res) => {
+    try {
+        console.log('=== Testing Deepgram Configuration ===');
+        
+        // Check if API key exists
+        if (!process.env.DEEPGRAM_API_KEY) {
+            console.log('❌ Deepgram API key not found');
+            return res.json({
+                success: false,
+                message: 'Deepgram API key not configured',
+                hasApiKey: false,
+                envVars: Object.keys(process.env).filter(key => key.includes('DEEPGRAM')),
+                instructions: 'Add DEEPGRAM_API_KEY environment variable in Render.com'
+            });
+        }
+        
+        const apiKey = process.env.DEEPGRAM_API_KEY;
+        console.log('✅ Deepgram API key found, length:', apiKey.length);
+        console.log('✅ API key starts with:', apiKey.substring(0, 5) + '...');
+        
+        // Test Deepgram API connection
+        try {
+            const axios = require('axios');
+            
+            console.log('🔍 Testing Deepgram API connection...');
+            
+            // Test with Deepgram projects endpoint (simple API test)
+            const response = await axios.get('https://api.deepgram.com/v1/projects', {
+                headers: {
+                    'Authorization': `Token ${apiKey}`,
+                },
+                timeout: 10000
+            });
+            
+            console.log('✅ Deepgram API connection successful');
+            
+            res.json({
+                success: true,
+                message: 'Deepgram API configured and accessible',
+                hasApiKey: true,
+                apiKeyPrefix: apiKey.substring(0, 8) + '...',
+                apiKeyLength: apiKey.length,
+                apiStatus: 'connected',
+                projectsCount: response.data?.projects?.length || 0,
+                testTime: new Date().toISOString()
+            });
+            
+        } catch (apiError) {
+            console.error('❌ Deepgram API test failed:', apiError.message);
+            
+            res.json({
+                success: false,
+                message: 'Deepgram API key configured but connection failed',
+                hasApiKey: true,
+                apiKeyPrefix: apiKey.substring(0, 8) + '...',
+                apiKeyLength: apiKey.length,
+                apiStatus: 'error',
+                error: apiError.response?.data || apiError.message,
+                statusCode: apiError.response?.status,
+                instructions: 'Check if your Deepgram API key is valid and active'
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Deepgram test error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error testing Deepgram',
+            error: error.message
+        });
+    }
+});
+
 // Catch unmatched API routes and return JSON instead of HTML
 app.use('/api/*', (req, res) => {
     console.log(`API route not found: ${req.method} ${req.url}`);
@@ -2026,39 +2111,353 @@ wss.on('connection', (ws, req) => {
     }));
     
     ws.on('message', async (message) => {
+    try {
+        const data = JSON.parse(message);
+        const connection = activeConnections.get(connectionId);
+        
+        switch (data.type) {
+            case 'auth':
+                // Authenticate desktop client
+                const { email, activationCode } = data;
+                const user = await User.findOne({ 
+                    email: email.toLowerCase(),
+                    activationCode: activationCode
+                });
+                
+                if (user && user.isActive) {
+                    // Update connection info
+                    connection.authenticated = true;
+                    connection.email = email.toLowerCase();
+                    connection.language = user.language || 'en';
+                    
+                    // Calculate days remaining
+                    const daysRemaining = user.subscriptionEnd 
+                        ? Math.ceil((new Date(user.subscriptionEnd) - new Date()) / (1000 * 60 * 60 * 24))
+                        : 0;
+                    
+                    ws.send(JSON.stringify({
+                        type: 'auth',
+                        status: 'success',
+                        user: {
+                            firstName: user.firstName,
+                            lastName: user.lastName,
+                            email: user.email,
+                            daysRemaining: daysRemaining > 0 ? daysRemaining : 0
+                        },
+                        language: connection.language
+                    }));
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'auth',
+                        status: 'error',
+                        message: 'Invalid credentials or inactive account'
+                    }));
+                }
+                break;
+                
+            case 'startTranscription':
+                if (!connection.authenticated) {
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Not authenticated'
+                    }));
+                    return;
+                }
+                
+                // Initialize audio chunks array
+                connection.audioChunks = [];
+                
+                ws.send(JSON.stringify({
+                    type: 'transcriptionStarted'
+                }));
+                break;
+                
+            case 'audioChunk':
+                // Handle audio chunk from desktop client
+                if (!connection.authenticated) {
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Not authenticated'
+                    }));
+                    return;
+                }
+                
+                // Store audio chunks for this connection
+                if (!connection.audioChunks) {
+                    connection.audioChunks = [];
+                }
+                
+                // Decode base64 audio
+                const audioBuffer = Buffer.from(data.audio, 'base64');
+                connection.audioChunks.push(audioBuffer);
+                
+                // For real-time transcription, you could process chunks here
+                // For now, we'll process when recording stops
+                
+                console.log(`Received audio chunk: ${audioBuffer.length} bytes`);
+                break;
+                
+            case 'audioComplete':
+                // Process complete audio
+                if (!connection.authenticated) {
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Not authenticated'
+                    }));
+                    return;
+                }
+                
+                try {
+                    // Combine all audio chunks
+                    let fullAudioBuffer;
+                    if (connection.audioChunks && connection.audioChunks.length > 0) {
+                        // Add the final chunk if provided
+                        if (data.audio) {
+                            const finalBuffer = Buffer.from(data.audio, 'base64');
+                            connection.audioChunks.push(finalBuffer);
+                        }
+                        
+                        // Combine all chunks
+                        fullAudioBuffer = Buffer.concat(connection.audioChunks);
+                        connection.audioChunks = []; // Clear chunks
+                    } else if (data.audio) {
+                        // Single audio blob
+                        fullAudioBuffer = Buffer.from(data.audio, 'base64');
+                    }
+                    
+                    console.log(`Processing complete audio: ${fullAudioBuffer.length} bytes`);
+                    
+                    // SIMULATED TRANSCRIPTION - Replace with real API
+                    // For testing, this returns a dummy transcription
+                    setTimeout(() => {
+                        ws.send(JSON.stringify({
+                            type: 'transcriptionResult',
+                            transcript: 'This is a test transcription. In production, this would be the actual transcribed text from your audio.',
+                            isFinal: true
+                        }));
+                    }, 1000);
+                    
+                    // REAL TRANSCRIPTION OPTIONS:
+                    
+                    // Option 1: OpenAI Whisper
+                    /*
+                    const OpenAI = require('openai');
+                    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+                    const fs = require('fs').promises;
+                    const path = require('path');
+                    
+                    // Save audio to temporary file
+                    const tempPath = path.join(__dirname, 'temp', `audio_${connectionId}_${Date.now()}.webm`);
+                    await fs.writeFile(tempPath, fullAudioBuffer);
+                    
+                    // Transcribe with Whisper
+                    const transcription = await openai.audio.transcriptions.create({
+                        file: fs.createReadStream(tempPath),
+                        model: "whisper-1",
+                        language: connection.language || 'en'
+                    });
+                    
+                    // Clean up temp file
+                    await fs.unlink(tempPath);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionResult',
+                        transcript: transcription.text,
+                        isFinal: true
+                    }));
+                    */
+                    
+                    // Option 2: Google Speech-to-Text
+                    /*
+                    const speech = require('@google-cloud/speech');
+                    const client = new speech.SpeechClient();
+                    
+                    const request = {
+                        audio: {
+                            content: fullAudioBuffer.toString('base64'),
+                        },
+                        config: {
+                            encoding: 'WEBM_OPUS',
+                            sampleRateHertz: 16000,
+                            languageCode: data.language || 'en-US',
+                            enableAutomaticPunctuation: true,
+                        },
+                    };
+                    
+                    const [response] = await client.recognize(request);
+                    const transcription = response.results
+                        .map(result => result.alternatives[0].transcript)
+                        .join(' ');
+                        
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionResult',
+                        transcript: transcription,
+                        isFinal: true
+                    }));
+                    */
+                    
+                } catch (error) {
+                    console.error('Audio processing error:', error);
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Failed to process audio'
+                    }));
+                }
+                break;
+                
+            case 'transcriptionChunk':
+                // Legacy handler for web speech API (keeping for web client compatibility)
+                if (!connection.authenticated) {
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Not authenticated'
+                    }));
+                    return;
+                }
+                
+                // Echo back the transcript (web client handles its own transcription)
+                const { transcript, isFinal } = data;
+                
+                ws.send(JSON.stringify({
+                    type: 'transcriptionResult',
+                    transcript,
+                    isFinal
+                }));
+                break;
+                
+            case 'stopTranscription':
+                // Handle stop transcription
+                if (!connection.authenticated) {
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Not authenticated'
+                    }));
+                    return;
+                }
+                
+                // If there are any remaining audio chunks, process them
+                if (connection.audioChunks && connection.audioChunks.length > 0) {
+                    // Trigger final audio processing
+                    ws.emit('message', JSON.stringify({
+                        type: 'audioComplete',
+                        audio: '', // Empty final chunk
+                        language: connection.language
+                    }));
+                }
+                
+                ws.send(JSON.stringify({
+                    type: 'transcriptionStopped'
+                }));
+                break;
+                
+            case 'ping':
+                ws.send(JSON.stringify({ type: 'pong' }));
+                break;
+                
+            default:
+                console.log(`Unknown message type: ${data.type}`);
+                ws.send(JSON.stringify({
+                    type: 'error',
+                    message: `Unknown message type: ${data.type}`
+                }));
+        }
+    } catch (error) {
+        console.error('WebSocket message error:', error);
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Server error'
+        }));
+    }
+});
+
+// Keep the existing cleanup handler
+process.on('SIGTERM', () => {
+    wss.close(() => {
+        console.log('WebSocket server closed');
+    });
+});
+
+
+// Export only the app - remove the conflicting module.exports
+module.exports = app;
+});
+
+// STEP 1: Sign up at https://deepgram.com (NO credit card)
+// STEP 2: Get your API key
+// STEP 3: Add to Render.com environment variables:
+//         DEEPGRAM_API_KEY = your_api_key_here
+
+// STEP 4: Add this to your server code:
+
+const axios = require('axios');
+
+// WebSocket connection handler
+wss.on('connection', (ws, req) => {
+    const connectionId = crypto.randomBytes(16).toString('hex');
+    console.log(`New WebSocket connection: ${connectionId}`);
+    
+    // Store connection
+    activeConnections.set(connectionId, {
+        ws,
+        authenticated: false,
+        email: null,
+        language: 'en',
+        clientType: 'unknown', // 'web' or 'desktop'
+        audioChunks: []
+    });
+    
+    // Send connection acknowledgment
+    ws.send(JSON.stringify({
+        type: 'connection',
+        connectionId,
+        status: 'connected'
+    }));
+    
+    ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
             const connection = activeConnections.get(connectionId);
             
             switch (data.type) {
                 case 'auth':
-                    // Authenticate desktop client
+                    // Authenticate both web and desktop clients
                     const { email, activationCode } = data;
                     const user = await User.findOne({ 
                         email: email.toLowerCase(),
                         activationCode: activationCode
                     });
                     
-                    if (user && user.isActive && !user.isSubscriptionExpired()) {
+                    if (user && user.isActive) {
+                        // Update connection info
                         connection.authenticated = true;
-                        connection.email = email;
+                        connection.email = email.toLowerCase();
                         connection.language = user.language || 'en';
+                        
+                        // Detect client type based on user agent or connection details
+                        connection.clientType = req.headers['user-agent']?.includes('Electron') ? 'desktop' : 'web';
+                        
+                        // Calculate days remaining
+                        const daysRemaining = user.daysUntilExpiration ? user.daysUntilExpiration() : 0;
+                        
+                        console.log(`Authenticated ${connection.clientType} client: ${email}`);
                         
                         ws.send(JSON.stringify({
                             type: 'auth',
                             status: 'success',
-                            language: connection.language,
                             user: {
                                 firstName: user.firstName,
                                 lastName: user.lastName,
-                                daysRemaining: user.daysUntilExpiration()
-                            }
+                                email: user.email,
+                                daysRemaining: daysRemaining > 0 ? daysRemaining : 0
+                            },
+                            language: connection.language,
+                            clientType: connection.clientType
                         }));
                     } else {
                         ws.send(JSON.stringify({
                             type: 'auth',
-                            status: 'failed',
-                            message: 'Invalid credentials or expired subscription'
+                            status: 'error',
+                            message: 'Invalid credentials or inactive account'
                         }));
                     }
                     break;
@@ -2072,14 +2471,22 @@ wss.on('connection', (ws, req) => {
                         return;
                     }
                     
-                    // Send ready signal
+                    // Initialize audio chunks for desktop clients
+                    if (connection.clientType === 'desktop') {
+                        connection.audioChunks = [];
+                        console.log(`Started transcription for desktop client: ${connection.email}`);
+                    } else {
+                        console.log(`Started transcription for web client: ${connection.email}`);
+                    }
+                    
                     ws.send(JSON.stringify({
-                        type: 'transcriptionReady',
-                        language: connection.language
+                        type: 'transcriptionStarted',
+                        clientType: connection.clientType
                     }));
                     break;
                     
-                case 'transcriptionChunk':
+                case 'audioChunk':
+                    // Handle audio chunk from DESKTOP CLIENT ONLY
                     if (!connection.authenticated) {
                         ws.send(JSON.stringify({
                             type: 'error',
@@ -2088,38 +2495,214 @@ wss.on('connection', (ws, req) => {
                         return;
                     }
                     
-                    // In a real implementation, you would process audio here
-                    // For now, we'll simulate by echoing back the transcript
+                    if (connection.clientType !== 'desktop') {
+                        console.log('Ignoring audio chunk from web client');
+                        return;
+                    }
+                    
+                    // Store audio chunks for desktop client
+                    if (!connection.audioChunks) {
+                        connection.audioChunks = [];
+                    }
+                    
+                    // Decode base64 audio
+                    const audioBuffer = Buffer.from(data.audio, 'base64');
+                    connection.audioChunks.push(audioBuffer);
+                    
+                    console.log(`Received audio chunk from desktop client: ${audioBuffer.length} bytes`);
+                    break;
+                    
+                case 'audioComplete':
+                    // Process complete audio with Deepgram - DESKTOP CLIENT ONLY
+                    if (!connection.authenticated || connection.clientType !== 'desktop') {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Not authenticated or invalid client type'
+                        }));
+                        return;
+                    }
+                    
+                    try {
+                        // Combine all audio chunks
+                        let fullAudioBuffer;
+                        if (connection.audioChunks && connection.audioChunks.length > 0) {
+                            // Add the final chunk if provided
+                            if (data.audio) {
+                                const finalBuffer = Buffer.from(data.audio, 'base64');
+                                connection.audioChunks.push(finalBuffer);
+                            }
+                            
+                            // Combine all chunks
+                            fullAudioBuffer = Buffer.concat(connection.audioChunks);
+                            connection.audioChunks = []; // Clear chunks
+                        } else if (data.audio) {
+                            // Single audio blob
+                            fullAudioBuffer = Buffer.from(data.audio, 'base64');
+                        }
+                        
+                        console.log(`Processing complete audio for desktop client: ${fullAudioBuffer.length} bytes`);
+                        
+                        // Check if Deepgram API key is available
+                        if (process.env.DEEPGRAM_API_KEY) {
+                            console.log('Sending audio to Deepgram...');
+                            
+                            // Map language codes for Deepgram
+                            const deepgramLanguage = connection.language === 'fr' ? 'fr' :
+                                                    connection.language === 'de' ? 'de' :
+                                                    connection.language === 'es' ? 'es' :
+                                                    connection.language === 'it' ? 'it' :
+                                                    connection.language === 'pt' ? 'pt' : 'en';
+                            
+                            // Send to Deepgram's API
+                            const response = await axios.post(
+                                `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${deepgramLanguage}`,
+                                fullAudioBuffer,
+                                {
+                                    headers: {
+                                        'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+                                        'Content-Type': 'audio/webm'
+                                    },
+                                    timeout: 30000 // 30 second timeout
+                                }
+                            );
+                            
+                            // Get the transcription
+                            const transcript = response.data.results?.channels?.[0]?.alternatives?.[0]?.transcript;
+                            
+                            if (transcript && transcript.trim()) {
+                                // Send back to desktop client
+                                ws.send(JSON.stringify({
+                                    type: 'transcriptionResult',
+                                    transcript: transcript.trim(),
+                                    isFinal: true,
+                                    source: 'deepgram'
+                                }));
+                                
+                                console.log(`Deepgram transcription sent to desktop client: "${transcript}"`);
+                            } else {
+                                console.log('Deepgram returned empty transcript');
+                                ws.send(JSON.stringify({
+                                    type: 'transcriptionResult',
+                                    transcript: '',
+                                    isFinal: true,
+                                    source: 'deepgram'
+                                }));
+                            }
+                            
+                        } else {
+                            console.warn('⚠️ Deepgram API key not found, using simulated transcription');
+                            
+                            // SIMULATED TRANSCRIPTION for testing
+                            setTimeout(() => {
+                                ws.send(JSON.stringify({
+                                    type: 'transcriptionResult',
+                                    transcript: 'Test transcription - Please configure Deepgram API key for real transcription.',
+                                    isFinal: true,
+                                    source: 'simulation'
+                                }));
+                            }, 1000);
+                        }
+                        
+                    } catch (error) {
+                        console.error('Audio processing error:', error.response?.data || error.message);
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Transcription failed: ' + (error.response?.data?.error || error.message)
+                        }));
+                    }
+                    break;
+                    
+                case 'transcriptionChunk':
+                    // Handle transcription from WEB CLIENT (Web Speech API results)
+                    if (!connection.authenticated) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Not authenticated'
+                        }));
+                        return;
+                    }
+                    
+                    if (connection.clientType === 'desktop') {
+                        console.log('Ignoring transcription chunk from desktop client');
+                        return;
+                    }
+                    
+                    // Echo back the transcript for web client (they handle their own speech recognition)
                     const { transcript, isFinal } = data;
+                    
+                    console.log(`Received transcription from web client: "${transcript}" (final: ${isFinal})`);
                     
                     ws.send(JSON.stringify({
                         type: 'transcriptionResult',
                         transcript,
-                        isFinal
+                        isFinal,
+                        source: 'web-speech-api'
                     }));
                     break;
                     
                 case 'stopTranscription':
+                    // Handle stop transcription for both client types
+                    if (!connection.authenticated) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Not authenticated'
+                        }));
+                        return;
+                    }
+                    
+                    // For desktop clients, process any remaining audio chunks
+                    if (connection.clientType === 'desktop' && connection.audioChunks && connection.audioChunks.length > 0) {
+                        console.log('Processing remaining audio chunks...');
+                        // Trigger final audio processing
+                        const combinedAudio = Buffer.concat(connection.audioChunks);
+                        connection.audioChunks = [];
+                        
+                        // Process final audio if there's enough data
+                        if (combinedAudio.length > 1000) { // Only if we have some audio data
+                            // This would trigger the audioComplete handler above
+                            ws.emit('message', JSON.stringify({
+                                type: 'audioComplete',
+                                audio: combinedAudio.toString('base64'),
+                                language: connection.language
+                            }));
+                            return; // Don't send transcriptionStopped yet, wait for processing
+                        }
+                    }
+                    
+                    console.log(`Stopped transcription for ${connection.clientType} client: ${connection.email}`);
+                    
                     ws.send(JSON.stringify({
-                        type: 'transcriptionStopped'
+                        type: 'transcriptionStopped',
+                        clientType: connection.clientType
                     }));
                     break;
                     
                 case 'ping':
                     ws.send(JSON.stringify({ type: 'pong' }));
                     break;
+                    
+                default:
+                    console.log(`Unknown message type from ${connection.clientType || 'unknown'} client: ${data.type}`);
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: `Unknown message type: ${data.type}`
+                    }));
             }
         } catch (error) {
             console.error('WebSocket message error:', error);
             ws.send(JSON.stringify({
                 type: 'error',
-                message: 'Server error'
+                message: 'Server error: ' + error.message
             }));
         }
     });
     
     ws.on('close', () => {
         console.log(`WebSocket disconnected: ${connectionId}`);
+        const connection = activeConnections.get(connectionId);
+        if (connection) {
+            console.log(`Disconnected ${connection.clientType || 'unknown'} client: ${connection.email || 'unknown'}`);
+        }
         activeConnections.delete(connectionId);
     });
     
@@ -2129,13 +2712,6 @@ wss.on('connection', (ws, req) => {
     });
 });
 
-// Keep the existing cleanup handler
-process.on('SIGTERM', () => {
-    wss.close(() => {
-        console.log('WebSocket server closed');
-    });
-});
-
-
-// Export only the app - remove the conflicting module.exports
-module.exports = app;
+// Log Deepgram API key status on startup
+console.log('🎤 Deepgram API Key configured:', !!process.env.DEEPGRAM_API_KEY);
+console.log('🌐 WebSocket server ready for both web and desktop clients');

@@ -1,57 +1,15 @@
-{
-  "name": "syncvoice-medical-desktop",
+﻿{
+  "name": "syncvoicemedical-desktop",
   "version": "1.0.0",
-  "description": "SyncVoice Medical Desktop Client - System-wide medical dictation",
+  "description": "SyncVoice Medical Desktop Client",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build-win": "electron-builder --win",
-    "build-mac": "electron-builder --mac",
-    "build-linux": "electron-builder --linux",
-    "dist": "electron-builder",
-    "postinstall": "electron-builder install-app-deps"
+    "dev": "electron . --dev"
   },
   "author": "SyncVoice Medical",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^27.0.0",
-    "electron-builder": "^24.6.4"
-  },
-  "build": {
-    "appId": "com.syncvoicemedical.desktop",
-    "productName": "SyncVoice Medical Desktop",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "**/*",
-      "!dist${/*}",
-      "!node_modules${/*}",
-      "node_modules/robotjs${/*}"
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "assets/icon.ico",
-      "requestedExecutionLevel": "highestAvailable"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "assets/icon.icns",
-      "category": "public.app-category.productivity",
-      "extendInfo": {
-        "NSMicrophoneUsageDescription": "SyncVoice Medical needs access to your microphone for voice transcription."
-      }
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "assets/icon.png",
-      "category": "Office"
-    }
+    "electron": "^27.0.0"
   }
 }

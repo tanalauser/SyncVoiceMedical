@@ -1,0 +1,17 @@
+const { app, BrowserWindow, globalShortcut, Tray, Menu, ipcMain, shell } = require('electron');
+const path = require('path');
+const fs = require('fs');
+
+let mainWindow = null;
+let tray = null;
+let isRecording = false;
+
+// Helper function to check if file exists
+function getIconPath(iconName) {
+    const iconPath = path.join(__dirname, 'assets', iconName);
+    if (fs.existsSync(iconPath)) {
+        return iconPath;
+    }
+    console.log(`Icon not found: ${iconPath}`);
+    return null; // Will use system default
+}

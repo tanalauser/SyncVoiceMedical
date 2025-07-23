@@ -1,0 +1,147 @@
+const { contextBridge, ipcRenderer } = require('electron');
+const { clipboard } = require('electron');
+
+// Expose protected methods that allow the renderer process to use
+// the ipcRenderer without exposing the entire object
+contextBridge.exposeInMainWorld('electronAPI', {
+    // Recording controls
+    onStartRecordingGlobal: (callback) => ipcRenderer.on('start-recording-global', callback),
+    onStopRecordingGlobal: (callback) => ipcRenderer.on('stop-recording-global', callback),
+    onStartRecordingFromTray: (callback) => ipcRenderer.on('start-recording-from-tray', callback),
+    
+    // Status updates
+    sendRecordingStarted: () => ipcRenderer.send('recording-started'),
+    sendRecordingStopped: () => ipcRenderer.send('recording-stopped'),
+    
+    // FIXED: Text insertion without robotjs
+    insertTextAtCursor: (text) => {
+        return new Promise((resolve) => {
+            try {
+                // Save current clipboard content
+                const originalClipboard = clipboard.readText();
+                
+                // Copy text to clipboard
+                clipboard.writeText(text);
+                
+                // Send message to main process to simulate paste
+                ipcRenderer.send('simulate-paste');
+                
+                // Restore original clipboard after a delay
+                setTimeout(() => {
+                    try {
+                        clipboard.writeText(originalClipboard);
+                    } catch (error) {
+                        console.warn('Could not restore clipboard:', error);
+                    }
+                }, 200);
+                
+                resolve(true);
+            } catch (error) {
+                console.error('Error inserting text:', error);
+                resolve(false);
+            }
+        });
+    },
+    
+    // Alternative text insertion method (direct typing) - REMOVED robotjs dependency
+    typeText: (text) => {
+        return new Promise((resolve) => {
+            console.log('Direct typing not available without robotjs. Using clipboard method.');
+            // Fall back to clipboard method
+            this.insertTextAtCursor(text).then(resolve);
+        });
+    },
+    
+    // FIXED: Add notification support
+    showNotification: (title, message) => {
+        return new Promise((resolve) => {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification(title, {
+                        body: message,
+                        icon: 'assets/icon.png'
+                    });
+                    resolve(true);
+                } else if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            new Notification(title, {
+                                body: message,
+                                icon: 'assets/icon.png'
+                            });
+                            resolve(true);
+                        } else {
+                            console.log('Notification permission denied');
+                            resolve(false);
+                        }
+                    });
+                } else {
+                    console.log('Notification permission denied');
+                    resolve(false);
+                }
+            } else {
+                console.log('Notifications not supported');
+                resolve(false);
+            }
+        });
+    },
+    
+    // System info
+    getPlatform: () => process.platform,
+    
+    // Window controls
+    minimizeToTray: () => ipcRenderer.send('minimize-to-tray'),
+    
+    // External links
+    openExternal: (url) => ipcRenderer.send('open-external', url),
+    
+    // Settings
+    setAutoStart: (enable) => ipcRenderer.send('set-auto-start', enable),
+    
+    // Settings events
+    onShowSettings: (callback) => ipcRenderer.on('show-settings', callback),
+    
+    // Storage (using localStorage in renderer)
+    storage: {
+        get: (key) => {
+            try {
+                return localStorage.getItem(key);
+            } catch (error) {
+                console.warn('Could not access localStorage:', error);
+                return null;
+            }
+        },
+        set: (key, value) => {
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch (error) {
+                console.warn('Could not save to localStorage:', error);
+                return false;
+            }
+        },
+        remove: (key) => {
+            try {
+                localStorage.removeItem(key);
+                return true;
+            } catch (error) {
+                console.warn('Could not remove from localStorage:', error);
+                return false;
+            }
+        }
+    },
+    
+    // System sounds - simplified without robotjs
+    playSystemSound: (soundType) => {
+        ipcRenderer.send('play-system-sound', soundType);
+    },
+    
+    // Overlay controls
+    showOverlay: (state, data) => {
+        ipcRenderer.send('show-overlay', state, data);
+    },
+    
+    hideOverlay: () => {
+        ipcRenderer.send('hide-overlay');
+    }
+});

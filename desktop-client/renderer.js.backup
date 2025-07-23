@@ -1,7 +1,4 @@
-﻿// Desktop Client renderer.js - FIXED VERSION (No Web Speech API)
-// This version sends audio to server for Deepgram processing
-
-// Global variables
+﻿// Global variables
 let ws = null;
 let isConnected = false;
 let isRecording = false;
@@ -19,6 +16,16 @@ const config = {
     activationCode: window.electronAPI.storage.get('activationCode') || '',
     language: window.electronAPI.storage.get('language') || 'en',
     insertMethod: window.electronAPI.storage.get('insertMethod') || 'clipboard'
+};
+
+// Language mappings
+const languageMap = {
+    'fr': 'fr-FR',
+    'en': 'en-US',
+    'de': 'de-DE',
+    'es': 'es-ES',
+    'it': 'it-IT',
+    'pt': 'pt-PT'
 };
 
 // UI Elements
@@ -77,17 +84,7 @@ function connectWebSocket() {
         };
         
         ws.onmessage = (event) => {
-            console.log('📨 RAW WebSocket message:', event.data);
-            
-            let data;
-            try {
-                data = JSON.parse(event.data);
-            } catch (error) {
-                console.error('Failed to parse message:', error);
-                return;
-            }
-            
-            console.log('📩 Parsed message type:', data.type);
+            const data = JSON.parse(event.data);
             handleWebSocketMessage(data);
         };
         
@@ -120,7 +117,7 @@ function connectWebSocket() {
 
 // Handle WebSocket messages
 function handleWebSocketMessage(data) {
-    console.log('📩 Received WebSocket message:', JSON.stringify(data, null, 2));
+    console.log('Received WebSocket message:', data);
     
     switch (data.type) {
         case 'connection':
@@ -130,13 +127,8 @@ function handleWebSocketMessage(data) {
         case 'auth':
             if (data.status === 'success') {
                 isConnected = true;
-                // Update language from server response
-                if (data.language) {
-                    config.language = data.language;
-                    console.log('Updated language to:', config.language);
-                }
                 console.log('Authentication successful:', data);
-                updateStatus('ready', `Ready - ${data.user.firstName} ${data.user.lastName} (${data.user.daysRemaining} days remaining)`);
+                updateStatus('ready', 'Connected and ready');
                 showNotification('Connected', 'Press Ctrl+Shift+D to start dictation');
             } else {
                 console.error('Authentication failed:', data.message);
@@ -145,109 +137,57 @@ function handleWebSocketMessage(data) {
             }
             break;
             
-        case 'transcriptionStarted':
-            console.log('Transcription service started');
-            updateTranscriptionPreview('🎤 Recording... Speak now');
-            break;
-            
-        case 'transcriptionReady':
-            console.log('Transcription service ready');
-            updateTranscriptionPreview('🎤 Ready... Speak now');
-            break;
-            
-        case 'transcriptionStopped':
-            console.log('Transcription service stopped');
-            updateTranscriptionPreview('Transcription stopped');
-            break;
-            
         case 'transcriptionResult':
-            console.log('📝 Transcription received:', data);
-            if (data.transcript && data.transcript.trim()) {
+            console.log('Transcription received:', data);
+            if (data.transcript) {
                 updateTranscriptionPreview(data.transcript);
                 if (data.isFinal) {
-                    // Add space after final transcript for natural text flow
-                    insertTextAtCursor(data.transcript.trim() + ' ');
+                    insertTextAtCursor(data.transcript + ' ');
                 }
             }
             break;
             
         case 'error':
-            console.error('❌ Server error:', data.message);
-            updateTranscriptionPreview('Error: ' + data.message);
+            console.error('Server error:', data.message);
             showNotification('Error', data.message);
-            
-            // If it's a transcription error, stop recording
-            if (data.message.includes('Transcription failed') || data.message.includes('audio')) {
-                stopRecording();
-            }
             break;
             
         default:
             console.log('Unknown message type:', data.type);
-            // Don't log full data unless it's truly unknown
-            if (!['transcriptionReady'].includes(data.type)) {
-                console.log('Full message data:', JSON.stringify(data, null, 2));
-            }
     }
 }
 
-// Initialize audio recording for desktop client
+// Initialize audio recording
 async function initializeAudioRecording() {
     try {
-        console.log('🎤 Initializing desktop audio recording...');
-        
         audioStream = await navigator.mediaDevices.getUserMedia({ 
             audio: {
-                echoCancellation: false,
-                noiseSuppression: false,
-                sampleRate: 16000,
-                channelCount: 1
+                echoCancellation: true,
+                noiseSuppression: true,
+                sampleRate: 16000
             } 
         });
         
-        // Find best supported MIME type
-        const mimeTypes = [
-            'audio/webm;codecs=opus',
-            'audio/webm',
-            'audio/ogg;codecs=opus',
-            'audio/wav'
-        ];
-        
-        let selectedMimeType = null;
-        for (const mimeType of mimeTypes) {
-            if (MediaRecorder.isTypeSupported(mimeType)) {
-                selectedMimeType = mimeType;
-                console.log('✅ Using audio format:', mimeType);
-                break;
-            }
-        }
-        
-        if (!selectedMimeType) {
-            selectedMimeType = 'audio/webm'; // Fallback
-        }
-        
         mediaRecorder = new MediaRecorder(audioStream, {
-            mimeType: selectedMimeType
+            mimeType: 'audio/webm;codecs=opus'
         });
         
         mediaRecorder.ondataavailable = (event) => {
             if (event.data.size > 0) {
                 audioChunks.push(event.data);
-                // Send audio chunk to server immediately
+                // Send audio chunk to server
                 sendAudioChunk(event.data);
             }
         };
         
         mediaRecorder.onstop = () => {
             console.log('MediaRecorder stopped');
-            // Send final audio signal to server
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ 
-                    type: 'audioComplete',
-                    language: config.language 
-                }));
+            // Send final audio if needed
+            if (audioChunks.length > 0) {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                sendFinalAudio(audioBlob);
+                audioChunks = [];
             }
-            audioChunks = [];
         };
         
         mediaRecorder.onerror = (event) => {
@@ -256,88 +196,79 @@ async function initializeAudioRecording() {
             stopRecording();
         };
         
-        console.log('✅ Desktop audio recording initialized');
+        console.log('Audio recording initialized');
         return true;
     } catch (error) {
-        console.error('❌ Failed to initialize audio recording:', error);
+        console.error('Failed to initialize audio recording:', error);
         showNotification('Microphone Error', 'Failed to access microphone');
         return false;
     }
 }
 
-// Send audio chunk to server for Deepgram processing
+// Send audio chunk to server
 function sendAudioChunk(audioData) {
     if (ws && ws.readyState === WebSocket.OPEN) {
+        // Convert blob to base64 for WebSocket transmission
         const reader = new FileReader();
         reader.onloadend = () => {
             const base64Audio = reader.result.split(',')[1];
-            
-            console.log(`📤 Sending audio chunk to server:`, {
-                size: audioData.size,
-                type: audioData.type,
-                base64Length: base64Audio.length,
-                language: config.language
-            });
-            
             ws.send(JSON.stringify({
                 type: 'audioChunk',
                 audio: base64Audio,
-                mimeType: audioData.type || 'audio/webm;codecs=opus',
-                language: config.language,
-                format: 'base64',
-                sampleRate: 16000,
-                channels: 1
+                mimeType: 'audio/webm;codecs=opus',
+                language: config.language
             }));
         };
         reader.readAsDataURL(audioData);
     }
 }
 
-// Start recording - Desktop client sends audio to server
+// Send final audio to server
+function sendFinalAudio(audioBlob) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64Audio = reader.result.split(',')[1];
+            ws.send(JSON.stringify({
+                type: 'audioComplete',
+                audio: base64Audio,
+                mimeType: 'audio/webm;codecs=opus',
+                language: config.language
+            }));
+        };
+        reader.readAsDataURL(audioBlob);
+    }
+}
+
+// Start recording
 async function startRecording() {
     if (isRecording) {
         console.log('Already recording');
         return;
     }
     
-    if (!isConnected) {
-        showNotification('Error', 'Not connected to server');
-        return;
-    }
-    
-    console.log('🎤 Starting desktop recording...');
-    isRecording = true;
-    updateRecordingStatus(true);
-    window.electronAPI.sendRecordingStarted();
-    
-    // Initialize audio recording if needed
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         const initialized = await initializeAudioRecording();
-        if (!initialized) {
-            isRecording = false;
-            return;
-        }
+        if (!initialized) return;
     }
     
     try {
         audioChunks = [];
+        mediaRecorder.start(1000); // Capture audio in 1-second chunks
+        isRecording = true;
+        console.log('Recording started');
+        updateRecordingStatus(true);
+        window.electronAPI.sendRecordingStarted();
         
-        // Tell server we're starting transcription
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ 
                 type: 'startTranscription',
-                language: config.language 
+                language: config.language
             }));
         }
-        
-        // Start recording audio in chunks
-        mediaRecorder.start(1000); // Send chunk every 1 second
-        
     } catch (error) {
         console.error('Failed to start recording:', error);
         showNotification('Error', 'Failed to start recording');
-        isRecording = false;
-        updateRecordingStatus(false);
     }
 }
 
@@ -348,28 +279,25 @@ function stopRecording() {
         return;
     }
     
-    console.log('🛑 Stopping desktop recording...');
-    isRecording = false;
-    updateRecordingStatus(false);
-    window.electronAPI.sendRecordingStopped();
-    
     try {
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
         }
+        isRecording = false;
+        console.log('Recording stopped');
+        updateRecordingStatus(false);
+        window.electronAPI.sendRecordingStopped();
         
-        // Tell server we're stopping transcription
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'stopTranscription' }));
         }
         
-        // Clean up audio stream
+        // Clean up
         if (audioStream) {
             audioStream.getTracks().forEach(track => track.stop());
             audioStream = null;
         }
         mediaRecorder = null;
-        
     } catch (error) {
         console.error('Error stopping recording:', error);
     }
@@ -420,12 +348,12 @@ function showNotification(title, message) {
 }
 
 // Insert text at cursor position
-async function insertTextAtCursor(text) {
+function insertTextAtCursor(text) {
     if (!text) return;
     
     const success = config.insertMethod === 'clipboard' 
-        ? await window.electronAPI.insertTextAtCursor(text)
-        : await window.electronAPI.typeText(text);
+        ? window.electronAPI.insertTextAtCursor(text)
+        : window.electronAPI.typeText(text);
         
     if (!success) {
         showNotification('Insertion Error', 'Failed to insert text. Try changing the insertion method in settings.');
@@ -528,10 +456,9 @@ window.electronAPI.onShowSettings(() => {
 // Request microphone permission on load
 navigator.mediaDevices.getUserMedia({ audio: true })
     .then(stream => {
-        console.log('✅ Microphone permission granted');
+        console.log('Microphone permission granted');
         stream.getTracks().forEach(track => track.stop());
     })
-    .catch(err => console.error('❌ Microphone permission denied:', err));
+    .catch(err => console.error('Microphone permission denied:', err));
 
-console.log('🖥️ Desktop client ready. Click Connect to start.');
-console.log('📡 This version sends audio to server for Deepgram processing.');
+console.log('Desktop client ready. Click Connect to start.');

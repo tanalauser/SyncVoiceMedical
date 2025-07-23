@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recording Overlay</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            user-select: none;
+            overflow: hidden;
+        }
+        
+        .overlay-content {
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .status-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .status-text {
+            font-size: 11px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        .countdown {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ff6b6b;
+            animation: pulse 1s infinite;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+        
+        .recording {
+            color: #ff4757;
+            animation: recordingBlink 1.5s infinite;
+        }
+        
+        .ready {
+            color: #2ed573;
+        }
+        
+        @keyframes pulse {
+            0% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+            100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes recordingBlink {
+            0% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.4;
+                transform: scale(0.95);
+            }
+            100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.8); }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay-content">
+        <div class="status-icon" id="statusIcon">🎤</div>
+        <div class="status-text" id="statusText">Ready</div>
+    </div>
+    
+    <script>
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+        
+        // Add fade-in animation on load
+        document.body.classList.add('fade-in');
+        
+        // Parse URL parameters to determine initial state
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialState = urlParams.get('state') || 'ready';
+        
+        function updateOverlay(state, data = {}) {
+            switch (state) {
+                case 'countdown':
+                    const count = data.count || 3;
+                    statusIcon.textContent = count;
+                    statusIcon.className = 'status-icon countdown';
+                    statusText.textContent = 'Get ready...';
+                    statusText.style.color = '#ff6b6b';
+                    break;
+                    
+                case 'recording':
+                    statusIcon.textContent = '🔴';
+                    statusIcon.className = 'status-icon recording';
+                    statusText.textContent = 'Recording';
+                    statusText.style.color = '#ff4757';
+                    break;
+                    
+                case 'processing':
+                    statusIcon.textContent = '⚡';
+                    statusIcon.className = 'status-icon';
+                    statusText.textContent = 'Processing...';
+                    statusText.style.color = '#ffa502';
+                    break;
+                    
+                case 'ready':
+                default:
+                    statusIcon.textContent = '🎤';
+                    statusIcon.className = 'status-icon ready';
+                    statusText.textContent = 'Ready';
+                    statusText.style.color = '#2ed573';
+                    break;
+            }
+        }
+        
+        // Initialize with URL parameter state
+        updateOverlay(initialState);
+        
+        // Listen for postMessage communication from parent window
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type) {
+                switch (event.data.type) {
+                    case 'countdown':
+                        updateOverlay('countdown', { count: event.data.count });
+                        break;
+                    case 'recording':
+                        updateOverlay('recording');
+                        break;
+                    case 'processing':
+                        updateOverlay('processing');
+                        break;
+                    case 'ready':
+                        updateOverlay('ready');
+                        break;
+                    case 'hide':
+                        document.body.classList.add('fade-out');
+                        setTimeout(() => {
+                            if (window.electronAPI && window.electronAPI.closeWindow) {
+                                window.electronAPI.closeWindow();
+                            } else {
+                                window.close();
+                            }
+                        }, 300);
+                        break;
+                }
+            }
+        });
+        
+        // Auto-hide after a certain time for countdown states
+        if (initialState === 'countdown') {
+            let countdown = parseInt(urlParams.get('count')) || 3;
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    updateOverlay('countdown', { count: countdown });
+                } else {
+                    updateOverlay('recording');
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+        }
+        
+        // Prevent context menu
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+        
+        // Prevent text selection
+        document.addEventListener('selectstart', (e) => {
+            e.preventDefault();
+        });
+        
+        // Handle window close
+        window.addEventListener('beforeunload', () => {
+            // Clean up any intervals or timeouts
+        });
+    </script>
+</body>
+</html>
