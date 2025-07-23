@@ -1,6 +1,27 @@
 ﻿// Load environment variables
 require('dotenv').config();
 
+// Import ALL required modules at the TOP
+const fs = require('fs');
+const crypto = require('crypto');
+const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
+const express = require('express');
+const cors = require('cors');
+const nodemailer = require('nodemailer');
+const path = require('path');
+const axios = require('axios');
+const WebSocket = require('ws');
+
+// Import your custom modules
+const connectDB = require('./config/db');
+const User = require('./models/User');
+const userRoutes = require('./routes/userRoutes');
+
+// Import Stripe
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+// Your functions and configuration
 function calculateValidationEndDate(version, startDate = new Date()) {
     const daysToAdd = version === 'free' ? 7 : 30;
     return new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
@@ -53,13 +74,6 @@ console.log('Environment check:', {
 
 console.log('🌐 Using BASE_URL:', BASE_URL);
 
-const fs = require('fs');
-const crypto = require('crypto');
-const bcrypt = require('bcrypt');
-
-// server.js or app.js TEST 10062025
-const mongoose = require('mongoose');
-
 // Create an array of development emails that can bypass the check
 const DEV_EMAILS = [
     'info@solve3d.net',
@@ -89,17 +103,6 @@ if (missingEnvVars.length > 0) {
     console.error('Missing required environment variables:', missingEnvVars);
     process.exit(1);
 }
-
-// Import required modules
-const express = require('express');
-const cors = require('cors');
-const nodemailer = require('nodemailer');
-const path = require('path');
-const crypto = require('crypto');
-const bcrypt = require('bcrypt');
-const mongoose = require('mongoose');
-const axios = require('axios');  // ← ADD HERE
-const WebSocket = require('ws');
 
 // Test if crypto is loaded
 console.log('Crypto module loaded:', typeof crypto);
@@ -1695,9 +1698,6 @@ app.get('/test', (req, res) => {
 
 // Add this route BEFORE your catch-all handlers in server.js
 app.get('/debug-files', (req, res) => {
-    const fs = require('fs');
-    const path = require('path');
-    
     const baseDir = __dirname;
     const publicDir = path.join(baseDir, 'public');
     
@@ -1969,9 +1969,7 @@ app.get('/api/test-deepgram', async (req, res) => {
         console.log('✅ API key starts with:', apiKey.substring(0, 5) + '...');
         
         // Test Deepgram API connection
-        try {
-            //const axios = require('axios');
-            
+        try {           
             console.log('🔍 Testing Deepgram API connection...');
             
             // Test with Deepgram projects endpoint (simple API test)
@@ -2084,7 +2082,6 @@ const server = app.listen(PORT, HOST, () => {
 // Add this RIGHT AFTER the const server = app.listen(...) line
 
 // Create WebSocket server using the same HTTP server (for Render.com)
-const WebSocket = require('ws');
 const wss = new WebSocket.Server({ server });
 
 // Store active WebSocket connections
@@ -2102,18 +2099,6 @@ process.on('SIGTERM', () => {
 // Export only the app - remove the conflicting module.exports
 module.exports = app;
 
-
-// STEP 1: Sign up at https://deepgram.com (NO credit card)
-// STEP 2: Get your API key
-// STEP 3: Add to Render.com environment variables:
-//         DEEPGRAM_API_KEY = your_api_key_here
-
-// STEP 4: Add this to your server code:
-
-//const axios = require('axios');
-
-// WebSocket connection handler
-// COMPLETE WebSocket handler - Replace your entire WebSocket connection handler in server.js
 
 wss.on('connection', (ws, req) => {
     const connectionId = crypto.randomBytes(16).toString('hex');
@@ -2303,7 +2288,6 @@ wss.on('connection', (ws, req) => {
                         
                         // Send to Deepgram
                         console.log('🚀 Sending to Deepgram...');
-                        //const axios = require('axios');
                         const language = connection.language === 'fr' ? 'fr' : 'en';
                         
                         const response = await axios.post(
