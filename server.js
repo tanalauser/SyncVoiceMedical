@@ -2539,47 +2539,47 @@ wss.on('connection', (ws, req) => {
             
             switch (data.type) {
                 case 'auth':
-                    // Authenticate both web and desktop clients
-                    const { email, activationCode } = data;
-                    const user = await User.findOne({ 
-                        email: email.toLowerCase(),
-                        activationCode: activationCode
-                    });
-                    
-                    if (user && user.isActive) {
-                        // Update connection info
-                        connection.authenticated = true;
-                        connection.email = email.toLowerCase();
-                        connection.language = user.language || 'en';
-                        
-                        // Detect client type based on user agent or connection details
-                        connection.clientType = req.headers['user-agent']?.includes('Electron') ? 'desktop' : 'web';
-                        
-                        // Calculate days remaining
-                        const daysRemaining = user.daysUntilExpiration ? user.daysUntilExpiration() : 0;
-                        
-                        console.log(`Authenticated ${connection.clientType} client: ${email}`);
-                        
-                        ws.send(JSON.stringify({
-                            type: 'auth',
-                            status: 'success',
-                            user: {
-                                firstName: user.firstName,
-                                lastName: user.lastName,
-                                email: user.email,
-                                daysRemaining: daysRemaining > 0 ? daysRemaining : 0
-                            },
-                            language: connection.language,
-                            clientType: connection.clientType
-                        }));
-                    } else {
-                        ws.send(JSON.stringify({
-                            type: 'auth',
-                            status: 'error',
-                            message: 'Invalid credentials or inactive account'
-                        }));
-                    }
-                    break;
+    // Authenticate both web and desktop clients
+    const { email, activationCode, clientType } = data;  // ADD clientType HERE
+    const user = await User.findOne({ 
+        email: email.toLowerCase(),
+        activationCode: activationCode
+    });
+    
+    if (user && user.isActive) {
+        // Update connection info
+        connection.authenticated = true;
+        connection.email = email.toLowerCase();
+        connection.language = user.language || 'en';
+        
+        // USE EXPLICIT CLIENT TYPE OR FALLBACK TO DETECTION
+        connection.clientType = clientType || 'web';  // Default to web if not specified
+        
+        console.log(`✅ Authenticated ${connection.clientType} client: ${email} (explicitly set: ${!!clientType})`);
+        
+        // Calculate days remaining
+        const daysRemaining = user.daysUntilExpiration ? user.daysUntilExpiration() : 0;
+        
+        ws.send(JSON.stringify({
+            type: 'auth',
+            status: 'success',
+            user: {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                daysRemaining: daysRemaining > 0 ? daysRemaining : 0
+            },
+            language: connection.language,
+            clientType: connection.clientType
+        }));
+    } else {
+        ws.send(JSON.stringify({
+            type: 'auth',
+            status: 'error',
+            message: 'Invalid credentials or inactive account'
+        }));
+    }
+    break;
                     
                 case 'startTranscription':
                     if (!connection.authenticated) {

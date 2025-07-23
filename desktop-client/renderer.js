@@ -64,17 +64,18 @@ function connectWebSocket() {
         ws = new WebSocket(config.serverUrl);
         
         ws.onopen = () => {
-            console.log('WebSocket connected');
-            reconnectAttempts = 0;
-            updateStatus('connected', 'Connected - Authenticating...');
-            
-            // Authenticate
-            ws.send(JSON.stringify({
-                type: 'auth',
-                email: config.email,
-                activationCode: config.activationCode
-            }));
-        };
+    console.log('WebSocket connected');
+    reconnectAttempts = 0;
+    updateStatus('connected', 'Connected - Authenticating...');
+    
+    // Authenticate WITH EXPLICIT CLIENT TYPE
+    ws.send(JSON.stringify({
+        type: 'auth',
+        email: config.email,
+        activationCode: config.activationCode,
+        clientType: 'desktop'  // ADD THIS LINE
+    }));
+};
         
         ws.onmessage = (event) => {
             console.log('📨 RAW WebSocket message:', event.data);
