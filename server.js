@@ -2360,14 +2360,50 @@ console.log('📋 Response headers:', response.headers);
     
     console.log(`🛑 Stopped transcription for ${connection.email}`);
     
-    // Just send acknowledgment, don't trigger audioComplete
+    // Process any remaining chunks BEFORE clearing
+    if (connection.audioChunks && connection.audioChunks.length > 0) {
+        console.log(`📦 Processing ${connection.audioChunks.length} remaining chunks`);
+        
+        // Combine and process chunks
+        const fullAudioBuffer = Buffer.concat(connection.audioChunks);
+        connection.audioChunks = []; // Clear after combining
+        
+        // Process with Deepgram
+        if (fullAudioBuffer.length > 100) {
+            // Send to Deepgram (copy the Deepgram processing code from audioComplete case)
+            const language = connection.language === 'fr' ? 'fr' : 'en';
+            
+            try {
+                const response = await axios.post(
+                    `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${language}`,
+                    fullAudioBuffer,
+                    {
+                        headers: {
+                            'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+                            'Content-Type': 'audio/webm'
+                        },
+                        timeout: 30000
+                    }
+                );
+                
+                let transcript = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+                
+                ws.send(JSON.stringify({
+                    type: 'transcriptionResult',
+                    transcript: transcript.trim(),
+                    isFinal: true,
+                    source: 'deepgram'
+                }));
+            } catch (error) {
+                console.error(`❌ Deepgram error: ${error.message}`);
+            }
+        }
+    }
+    
     ws.send(JSON.stringify({
         type: 'transcriptionStopped',
         clientType: connection.clientType
     }));
-    
-    // Clear any remaining chunks without processing
-    connection.audioChunks = [];
     break;
                     
                 case 'ping':
