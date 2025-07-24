@@ -2259,18 +2259,21 @@ wss.on('connection', (ws, req) => {
                         }
                         
                         // Validate audio
-                        if (!fullAudioBuffer || fullAudioBuffer.length < 1000) {
-                            console.log(`⚠️ No/insufficient audio: ${fullAudioBuffer?.length || 0} bytes`);
-                            ws.send(JSON.stringify({
-                                type: 'transcriptionResult',
-                                transcript: '',
-                                isFinal: true,
-                                source: 'no-audio'
-                            }));
-                            return;
-                        }
+                        // Validate audio - reduce minimum size
+if (!fullAudioBuffer || fullAudioBuffer.length < 100) {  // Changed from 1000 to 100
+    console.log(`⚠️ No/insufficient audio: ${fullAudioBuffer?.length || 0} bytes`);
+    ws.send(JSON.stringify({
+        type: 'transcriptionResult',
+        transcript: '',
+        isFinal: true,
+        source: 'no-audio'
+    }));
+    return;
+}
                         
                         console.log(`🎤 Processing ${fullAudioBuffer.length} bytes`);
+console.log(`📊 First 100 bytes:`, fullAudioBuffer.slice(0, 100));
+console.log(`🔍 Buffer is valid:`, Buffer.isBuffer(fullAudioBuffer));
                         
                         // Check Deepgram availability
                         if (!process.env.DEEPGRAM_API_KEY) {
