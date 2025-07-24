@@ -2290,18 +2290,39 @@ wss.on('connection', (ws, req) => {
                         console.log('🚀 Sending to Deepgram...');
                         const language = connection.language === 'fr' ? 'fr' : 'en';
                         
-                        const response = await axios.post(
-                            `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${language}`,
-                            fullAudioBuffer,
-                            {
-                                headers: {
-                                    'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
-                                    'Content-Type': 'audio/webm'
-                                },
-                                timeout: 30000
-                            }
-                        );
-                        
+                        // In the audioComplete case, update the Deepgram call:
+/*const response = await axios.post(
+    `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${language}`,
+    fullAudioBuffer,
+    {
+        headers: {
+            'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+            'Content-Type': 'audio/webm;codecs=opus'  // ← Add the codec
+        },
+        timeout: 30000
+    }
+);*/
+
+const response = await axios.post(
+    `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${language}&encoding=webm-opus`,
+    fullAudioBuffer,
+    {
+        headers: {
+            'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+            'Content-Type': 'audio/webm'
+        },
+        timeout: 30000
+    }
+);
+
+console.log(`🎤 Processing ${fullAudioBuffer.length} bytes`);
+console.log(`📤 Audio format: audio/webm;codecs=opus`);
+console.log(`🌍 Language: ${language}`);
+
+// Also log the Deepgram response status
+console.log('✅ Deepgram response received');
+console.log('📊 Response status:', response.status);
+console.log('📋 Response headers:', response.headers);
                         // Extract transcript safely
                         let transcript = '';
                         try {
@@ -2330,29 +2351,21 @@ wss.on('connection', (ws, req) => {
                     break;
                     
                 case 'stopTranscription':
-                    if (!connection.authenticated) {
-                        return;
-                    }
-                    
-                    console.log(`🛑 Stopped transcription for ${connection.email}`);
-                    
-                    // Process any remaining chunks
-                    if (connection.audioChunks && connection.audioChunks.length > 0) {
-                        // Trigger final processing
-                        setTimeout(() => {
-                            ws.emit('message', JSON.stringify({
-                                type: 'audioComplete',
-                                audio: '',
-                                language: connection.language
-                            }));
-                        }, 100);
-                    } else {
-                        ws.send(JSON.stringify({
-                            type: 'transcriptionStopped',
-                            clientType: connection.clientType
-                        }));
-                    }
-                    break;
+    if (!connection.authenticated) {
+        return;
+    }
+    
+    console.log(`🛑 Stopped transcription for ${connection.email}`);
+    
+    // Just send acknowledgment, don't trigger audioComplete
+    ws.send(JSON.stringify({
+        type: 'transcriptionStopped',
+        clientType: connection.clientType
+    }));
+    
+    // Clear any remaining chunks without processing
+    connection.audioChunks = [];
+    break;
                     
                 case 'ping':
                     ws.send(JSON.stringify({ type: 'pong' }));
