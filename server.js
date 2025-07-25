@@ -1,6 +1,11 @@
 ﻿// Load environment variables
 require('dotenv').config();
 
+console.log('🔍 Deepgram Configuration Check:');
+console.log('  - API Key:', process.env.DEEPGRAM_API_KEY ? '✅ Configured' : '❌ Missing');
+console.log('  - Key length:', process.env.DEEPGRAM_API_KEY?.length || 0);
+console.log('  - Key starts with:', process.env.DEEPGRAM_API_KEY?.substring(0, 10) + '...' || 'N/A');
+
 // Import ALL required modules at the TOP
 const fs = require('fs');
 const crypto = require('crypto');
@@ -17,6 +22,7 @@ const WebSocket = require('ws');
 const connectDB = require('./config/db');
 const User = require('./models/User');
 const userRoutes = require('./routes/userRoutes');
+
 
 // Import Stripe
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -2204,154 +2210,188 @@ wss.on('connection', (ws, req) => {
                     break;
                     
                 case 'audioChunk':
-                    // ALWAYS ALLOW AUTHENTICATED CLIENTS TO SEND AUDIO
-                    if (!connection.authenticated) {
-                        console.log(`❌ Audio chunk rejected: not authenticated (connection: ${connectionId})`);
-                        return; // Don't send error, just ignore
-                    }
-                    
-                    console.log(`📥 Audio chunk from ${connection.email} (${connection.clientType})`);
-                    
-                    // Initialize if needed
-                    if (!connection.audioChunks) {
-                        connection.audioChunks = [];
-                    }
-                    
-                    // Process audio chunk
-                    try {
-                        if (data.audio && typeof data.audio === 'string') {
-                            const audioBuffer = Buffer.from(data.audio, 'base64');
-                            connection.audioChunks.push(audioBuffer);
-                            console.log(`✅ Stored chunk: ${audioBuffer.length} bytes (total: ${connection.audioChunks.length})`);
-                        }
-                    } catch (error) {
-                        console.error(`❌ Error processing audio chunk: ${error.message}`);
-                    }
-                    break;
-                    
-                case 'audioComplete':
-                    // ALWAYS ALLOW AUTHENTICATED CLIENTS TO COMPLETE AUDIO
-                    if (!connection.authenticated) {
-                        console.log(`❌ Audio complete rejected: not authenticated (connection: ${connectionId})`);
-                        return; // Don't send error, just ignore
-                    }
-                    
-                    console.log(`🎵 Processing complete audio for ${connection.email}`);
-                    
-                    try {
-                        // Combine audio chunks safely
-                        let fullAudioBuffer = null;
-                        
-                        if (connection.audioChunks && connection.audioChunks.length > 0) {
-                            console.log(`📦 Combining ${connection.audioChunks.length} chunks`);
-                            
-                            // Add final chunk if provided
-                            if (data.audio && typeof data.audio === 'string') {
-                                const finalBuffer = Buffer.from(data.audio, 'base64');
-                                connection.audioChunks.push(finalBuffer);
-                            }
-                            
-                            fullAudioBuffer = Buffer.concat(connection.audioChunks);
-                            connection.audioChunks = []; // Clear
-                            
-                        } else if (data.audio && typeof data.audio === 'string') {
-                            fullAudioBuffer = Buffer.from(data.audio, 'base64');
-                        }
-                        
-                        // Validate audio
-                        // Validate audio - reduce minimum size
-if (!fullAudioBuffer || fullAudioBuffer.length < 100) {  // Changed from 1000 to 100
-    console.log(`⚠️ No/insufficient audio: ${fullAudioBuffer?.length || 0} bytes`);
+    if (!connection.authenticated) {
+        return;
+    }
+    
+    // Initialize audio chunks array if not exists
+    if (!connection.audioChunks) {
+        connection.audioChunks = [];
+    }
+    
+    // Add chunk to buffer
+    if (data.audio && typeof data.audio === 'string') {
+        const chunkBuffer = Buffer.from(data.audio, 'base64');
+        connection.audioChunks.push(chunkBuffer);
+        console.log(`📦 Audio chunk received: ${chunkBuffer.length} bytes (total chunks: ${connection.audioChunks.length})`);
+    }
+    
+    // Send acknowledgment
     ws.send(JSON.stringify({
-        type: 'transcriptionResult',
-        transcript: '',
-        isFinal: true,
-        source: 'no-audio'
+        type: 'audioChunkReceived',
+        chunkIndex: connection.audioChunks.length - 1,
+        totalSize: connection.audioChunks.reduce((sum, chunk) => sum + chunk.length, 0)
     }));
-    return;
-}
-                        
-                        console.log(`🎤 Processing ${fullAudioBuffer.length} bytes`);
-console.log(`📊 First 100 bytes:`, fullAudioBuffer.slice(0, 100));
-console.log(`🔍 Buffer is valid:`, Buffer.isBuffer(fullAudioBuffer));
-                        
-                        // Check Deepgram availability
-                        if (!process.env.DEEPGRAM_API_KEY) {
-                            console.log('⚠️ Using test transcription (no Deepgram key)');
-                            setTimeout(() => {
-                                ws.send(JSON.stringify({
-                                    type: 'transcriptionResult',
-                                    transcript: `Test transcription ${new Date().toLocaleTimeString()}`,
-                                    isFinal: true,
-                                    source: 'simulation'
-                                }));
-                            }, 1000);
-                            return;
-                        }
-                        
-                        // Send to Deepgram
-                        console.log('🚀 Sending to Deepgram...');
-                        const language = connection.language === 'fr' ? 'fr' : 'en';
-                        
-                        // In the audioComplete case, update the Deepgram call:
-/*const response = await axios.post(
-    `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${language}`,
-    fullAudioBuffer,
-    {
-        headers: {
-            'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
-            'Content-Type': 'audio/webm;codecs=opus'  // ← Add the codec
-        },
-        timeout: 30000
+    break;
+                    
+                // CORRECTED: Replace your entire audioComplete case with this fixed version
+
+case 'audioComplete':
+    if (!connection.authenticated) {
+        console.log('❌ Unauthenticated audio request');
+        return;
     }
-);*/
-
-const response = await axios.post(
-    `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${language}&encoding=webm-opus`,
-    fullAudioBuffer,
-    {
-        headers: {
-            'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
-            'Content-Type': 'audio/webm'
-        },
-        timeout: 30000
+    
+    console.log(`🎤 Audio complete from ${connection.email} (${connection.clientType})`);
+    
+    try {
+        let audioBuffer = null;
+        
+        // Handle different audio data formats
+        if (data.audio && typeof data.audio === 'string') {
+            console.log(`📦 Processing base64 audio data: ${data.audio.length} chars`);
+            console.log(`🎵 Audio format: ${data.mimeType}`);
+            console.log(`📊 Audio size: ${data.size} bytes`);
+            
+            // Decode base64 audio
+            audioBuffer = Buffer.from(data.audio, 'base64');
+            console.log(`✅ Decoded audio buffer: ${audioBuffer.length} bytes`);
+        } else {
+            console.log('❌ No valid audio data received');
+            ws.send(JSON.stringify({
+                type: 'transcriptionError',
+                message: 'No audio data provided'
+            }));
+            return;
+        }
+        
+        // Validate audio buffer
+        if (!audioBuffer || audioBuffer.length < 100) {
+            console.log(`⚠️ Audio too small: ${audioBuffer?.length || 0} bytes`);
+            ws.send(JSON.stringify({
+                type: 'transcriptionResult',
+                transcript: '',
+                isFinal: true,
+                message: 'Audio too short or empty'
+            }));
+            return;
+        }
+        
+        console.log(`🔍 Audio buffer details:`);
+        console.log(`  - Size: ${audioBuffer.length} bytes`);
+        console.log(`  - Type: ${data.mimeType}`);
+        console.log(`  - Language: ${connection.language}`);
+        console.log(`  - First 20 bytes: ${Array.from(audioBuffer.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+        
+        // Check Deepgram API key
+        if (!process.env.DEEPGRAM_API_KEY) {
+            console.log('⚠️ No Deepgram API key - using test transcription');
+            setTimeout(() => {
+                ws.send(JSON.stringify({
+                    type: 'transcriptionResult',
+                    transcript: `Test transcription from ${connection.language} at ${new Date().toLocaleTimeString()}`,
+                    isFinal: true,
+                    source: 'test'
+                }));
+            }, 1000);
+            return;
+        }
+        
+        // Prepare language for Deepgram
+        const deepgramLanguage = connection.language === 'fr' ? 'fr' : 'en';
+        
+        // FIXED: Build Deepgram URL and Content-Type based on audio format
+        let contentType = 'audio/wav'; // Default
+        let deepgramParams = `model=general&punctuate=true&smart_format=true&language=${deepgramLanguage}`;
+        
+        if (data.mimeType) {
+            if (data.mimeType.includes('webm')) {
+                contentType = 'audio/webm';
+                // For WebM, let Deepgram auto-detect format
+            } else if (data.mimeType.includes('wav')) {
+                contentType = 'audio/wav';
+                // For WAV, add encoding parameters
+                deepgramParams += '&encoding=linear16&sample_rate=16000&channels=1';
+            } else if (data.mimeType.includes('mp3')) {
+                contentType = 'audio/mp3';
+            } else if (data.mimeType.includes('ogg')) {
+                contentType = 'audio/ogg';
+            } else {
+                // Unknown format, treat as WAV
+                contentType = 'audio/wav';
+            }
+        }
+        
+        const deepgramUrl = `https://api.deepgram.com/v1/listen?${deepgramParams}`;
+        
+        console.log(`📤 Sending to Deepgram:`);
+        console.log(`  - URL: ${deepgramUrl}`);
+        console.log(`  - Content-Type: ${contentType}`);
+        console.log(`  - Buffer size: ${audioBuffer.length} bytes`);
+        
+        // Send to Deepgram
+        const response = await axios.post(deepgramUrl, audioBuffer, {
+            headers: {
+                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+                'Content-Type': contentType
+            },
+            timeout: 30000,
+            maxContentLength: 50 * 1024 * 1024,
+            maxBodyLength: 50 * 1024 * 1024
+        });
+        
+        console.log(`✅ Deepgram response received`);
+        console.log(`📊 Response status: ${response.status}`);
+        console.log(`📋 Response data:`, JSON.stringify(response.data, null, 2));
+        
+        // Extract transcript from Deepgram response
+        let transcript = '';
+        try {
+            const results = response.data?.results;
+            if (results && results.channels && results.channels[0] && 
+                results.channels[0].alternatives && results.channels[0].alternatives[0]) {
+                transcript = results.channels[0].alternatives[0].transcript || '';
+            }
+        } catch (extractError) {
+            console.error('❌ Error extracting transcript:', extractError.message);
+            console.log('Full response:', JSON.stringify(response.data, null, 2));
+        }
+        
+        console.log(`📝 Extracted transcript: "${transcript}"`);
+        
+        // Send result back to client
+        if (transcript && transcript.trim()) {
+            ws.send(JSON.stringify({
+                type: 'transcriptionResult',
+                transcript: transcript.trim(),
+                isFinal: true,
+                source: 'deepgram',
+                confidence: response.data?.results?.channels?.[0]?.alternatives?.[0]?.confidence || null
+            }));
+            console.log(`✅ Transcription sent to client: "${transcript}"`);
+        } else {
+            ws.send(JSON.stringify({
+                type: 'transcriptionResult',
+                transcript: '',
+                isFinal: true,
+                source: 'deepgram',
+                message: 'No speech detected in audio'
+            }));
+            console.log('⚠️ No transcript extracted from Deepgram response');
+        }
+        
+    } catch (error) {
+        console.error(`❌ Audio processing error: ${error.message}`);
+        console.error(`❌ Error details:`, error.response?.data || error);
+        
+        // Send error to client
+        ws.send(JSON.stringify({
+            type: 'transcriptionError',
+            message: `Transcription failed: ${error.message}`,
+            source: 'server'
+        }));
     }
-);
-
-console.log(`🎤 Processing ${fullAudioBuffer.length} bytes`);
-console.log(`📤 Audio format: audio/webm;codecs=opus`);
-console.log(`🌍 Language: ${language}`);
-
-// Also log the Deepgram response status
-console.log('✅ Deepgram response received');
-console.log('📊 Response status:', response.status);
-console.log('📋 Response headers:', response.headers);
-                        // Extract transcript safely
-                        let transcript = '';
-                        try {
-                            transcript = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-                        } catch (e) {
-                            console.error('Error extracting transcript:', e.message);
-                        }
-                        
-                        console.log(`📝 Deepgram result: "${transcript}"`);
-                        
-                        ws.send(JSON.stringify({
-                            type: 'transcriptionResult',
-                            transcript: transcript.trim(),
-                            isFinal: true,
-                            source: 'deepgram'
-                        }));
-                        
-                    } catch (error) {
-                        console.error(`❌ Audio processing error: ${error.message}`);
-                        ws.send(JSON.stringify({
-                            type: 'error',
-                            message: `Processing failed: ${error.message}`,
-                            source: 'server-error'
-                        }));
-                    }
-                    break;
+    break;
                     
                 case 'stopTranscription':
     if (!connection.authenticated) {
@@ -2441,3 +2481,224 @@ console.log('📋 Response headers:', response.headers);
 // Log Deepgram API key status on startup
 console.log('🎤 Deepgram API Key configured:', !!process.env.DEEPGRAM_API_KEY);
 console.log('🌐 WebSocket server ready for both web and desktop clients');
+
+// Deepgram Debug and Testing Tools
+// Add these to your server.js for debugging Deepgram integration
+
+// 1. Add this environment variable checker at server startup
+console.log('🔍 Deepgram Configuration Check:');
+console.log('  - API Key:', process.env.DEEPGRAM_API_KEY ? '✅ Configured' : '❌ Missing');
+console.log('  - Key length:', process.env.DEEPGRAM_API_KEY?.length || 0);
+console.log('  - Key starts with:', process.env.DEEPGRAM_API_KEY?.substring(0, 10) + '...' || 'N/A');
+
+// 2. Audio format validation function
+function validateAudioFormat(buffer, mimeType) {
+    console.log('🔍 Audio Format Validation:');
+    console.log(`  - Buffer size: ${buffer.length} bytes`);
+    console.log(`  - MIME type: ${mimeType}`);
+    
+    // Check for common audio headers
+    const firstBytes = buffer.slice(0, 12);
+    const headerHex = Array.from(firstBytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    console.log(`  - First 12 bytes: ${headerHex}`);
+    
+    // Check for specific format signatures
+    const headerString = firstBytes.toString('ascii');
+    if (headerString.includes('RIFF')) {
+        console.log('  - Format: WAV detected');
+        return 'wav';
+    } else if (firstBytes[0] === 0x1A && firstBytes[1] === 0x45) {
+        console.log('  - Format: WebM detected');
+        return 'webm';
+    } else if (firstBytes[0] === 0xFF && (firstBytes[1] & 0xF0) === 0xF0) {
+        console.log('  - Format: MP3 detected');
+        return 'mp3';
+    } else {
+        console.log('  - Format: Unknown/Raw PCM data');
+        return 'unknown';
+    }
+}
+
+// 3. Test Deepgram connection function
+async function testDeepgramConnection() {
+    console.log('🧪 Testing Deepgram API connection...');
+    
+    if (!process.env.DEEPGRAM_API_KEY) {
+        console.log('❌ No Deepgram API key configured');
+        return false;
+    }
+    
+    try {
+        // Test with a simple API call
+        const response = await axios.get('https://api.deepgram.com/v1/projects', {
+            headers: {
+                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`
+            },
+            timeout: 10000
+        });
+        
+        console.log('✅ Deepgram API connection successful');
+        console.log(`📊 Status: ${response.status}`);
+        console.log(`📋 Projects: ${response.data?.projects?.length || 0}`);
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Deepgram API connection failed:', error.response?.status, error.response?.data || error.message);
+        return false;
+    }
+}
+
+// 4. Create test audio buffer for Deepgram testing
+function createTestAudioBuffer() {
+    // Create a simple sine wave audio buffer (WAV format)
+    const sampleRate = 16000;
+    const duration = 2; // 2 seconds
+    const numSamples = sampleRate * duration;
+    const frequency = 440; // A4 note
+    
+    // WAV header (44 bytes)
+    const wavHeader = Buffer.alloc(44);
+    wavHeader.write('RIFF', 0);
+    wavHeader.writeUInt32LE(36 + numSamples * 2, 4);
+    wavHeader.write('WAVE', 8);
+    wavHeader.write('fmt ', 12);
+    wavHeader.writeUInt32LE(16, 16);
+    wavHeader.writeUInt16LE(1, 20); // PCM
+    wavHeader.writeUInt16LE(1, 22); // Mono
+    wavHeader.writeUInt32LE(sampleRate, 24);
+    wavHeader.writeUInt32LE(sampleRate * 2, 28);
+    wavHeader.writeUInt16LE(2, 32);
+    wavHeader.writeUInt16LE(16, 34);
+    wavHeader.write('data', 36);
+    wavHeader.writeUInt32LE(numSamples * 2, 40);
+    
+    // Audio data
+    const audioData = Buffer.alloc(numSamples * 2);
+    for (let i = 0; i < numSamples; i++) {
+        const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate);
+        const value = Math.round(sample * 32767);
+        audioData.writeInt16LE(value, i * 2);
+    }
+    
+    return Buffer.concat([wavHeader, audioData]);
+}
+
+// 5. Test Deepgram with sample audio
+async function testDeepgramWithSampleAudio() {
+    console.log('🧪 Testing Deepgram with sample audio...');
+    
+    if (!process.env.DEEPGRAM_API_KEY) {
+        console.log('❌ No Deepgram API key configured');
+        return;
+    }
+    
+    try {
+        const testAudio = createTestAudioBuffer();
+        console.log(`📦 Created test audio: ${testAudio.length} bytes`);
+        
+        const response = await axios.post(
+            'https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=en',
+            testAudio,
+            {
+                headers: {
+                    'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+                    'Content-Type': 'audio/wav'
+                },
+                timeout: 30000
+            }
+        );
+        
+        console.log('✅ Deepgram test successful');
+        console.log('📋 Response:', JSON.stringify(response.data, null, 2));
+        
+        const transcript = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript;
+        console.log(`📝 Transcript: "${transcript}"`);
+        
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Deepgram test failed:', error.response?.status, error.response?.data || error.message);
+        return false;
+    }
+}
+
+// 6. Enhanced error handling for Deepgram
+function handleDeepgramError(error) {
+    console.error('❌ Deepgram Error Details:');
+    
+    if (error.response) {
+        console.error(`  - Status: ${error.response.status}`);
+        console.error(`  - Status Text: ${error.response.statusText}`);
+        console.error(`  - Headers:`, error.response.headers);
+        console.error(`  - Data:`, error.response.data);
+        
+        // Specific error handling
+        switch (error.response.status) {
+            case 400:
+                return 'Invalid audio format or request parameters';
+            case 401:
+                return 'Invalid or missing Deepgram API key';
+            case 413:
+                return 'Audio file too large';
+            case 429:
+                return 'Rate limit exceeded';
+            case 500:
+                return 'Deepgram server error';
+            default:
+                return `Deepgram API error: ${error.response.status}`;
+        }
+    } else if (error.request) {
+        console.error('  - Request made but no response received');
+        console.error('  - Request:', error.request);
+        return 'Network error connecting to Deepgram';
+    } else {
+        console.error('  - Error:', error.message);
+        return `Request setup error: ${error.message}`;
+    }
+}
+
+// 7. Audio format converter for Deepgram compatibility
+function convertAudioForDeepgram(buffer, originalMimeType) {
+    console.log(`🔄 Converting audio for Deepgram: ${originalMimeType}`);
+    
+    // For now, just return the buffer as-is
+    // In a production environment, you might want to use ffmpeg or similar
+    // to convert between formats
+    
+    return {
+        buffer: buffer,
+        contentType: originalMimeType.includes('wav') ? 'audio/wav' : 'audio/webm'
+    };
+}
+
+// 8. Add these test endpoints to your server (optional)
+// Add after your existing routes
+
+app.get('/test-deepgram', async (req, res) => {
+    console.log('🧪 Manual Deepgram test requested');
+    
+    try {
+        const connectionTest = await testDeepgramConnection();
+        const audioTest = await testDeepgramWithSampleAudio();
+        
+        res.json({
+            success: true,
+            connection: connectionTest,
+            audioTest: audioTest,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+console.log('🧪 Running Deepgram startup tests...');
+setTimeout(async () => {
+    await testDeepgramConnection();
+    // Uncomment to test with sample audio on startup:
+    // await testDeepgramWithSampleAudio();
+}, 2000);

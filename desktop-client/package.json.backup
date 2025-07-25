@@ -1,28 +1,28 @@
 ﻿{
   "name": "syncvoicemedical-desktop",
   "version": "1.0.0",
-  "description": "SyncVoice Medical Desktop Client - Voice transcription for healthcare",
+  "description": "SyncVoice Medical Desktop Client",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "rebuild": "electron-rebuild",
-    "postinstall": "electron-rebuild"
+    "dist": "electron-builder --win"
   },
-  "keywords": [
-    "electron",
-    "voice",
-    "transcription",
-    "medical",
-    "healthcare"
-  ],
   "author": "SyncVoice Medical",
   "license": "MIT",
   "devDependencies": {
     "electron": "^27.0.0",
-    "electron-rebuild": "^3.2.9"
+    "electron-builder": "^26.0.0"
   },
-  "dependencies": {
-    "robotjs": "^0.6.0"
+  "build": {
+    "appId": "com.syncvoicemedical.desktop",
+    "productName": "SyncVoice Medical",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    }
   }
 }

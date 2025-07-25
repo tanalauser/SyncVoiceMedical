@@ -327,6 +327,45 @@
             margin-bottom: 0.5rem;
         }
         
+        /* Method Info Styles */
+        .method-info {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .test-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+            transition: background 0.2s;
+        }
+
+        .test-btn:hover {
+            background: #218838;
+        }
+        
+        /* Manual Recording Button */
+        #manualRecordBtn {
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        #manualRecordBtn:hover {
+            transform: scale(1.05);
+        }
+        
         /* Footer */
         .footer {
             background: white;
@@ -384,11 +423,21 @@
                 <div class="recording-status" id="recordingStatus">
                     Press Ctrl+Shift+D to start dictation
                 </div>
+
+                <div style="color: #666; font-style: italic; text-align: center; margin: 10px;">
+  💡 Tip: Wait 2-3 seconds after speaking before pressing Ctrl+Shift+D for complete transcription
+</div>
+
                 <div class="shortcut-hint">
                     <strong>Global Shortcuts:</strong><br>
                     <span class="shortcut-key">Ctrl+Shift+D</span> Start/Stop dictation<br>
                     <span class="shortcut-key">F4</span> Start dictation (alternative)
                 </div>
+                
+                <!-- Manual recording button as fallback -->
+                <button id="manualRecordBtn" class="connect-btn" style="margin-top: 1rem; display: none;">
+                    🎤 Start Recording
+                </button>
             </div>
             
             <!-- Transcription Preview -->
@@ -424,6 +473,11 @@
                     </select>
                 </div>
                 
+                <div class="checkbox-group" style="margin-top: 1rem; margin-bottom: 1rem;">
+                    <input type="checkbox" id="autoConnect" style="width: auto;">
+                    <label for="autoConnect" style="display: inline; margin-bottom: 0;">Automatically connect at startup</label>
+                </div>
+                
                 <div class="advanced-settings">
                     <h4>Advanced Settings</h4>
                     
@@ -436,16 +490,34 @@
                     <div class="form-group">
                         <label for="insertMethod">Text Insertion Method:</label>
                         <select id="insertMethod">
-                            <option value="clipboard">Clipboard (Ctrl+V)</option>
-                            <option value="typing">Direct Typing</option>
+                            <option value="clipboard">📋 Clipboard (Ctrl+V) - Fastest</option>
+                            <option value="typing">⌨️ Direct Typing - More reliable</option>
+                            <option value="slow">🐌 Slow Typing - Most reliable for problematic apps</option>
+                            <option value="auto">🔄 Auto (Try clipboard, then typing, then slow)</option>
                         </select>
-                        <small>Use "Direct Typing" if clipboard method doesn't work with your application</small>
+                        <small class="method-description">
+                            <div class="method-info">
+                                <strong>Clipboard:</strong> Copies text and simulates Ctrl+V. Fast but may not work with all apps.<br>
+                                <strong>Direct Typing:</strong> Types text at 80ms per character. Good balance of speed and reliability.<br>
+                                <strong>Slow Typing:</strong> Types character-by-character with 100ms delays. Most reliable for difficult applications.<br>
+                                <strong>Auto:</strong> Tries methods in order until one works.
+                            </div>
+                        </small>
+                    </div>
+
+                    <!-- Test button for text insertion -->
+                    <div class="form-group">
+                        <button type="button" id="testInsertion" class="test-btn">
+                            🧪 Test Text Insertion
+                        </button>
+                        <small>Click this, then quickly click in a text editor to test your selected method</small>
                     </div>
                 </div>
                 
                 <button class="save-btn" id="saveSettings">Save Settings</button>
             </div>
         </div>
+
         
         <!-- Footer -->
         <div class="footer">
