@@ -120,6 +120,14 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
     const sig = req.headers['stripe-signature'];
     let event;
 
+    // Debug logging
+    console.log('🔍 Webhook Debug:');
+    console.log('  - Signature header:', sig ? 'present' : 'missing');
+    console.log('  - Body type:', typeof req.body);
+    console.log('  - Body length:', req.body ? req.body.length : 0);
+    console.log('  - Secret length:', process.env.STRIPE_WEBHOOK_SECRET?.length);
+    console.log('  - Secret prefix:', process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 6));
+
     try {
         if (!sig) {
             console.log('❌ Webhook called without signature');
@@ -134,7 +142,8 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
         
         console.log(`✅ Webhook verified: ${event.type}`);
     } catch (err) {
-        console.error(`❌ Webhook signature verification failed: ${err.message}`);
+        console.error(`❌ Webhook signature verification failed:`, err.message);
+        console.error('Raw body (first 100 chars):', req.body.toString().substring(0, 100));
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
