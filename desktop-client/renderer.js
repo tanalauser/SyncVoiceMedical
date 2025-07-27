@@ -1,7 +1,4 @@
-﻿// CORRECTED desktop-client/renderer.js - SyncVoice Medical Desktop Client
-// Fixed settings persistence and global shortcuts
-
-// Global variables
+﻿// Global variables
 let ws = null;
 let isConnected = false;
 let isRecording = false;
@@ -312,10 +309,12 @@ function handleWebSocketMessage(data) {
             break;
             
         case 'transcriptionError':
-            console.error('❌ Transcription error:', data.message || 'Unknown error');
-            showNotification('Transcription Error', data.message || 'Failed to transcribe audio');
-            stopRecording();
-            break;
+    console.error('❌ Transcription error:', data.message || 'Unknown error');
+    showNotification('Transcription Error', data.message || 'Failed to transcribe audio');
+    stopRecording();
+    // Add visual feedback
+    updateStatus('error', `Transcription failed: ${data.message || 'Unknown error'}`);
+    break;
             
         case 'audioReceived':
             console.log('✅ Server confirmed audio receipt');
@@ -678,6 +677,23 @@ function updateTranscriptionPreview(text) {
     }
 }
 
+function updateRecordingStatus(isRecording) {
+    if (elements.recordingStatus) {
+        if (isRecording) {
+            elements.recordingStatus.textContent = 'Recording... Release Ctrl+Shift+D to stop';
+            elements.recordingStatus.classList.add('active');
+        } else {
+            elements.recordingStatus.textContent = 'Press Ctrl+Shift+D to start dictation';
+            elements.recordingStatus.classList.remove('active');
+        }
+    }
+    
+    // Update manual record button if visible
+    updateManualRecordButton(isRecording);
+    
+    console.log(`🎙️ Recording status updated: ${isRecording ? 'Recording' : 'Not recording'}`);
+}
+
 function showNotification(title, message) {
     console.log(`📢 ${title}: ${message}`);
     
@@ -847,38 +863,24 @@ function setupEventListeners() {
             console.error('❌ Failed to attach settings handler:', error);
         }
     }
-}
 
-// Initialize on DOM content loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Initializing SyncVoice Medical Desktop...');
-    
-    initializeElements();
-    
-    setTimeout(() => {
-        loadSettings();
+    const websiteLink = document.getElementById('websiteLink');
+if (websiteLink) {
+    websiteLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = 'https://www.syncvoicemedical.com';
         
-        setTimeout(() => {
-            setupEventListeners();
-            
-            // Request notification permission
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission();
-            }
-            
-            // Auto-connect if enabled and credentials exist
-            if (config.autoConnect && config.email && config.activationCode) {
-                console.log('🔐 Auto-connecting with saved credentials...');
-                setTimeout(connectWebSocket, 1000);
-            } else {
-                console.log('🔌 Auto-connect disabled or missing credentials');
-            }
-            
-            console.log('✅ SyncVoice Medical Desktop initialized');
-            
-        }, 100);
-    }, 100);
-});
+        // Check if electronAPI exists and has openExternal method
+        if (window.electronAPI && window.electronAPI.openExternal) {
+            window.electronAPI.openExternal(url);
+        } else {
+            // Fallback for development/testing
+            console.warn('electronAPI.openExternal not available, opening in browser');
+            window.open(url, '_blank');
+        }
+    });
+}
+}
 
 console.log('📜 SyncVoice Medical renderer script loaded');
 
@@ -1124,32 +1126,31 @@ window.resetAutoConnect = () => {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Initializing SyncVoice Medical Desktop...');
     
-    // Initialize in sequence
+    // Initialize elements first
     initializeElements();
     
+    // Then load settings
+    loadSettings();
+    
+    // Then setup event listeners
+    setupEventListeners();
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+    
+    // Auto-connect if enabled (with a small delay to ensure everything is ready)
     setTimeout(() => {
-        loadSettings();
-        
-        setTimeout(() => {
-            setupEventListeners();
-            
-            // Request notification permission
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission();
-            }
-            
-            // Auto-connect if enabled and credentials exist
-            if (config.autoConnect && config.email && config.activationCode) {
-                console.log('🔐 Auto-connecting with saved credentials...');
-                setTimeout(connectWebSocket, 1000);
-            } else {
-                console.log('🔌 Auto-connect disabled or missing credentials');
-            }
-            
-            console.log('✅ SyncVoice Medical Desktop initialized');
-            
-        }, 100);
-    }, 100);
+        if (config.autoConnect && config.email && config.activationCode) {
+            console.log('🔐 Auto-connecting with saved credentials...');
+            connectWebSocket();
+        } else {
+            console.log('🔌 Auto-connect disabled or missing credentials');
+        }
+    }, 500);
+    
+    console.log('✅ SyncVoice Medical Desktop initialized');
 });
 
 console.log('📜 SyncVoice Medical renderer script loaded');
@@ -1235,3 +1236,27 @@ function audioToWav(audioData, sampleRate) {
     
     return arrayBuffer;
 }
+
+window.testDeepgramConnection = async () => {
+    console.log('🧪 Testing Deepgram connection from client...');
+    
+    try {
+        // Note: This should be called through your server, not directly
+        const response = await fetch('/api/test-deepgram');
+        const data = await response.json();
+        
+        console.log('Deepgram test result:', data);
+        
+        if (data.success) {
+            showNotification('Deepgram Test', 'Connection successful!');
+        } else {
+            showNotification('Deepgram Test Failed', data.message || 'Connection failed');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('❌ Deepgram test error:', error);
+        showNotification('Deepgram Test Error', error.message);
+        return { success: false, error: error.message };
+    }
+};

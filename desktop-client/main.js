@@ -553,6 +553,65 @@ ipcMain.on('play-system-sound', (event, soundType) => {
     shell.beep();
 });
 
+ipcMain.on('insert-text-clipboard', (event, text) => {
+    console.log('📋 Clipboard insertion requested:', text.substring(0, 50) + '...');
+    
+    try {
+        // Copy to clipboard
+        clipboard.writeText(text);
+        console.log('✅ Text copied to clipboard');
+        
+        // Try to paste using PowerShell on Windows
+        if (process.platform === 'win32') {
+            const { exec } = require('child_process');
+            
+            // PowerShell command to simulate Ctrl+V
+            const command = `powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^v')"`;
+            
+            exec(command, (error, stdout, stderr) => {
+                if (error) {
+                    console.error('❌ PowerShell paste failed:', error);
+                    // Fallback: Show notification
+                    const { Notification } = require('electron');
+                    new Notification({
+                        title: 'SyncVoice Medical',
+                        body: 'Text copied! Press Ctrl+V to paste.',
+                        icon: path.join(__dirname, 'assets', 'icon.png')
+                    }).show();
+                } else {
+                    console.log('✅ Text pasted successfully via PowerShell');
+                }
+                
+                // Send result back
+                event.sender.send('text-insertion-result', { 
+                    success: !error,
+                    method: 'clipboard'
+                });
+            });
+        } else {
+            // For Mac/Linux, just notify
+            const { Notification } = require('electron');
+            new Notification({
+                title: 'SyncVoice Medical',
+                body: 'Text copied! Press Ctrl+V (or Cmd+V) to paste.',
+                icon: path.join(__dirname, 'assets', 'icon.png')
+            }).show();
+            
+            event.sender.send('text-insertion-result', { 
+                success: true,
+                method: 'clipboard'
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Clipboard insertion error:', error);
+        event.sender.send('text-insertion-result', { 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
 // PowerShell automation for text insertion
 ipcMain.on('insert-text-automated', (event, text) => {
     console.log('🔧 Text insertion requested:', text.substring(0, 50) + '...');

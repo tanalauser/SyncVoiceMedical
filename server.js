@@ -116,6 +116,84 @@ console.log('Crypto module loaded:', typeof crypto);
 // Create Express app instance
 const app = express();
 
+app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        if (!sig) {
+            console.log('❌ Webhook called without signature');
+            return res.status(400).send('Webhook Error: No signature');
+        }
+
+        event = stripe.webhooks.constructEvent(
+            req.body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET
+        );
+        
+        console.log(`✅ Webhook verified: ${event.type}`);
+    } catch (err) {
+        console.error(`❌ Webhook signature verification failed: ${err.message}`);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Respond immediately to Stripe
+    res.status(200).json({received: true});
+
+    // Process the event asynchronously AFTER responding
+    try {
+        switch (event.type) {
+            case 'payment_intent.succeeded':
+                await handleSuccessfulPayment(event.data.object);
+                break;
+            case 'payment_intent.payment_failed':
+                await handleFailedPayment(event.data.object);
+                break;
+            case 'invoice.payment_succeeded':
+                await handleSuccessfulInvoice(event.data.object);
+                break;
+            case 'customer.subscription.updated':
+            case 'customer.subscription.deleted':
+                await handleSubscriptionChange(event.data.object);
+                break;
+            default:
+                console.log(`Unhandled event type: ${event.type}`);
+        }
+    } catch (error) {
+        console.error('Error processing webhook:', error);
+        // Don't return error to Stripe - we already responded with 200
+    }
+});
+
+app.get('/webhook-test', async (req, res) => {
+    try {
+        // Test webhook secret is configured
+        if (!process.env.STRIPE_WEBHOOK_SECRET) {
+            return res.status(500).json({ 
+                error: 'STRIPE_WEBHOOK_SECRET not configured',
+                configured: false 
+            });
+        }
+
+        // Test Stripe connection
+        const testResult = await stripe.webhookEndpoints.list({ limit: 1 });
+        
+        res.json({
+            success: true,
+            secretConfigured: true,
+            secretLength: process.env.STRIPE_WEBHOOK_SECRET.length,
+            stripeConnected: true,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 
 app.use(express.static('public'));
 
@@ -226,54 +304,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
-    let event;
 
-    try {
-        const signature = req.headers['stripe-signature'];
-        
-        if (!signature) {
-            return res.status(400).json({ error: 'Stripe signature missing' });
-        }
-
-        event = stripe.webhooks.constructEvent(
-            req.body,
-            signature,
-            process.env.STRIPE_WEBHOOK_SECRET
-        );
-    } catch (err) {
-        console.error('Webhook signature verification failed:', err.message);
-        return res.status(400).json({ error: `Webhook Error: ${err.message}` });
-    }
-
-    // Handle specific events
-    try {
-        switch (event.type) {
-            case 'payment_intent.succeeded':
-                const paymentIntent = event.data.object;
-                await handleSuccessfulPayment(paymentIntent);
-                break;
-            case 'payment_intent.payment_failed':
-                const failedPayment = event.data.object;
-                await handleFailedPayment(failedPayment);
-                break;
-            case 'invoice.payment_succeeded':
-                const invoice = event.data.object;
-                await handleSuccessfulInvoice(invoice);
-                break;
-            case 'customer.subscription.updated':
-            case 'customer.subscription.deleted':
-                const subscription = event.data.object;
-                await handleSubscriptionChange(subscription);
-                break;
-        }
-
-        res.json({received: true});
-    } catch (error) {
-        console.error('Webhook processing error:', error);
-        res.status(500).json({ error: 'Webhook processing error' });
-    }
-});
 
 // Body parser middleware - MUST come before routes
 app.use(express.json());
@@ -2025,6 +2056,31 @@ app.get('/api/test-deepgram', async (req, res) => {
     }
 });
 
+// Keep the app awake (if using free tier)
+if (process.env.NODE_ENV === 'production') {
+    setInterval(() => {
+        axios.get(`${BASE_URL}/health`)
+            .then(() => console.log('Keep-alive ping successful'))
+            .catch(err => console.error('Keep-alive ping failed:', err.message));
+    }, 14 * 60 * 1000); // Every 14 minutes
+}
+
+// Add this near the top of your file
+app.use((req, res, next) => {
+    if (req.path === '/webhook') {
+        console.log('🔔 Webhook request received:', {
+            method: req.method,
+            headers: {
+                'stripe-signature': req.headers['stripe-signature'] ? 'present' : 'missing',
+                'content-type': req.headers['content-type']
+            },
+            bodyLength: req.body ? req.body.length : 0,
+            timestamp: new Date().toISOString()
+        });
+    }
+    next();
+});
+
 // Catch unmatched API routes and return JSON instead of HTML
 app.use('/api/*', (req, res) => {
     console.log(`API route not found: ${req.method} ${req.url}`);
@@ -2084,8 +2140,6 @@ const server = app.listen(PORT, HOST, () => {
     console.log('🔍 MongoDB Connection State:', checkMongoConnection());
     console.log('WebSocket server is ready on the same port');
 });
-
-// Add this RIGHT AFTER the const server = app.listen(...) line
 
 // Create WebSocket server using the same HTTP server (for Render.com)
 const wss = new WebSocket.Server({ server });
