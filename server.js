@@ -27,6 +27,22 @@ const userRoutes = require('./routes/userRoutes');
 // Import Stripe
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
+
+function mapLanguageForDeepgram(clientLanguage) {
+    const languageMap = {
+        'fr': 'fr',      // French
+        'en': 'en',      // English  
+        'de': 'de',      // German
+        'es': 'es',      // Spanish
+        'it': 'it',      // Italian
+        'pt': 'pt'       // Portuguese
+    };
+    
+    const mappedLanguage = languageMap[clientLanguage] || 'en'; // Default to English if unknown
+    console.log(`🌐 Language mapping: ${clientLanguage} → ${mappedLanguage}`);
+    return mappedLanguage;
+}
+
 // Your functions and configuration
 function calculateValidationEndDate(version, startDate = new Date()) {
     const daysToAdd = version === 'free' ? 7 : 30;
@@ -2293,7 +2309,7 @@ wss.on('connection', (ws, req) => {
     // Get language from message or fall back to connection language
     const transcriptionLanguage = data.language || connection.language || 'en';
     
-    // Validate and update language
+    // Validate and update language - FIXED: Support all languages
     if (['fr', 'en', 'de', 'es', 'it', 'pt'].includes(transcriptionLanguage)) {
         if (connection.language !== transcriptionLanguage) {
             console.log(`🌐 Language changed from ${connection.language} to ${transcriptionLanguage}`);
@@ -2408,8 +2424,8 @@ case 'audioComplete':
             return;
         }
         
-        // Prepare language for Deepgram
-        const deepgramLanguage = connection.language === 'fr' ? 'fr' : 'en';
+        // FIXED: Use proper language mapping for Deepgram
+        const deepgramLanguage = mapLanguageForDeepgram(connection.language);
         
         // FIXED: Build Deepgram URL and Content-Type based on audio format
         let contentType = 'audio/wav'; // Default
@@ -2439,6 +2455,7 @@ case 'audioComplete':
         console.log(`  - URL: ${deepgramUrl}`);
         console.log(`  - Content-Type: ${contentType}`);
         console.log(`  - Buffer size: ${audioBuffer.length} bytes`);
+        console.log(`  - Language: ${connection.language} → ${deepgramLanguage}`);
         
         // Send to Deepgram
         const response = await axios.post(deepgramUrl, audioBuffer, {
@@ -2477,15 +2494,17 @@ case 'audioComplete':
                 transcript: transcript.trim(),
                 isFinal: true,
                 source: 'deepgram',
+                language: deepgramLanguage,
                 confidence: response.data?.results?.channels?.[0]?.alternatives?.[0]?.confidence || null
             }));
-            console.log(`✅ Transcription sent to client: "${transcript}"`);
+            console.log(`✅ Transcription sent to client: "${transcript}" (${deepgramLanguage})`);
         } else {
             ws.send(JSON.stringify({
                 type: 'transcriptionResult',
                 transcript: '',
                 isFinal: true,
                 source: 'deepgram',
+                language: deepgramLanguage,
                 message: 'No speech detected in audio'
             }));
             console.log('⚠️ No transcript extracted from Deepgram response');
