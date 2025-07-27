@@ -2281,24 +2281,38 @@ wss.on('connection', (ws, req) => {
                 break;
                     
                 case 'startTranscription':
-                    if (!connection.authenticated) {
-                        console.log(`❌ Start transcription rejected: not authenticated`);
-                        ws.send(JSON.stringify({
-                            type: 'error',
-                            message: 'Not authenticated'
-                        }));
-                        return;
-                    }
-                    
-                    // Reset audio chunks
-                    connection.audioChunks = [];
-                    console.log(`🎤 Started transcription for ${connection.email}`);
-                    
-                    ws.send(JSON.stringify({
-                        type: 'transcriptionStarted',
-                        clientType: connection.clientType
-                    }));
-                    break;
+    if (!connection.authenticated) {
+        console.log(`❌ Start transcription rejected: not authenticated`);
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Not authenticated'
+        }));
+        return;
+    }
+    
+    // Get language from message or fall back to connection language
+    const transcriptionLanguage = data.language || connection.language || 'en';
+    
+    // Validate and update language
+    if (['fr', 'en', 'de', 'es', 'it', 'pt'].includes(transcriptionLanguage)) {
+        if (connection.language !== transcriptionLanguage) {
+            console.log(`🌐 Language changed from ${connection.language} to ${transcriptionLanguage}`);
+            connection.language = transcriptionLanguage;
+        }
+    } else {
+        console.log(`⚠️ Invalid language ${transcriptionLanguage}, using ${connection.language}`);
+    }
+    
+    // Reset audio chunks
+    connection.audioChunks = [];
+    console.log(`🎤 Started transcription for ${connection.email} in ${connection.language}`);
+    
+    ws.send(JSON.stringify({
+        type: 'transcriptionStarted',
+        clientType: connection.clientType,
+        language: connection.language
+    }));
+    break;
                     
                 case 'audioChunk':
     if (!connection.authenticated) {
@@ -2333,7 +2347,13 @@ case 'audioComplete':
         return;
     }
     
-    console.log(`🎤 Audio complete from ${connection.email} (${connection.clientType})`);
+    // UPDATE: Accept language from the message if provided
+    if (data.language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(data.language)) {
+        connection.language = data.language;
+        console.log(`🌐 Using language ${data.language} for this audio`);
+    }
+    
+    console.log(`🎤 Audio complete from ${connection.email} (${connection.clientType}) - Language: ${connection.language}`);
     
     try {
         let audioBuffer = null;
