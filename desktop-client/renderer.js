@@ -106,6 +106,10 @@ function saveSettings() {
     
     try {
         const autoConnectCheckbox = document.getElementById('autoConnect');
+        
+        // Store the old language before updating
+        const oldLanguage = config.language;
+        
         const currentSettings = {
             serverUrl: elements.serverUrl?.value || 'wss://syncvoicemedical.onrender.com',
             email: elements.emailInput?.value || '',
@@ -138,7 +142,32 @@ function saveSettings() {
         Object.assign(config, currentSettings);
         
         console.log('✅ Settings saved successfully');
-        showNotification('Settings Saved', 'Your preferences have been saved successfully!');
+        
+        // Check if language changed while connected
+        const languageChanged = oldLanguage !== currentSettings.language && isConnected;
+        
+        if (languageChanged) {
+            console.log(`🔄 Language changed from ${oldLanguage} to ${currentSettings.language} - reconnecting...`);
+            showNotification('Language Changed', `Switching to ${currentSettings.language === 'fr' ? 'French' : 'English'}. Reconnecting...`);
+            
+            // Force disconnect and reconnect
+            if (ws) {
+                // Temporarily disable manual disconnect flag to allow reconnection
+                const wasManuallyDisconnected = manuallyDisconnected;
+                manuallyDisconnected = false;
+                
+                // Close the connection
+                ws.close();
+                
+                // Wait a bit then reconnect with new settings
+                setTimeout(() => {
+                    connectWebSocket();
+                    manuallyDisconnected = wasManuallyDisconnected;
+                }, 500);
+            }
+        } else {
+            showNotification('Settings Saved', 'Your preferences have been saved successfully!');
+        }
         
         if (elements.settingsPanel) {
             elements.settingsPanel.classList.add('hidden');
@@ -149,6 +178,7 @@ function saveSettings() {
         alert('Error saving settings: ' + error.message);
     }
 }
+
 
 // Verify settings were actually saved
 function verifySettingsSaved(expectedSettings) {
@@ -213,19 +243,24 @@ function connectWebSocket() {
         ws = new WebSocket(serverUrl);
         
         ws.onopen = () => {
-            console.log('✅ WebSocket connected');
-            reconnectAttempts = 0;
-            updateStatus('connected', 'Connected - Authenticating...');
-            
-            // Send authentication
-            ws.send(JSON.stringify({
-                type: 'auth',
-                email: email,
-                activationCode: activationCode,
-                clientType: 'desktop',
-                language: config.language || 'fr'
-            }));
-        };
+    console.log('✅ WebSocket connected');
+    reconnectAttempts = 0;
+    updateStatus('connected', 'Connected - Authenticating...');
+    
+    // Use the current language from config, not the form field
+    const currentLanguage = config.language || elements.languageSelect?.value || 'fr';
+    
+    console.log(`🌐 Authenticating with language: ${currentLanguage}`);
+    
+    // Send authentication
+    ws.send(JSON.stringify({
+        type: 'auth',
+        email: email,
+        activationCode: activationCode,
+        clientType: 'desktop',
+        language: currentLanguage  // Use the current config language
+    }));
+};
         
         ws.onmessage = (event) => {
             try {
@@ -331,6 +366,16 @@ function handleWebSocketMessage(data) {
         default:
             console.log(`📨 Unhandled message type: ${data.type}`, data);
     }
+
+    function updateServerLanguage() {
+    if (ws && ws.readyState === WebSocket.OPEN && isConnected) {
+        console.log(`📤 Updating server language to: ${config.language}`);
+        ws.send(JSON.stringify({
+            type: 'updateLanguage',
+            language: config.language
+        }));
+    }
+}
 }
 
 // Text insertion function
@@ -555,13 +600,13 @@ async function startRecording() {
                     console.log('📤 Sending complete audio to server...');
                     
                     const message = {
-                        type: 'audioComplete',
-                        audio: base64data,
-                        mimeType: mimeType,
-                        language: config.language || 'fr',
-                        duration: audioChunks.length, // Rough duration estimate
-                        size: audioBlob.size
-                    };
+    type: 'audioComplete',
+    audio: base64data,
+    mimeType: mimeType,
+    language: config.language || 'fr',  // Always use current config language
+    duration: audioChunks.length,
+    size: audioBlob.size
+};
                     
                     console.log('📨 Sending message:', { 
                         ...message, 
@@ -591,15 +636,15 @@ async function startRecording() {
         
         // Send start signal to server
         if (ws && ws.readyState === WebSocket.OPEN) {
-            const startMessage = {
-                type: 'startTranscription',
-                language: config.language || 'fr',
-                audioFormat: mimeType,
-                clientType: 'desktop'
-            };
-            console.log('📤 Sending start transcription message:', startMessage);
-            ws.send(JSON.stringify(startMessage));
-        }
+    const startMessage = {
+        type: 'startTranscription',
+        language: config.language || 'fr',  // Always use current config language
+        audioFormat: mimeType,
+        clientType: 'desktop'
+    };
+    console.log('📤 Sending start transcription message:', startMessage);
+    ws.send(JSON.stringify(startMessage));
+}
         
         if (window.electronAPI) {
             window.electronAPI.sendRecordingStarted();

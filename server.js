@@ -2251,6 +2251,34 @@ wss.on('connection', (ws, req) => {
                         }));
                     }
                     break;
+
+                    case 'updateLanguage':
+                if (!connection.authenticated) {
+                    console.log(`❌ Language update rejected: not authenticated`);
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Not authenticated'
+                    }));
+                    return;
+                }
+                
+                const { language } = data;
+                if (language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(language)) {
+                    connection.language = language;
+                    console.log(`🌐 Updated language for ${connection.email} to ${language}`);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'languageUpdated',
+                        language: language
+                    }));
+                } else {
+                    console.log(`❌ Invalid language: ${language}`);
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Invalid language specified'
+                    }));
+                }
+                break;
                     
                 case 'startTranscription':
                     if (!connection.authenticated) {
@@ -2759,9 +2787,11 @@ app.get('/test-deepgram', async (req, res) => {
     }
 });
 
+
 console.log('🧪 Running Deepgram startup tests...');
 setTimeout(async () => {
     await testDeepgramConnection();
     // Uncomment to test with sample audio on startup:
     // await testDeepgramWithSampleAudio();
 }, 2000);
+
