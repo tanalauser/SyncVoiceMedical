@@ -125,7 +125,7 @@ function saveSettings() {
             set: (key, value) => localStorage.setItem(key, value)
         };
         
-        // Save each setting
+        // Save each setting locally first (CLIENT-FIRST APPROACH)
         Object.keys(currentSettings).forEach(key => {
             const value = key === 'autoConnect' ? String(currentSettings[key]) : currentSettings[key];
             storage.set(key, value);
@@ -137,10 +137,10 @@ function saveSettings() {
             localStorage.setItem(key, value);
         });
         
-        // Update config object
+        // Update config object (CLIENT TAKES PRIORITY)
         Object.assign(config, currentSettings);
         
-        console.log('✅ Settings saved successfully');
+        console.log('✅ Settings saved locally first (client-first approach)');
         
         // Handle language change
         const languageChanged = oldLanguage !== currentSettings.language;
@@ -149,20 +149,20 @@ function saveSettings() {
             console.log(`🔄 Language changed from ${oldLanguage} to ${currentSettings.language}`);
             
             if (isConnected) {
-                // Try to update language without reconnecting first
+                // OPTION 1: Try to update server immediately with our language choice
                 const updateSent = updateServerLanguage(currentSettings.language);
                 
                 if (updateSent) {
-                    console.log('📤 Language update sent to server');
-                    showNotification('Language Changing', `Switching to ${currentSettings.language === 'fr' ? 'French' : 'English'}...`);
+                    console.log('📤 Language update sent to server (client-first approach)');
+                    showNotification('Language Updated', `Changed to ${getLanguageDisplayName(currentSettings.language)} - server notified`);
                 } else {
-                    // Fallback to reconnection if update fails
-                    console.log('🔄 Language update failed, reconnecting...');
-                    forceReconnectWithNewLanguage(currentSettings.language);
+                    // If immediate update fails, we'll sync on next connection
+                    console.log('⚠️ Server update failed, will sync on next connection');
+                    showNotification('Language Updated', `Changed to ${getLanguageDisplayName(currentSettings.language)} - will sync when connected`);
                 }
             } else {
-                console.log('📝 Language updated for next connection');
-                showNotification('Language Updated', `Language set to ${currentSettings.language === 'fr' ? 'French' : 'English'} for next connection`);
+                console.log('📝 Language updated locally, will sync when connected');
+                showNotification('Language Updated', `Set to ${getLanguageDisplayName(currentSettings.language)} - will sync when connected`);
             }
         } else {
             showNotification('Settings Saved', 'Your preferences have been saved successfully!');
@@ -176,6 +176,19 @@ function saveSettings() {
         console.error('❌ Error saving settings:', error);
         alert('Error saving settings: ' + error.message);
     }
+}
+
+
+function getLanguageDisplayName(langCode) {
+    const displayNames = {
+        'fr': 'French',
+        'en': 'English',
+        'de': 'German',
+        'es': 'Spanish',
+        'it': 'Italian',
+        'pt': 'Portuguese'
+    };
+    return displayNames[langCode] || langCode;
 }
 
 
@@ -268,18 +281,18 @@ function connectWebSocket() {
             reconnectAttempts = 0;
             updateStatus('connected', 'Connected - Authenticating...');
             
-            // FIXED: Always use the current config language
-            const currentLanguage = config.language || 'fr';
+            // CLIENT-FIRST: Use our stored language preference for authentication
+            const clientLanguage = config.language || localStorage.getItem('language') || 'fr';
             
-            console.log(`🌐 Authenticating with language: ${currentLanguage}`);
+            console.log(`🌐 Authenticating with CLIENT language preference: ${clientLanguage}`);
             
-            // Send authentication with current language
+            // Send authentication with OUR language choice
             ws.send(JSON.stringify({
                 type: 'auth',
                 email: email,
                 activationCode: activationCode,
                 clientType: 'desktop',
-                language: currentLanguage
+                language: clientLanguage  // Send our preference to server
             }));
         };
         
@@ -325,6 +338,27 @@ function connectWebSocket() {
     }
 }
 
+
+// ADD: New debug function to check language state
+window.checkLanguagePriority = () => {
+    console.log('🔍 Language Priority Check:');
+    console.log(`  - Config language: ${config.language}`);
+    console.log(`  - LocalStorage language: ${localStorage.getItem('language')}`);
+    console.log(`  - Form language: ${elements.languageSelect?.value}`);
+    console.log(`  - Connected: ${isConnected}`);
+    console.log(`  - Approach: CLIENT-FIRST`);
+};
+
+// ADD: Function to force sync language to server
+window.forceSyncLanguageToServer = () => {
+    if (isConnected && config.language) {
+        console.log(`🔄 Force syncing language ${config.language} to server...`);
+        updateServerLanguage(config.language);
+    } else {
+        console.log('❌ Cannot sync: not connected or no language set');
+    }
+};
+
 // Handle WebSocket messages
 function handleWebSocketMessage(data) {
     switch (data.type) {
@@ -332,13 +366,30 @@ function handleWebSocketMessage(data) {
             if (data.status === 'success') {
                 isConnected = true;
                 
-                // Update the current language from server response
-                if (data.language) {
-                    config.language = data.language;
-                    if (elements.languageSelect) {
-                        elements.languageSelect.value = data.language;
-                    }
-                    console.log(`🌐 Language confirmed by server: ${data.language}`);
+                // OPTION 1: CLIENT-FIRST APPROACH
+                // Prioritize client's stored language over server's response
+                const localStoredLanguage = config.language || localStorage.getItem('language');
+                const serverLanguage = data.language;
+                
+                let finalLanguage = localStoredLanguage || serverLanguage || 'fr'; // Default to French
+                
+                console.log(`🌐 Language priority check:`);
+                console.log(`  - Local stored: ${localStoredLanguage}`);
+                console.log(`  - Server sent: ${serverLanguage}`);
+                console.log(`  - Final choice: ${finalLanguage}`);
+                
+                // Update config and UI with final language choice
+                config.language = finalLanguage;
+                if (elements.languageSelect) {
+                    elements.languageSelect.value = finalLanguage;
+                }
+                
+                // If our local language differs from server's, send update to server
+                if (localStoredLanguage && localStoredLanguage !== serverLanguage) {
+                    console.log(`📤 Local language (${localStoredLanguage}) differs from server (${serverLanguage}), updating server...`);
+                    setTimeout(() => {
+                        updateServerLanguage(localStoredLanguage);
+                    }, 1000); // Small delay to ensure connection is stable
                 }
                 
                 const userInfo = data.user ? `${data.user.firstName} ${data.user.lastName} (${data.user.daysRemaining} days remaining)` : 'User authenticated';
@@ -351,14 +402,11 @@ function handleWebSocketMessage(data) {
             break;
             
         case 'languageUpdated':
-            // NEW: Handle language update confirmation
+            // Handle language update confirmation
             if (data.language) {
-                console.log(`✅ Language updated to: ${data.language}`);
-                config.language = data.language;
-                if (elements.languageSelect) {
-                    elements.languageSelect.value = data.language;
-                }
-                showNotification('Language Updated', `Language changed to ${data.language === 'fr' ? 'French' : 'English'}`);
+                console.log(`✅ Server confirmed language update to: ${data.language}`);
+                // Don't overwrite local setting - server is just confirming our request
+                showNotification('Language Updated', `Server confirmed: ${data.language === 'fr' ? 'French' : data.language === 'en' ? 'English' : data.language === 'de' ? 'German' : data.language === 'es' ? 'Spanish' : data.language === 'it' ? 'Italian' : 'Portuguese'}`);
             }
             break;
             
@@ -420,7 +468,7 @@ function updateServerLanguage(newLanguage) {
         }));
         return true;
     } else {
-        console.warn('⚠️ Cannot update language: not connected');
+        console.warn('⚠️ Cannot update server language: not connected');
         return false;
     }
 }
