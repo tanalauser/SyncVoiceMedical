@@ -1,9 +1,19 @@
-// index.js - Fixed version with proper language detection
+// index.js - DEBUG VERSION with extensive logging
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 SYNCVOICE DEBUG MODE - Page Loading Started');
+    console.log('📍 User Location Info:', {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        languages: navigator.languages,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        url: window.location.href
+    });
+
     // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const urlLang = urlParams.get('lang');
-    
+    console.log('🔗 URL Language Parameter:', urlLang);
+
     const elements = {
         title: document.querySelector('.title'),
         subtitle: document.querySelector('.subtitle'),
@@ -236,134 +246,214 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     };
 
-    // Country to language mapping
+    // Country to language mapping with extensive logging
     const countryToLanguage = {
-        'FR': 'fr', // France
-        'BE': 'fr', // Belgium (French part)
-        'CH': 'fr', // Switzerland (French part)
-        'CA': 'fr', // Canada (French part)
-        'LU': 'fr', // Luxembourg
-        'MC': 'fr', // Monaco
-        'GB': 'en', // United Kingdom
-        'US': 'en', // United States
-        'AU': 'en', // Australia
-        'NZ': 'en', // New Zealand
-        'IE': 'en', // Ireland
-        'DE': 'de', // Germany
-        'AT': 'de', // Austria
-        'ES': 'es', // Spain
-        'MX': 'es', // Mexico
-        'AR': 'es', // Argentina
-        'CO': 'es', // Colombia
-        'IT': 'it', // Italy
-        'PT': 'pt', // Portugal
-        'BR': 'pt', // Brazil
+        'FR': 'fr', 'BE': 'fr', 'CH': 'fr', 'CA': 'fr', 'LU': 'fr', 'MC': 'fr',
+        'GB': 'en', 'US': 'en', 'AU': 'en', 'NZ': 'en', 'IE': 'en',
+        'DE': 'de', 'AT': 'de',
+        'ES': 'es', 'MX': 'es', 'AR': 'es', 'CO': 'es',
+        'IT': 'it',
+        'PT': 'pt', 'BR': 'pt'
     };
 
-    // Geolocation-based language detection
+    // Test multiple geolocation services
     async function detectCountryLanguage() {
-        try {
-            console.log('Attempting geolocation detection...');
-            const response = await fetch('https://ipapi.co/json/');
-            const data = await response.json();
-            
-            console.log('Geolocation data:', data);
-            
-            if (data.country_code) {
-                const countryCode = data.country_code.toUpperCase();
-                const language = countryToLanguage[countryCode];
+        console.log('🌍 Starting geolocation detection...');
+        
+        // Test multiple services in order of preference
+        const services = [
+            {
+                name: 'ipapi.co',
+                url: 'https://ipapi.co/json/',
+                parseResponse: (data) => ({ country: data.country_code, city: data.city, region: data.region })
+            },
+            {
+                name: 'ipapi.com',
+                url: 'https://ipapi.com/ip_api.php?ip=',
+                parseResponse: (data) => ({ country: data.country_code, city: data.city, region: data.region_name })
+            },
+            {
+                name: 'ipinfo.io',
+                url: 'https://ipinfo.io/json',
+                parseResponse: (data) => ({ country: data.country, city: data.city, region: data.region })
+            }
+        ];
+
+        for (const service of services) {
+            try {
+                console.log(`🔍 Trying ${service.name}...`);
                 
-                if (language && translations[language]) {
-                    console.log(`Detected country: ${countryCode}, language: ${language}`);
-                    return language;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                
+                const response = await fetch(service.url, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                console.log(`📡 ${service.name} Response Status:`, response.status);
+                console.log(`📡 ${service.name} Response Headers:`, Object.fromEntries(response.headers.entries()));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log(`📊 ${service.name} Response Data:`, data);
+                
+                const parsed = service.parseResponse(data);
+                console.log(`🔧 ${service.name} Parsed Data:`, parsed);
+                
+                if (parsed.country) {
+                    const countryCode = parsed.country.toUpperCase();
+                    const language = countryToLanguage[countryCode];
+                    
+                    console.log(`✅ ${service.name} SUCCESS:`, {
+                        country: countryCode,
+                        city: parsed.city,
+                        region: parsed.region,
+                        detectedLanguage: language
+                    });
+                    
+                    if (language && translations[language]) {
+                        return language;
+                    }
+                }
+                
+            } catch (error) {
+                console.error(`❌ ${service.name} Failed:`, error.name, error.message);
+                if (error.name === 'AbortError') {
+                    console.error(`⏰ ${service.name} Timeout after 5 seconds`);
                 }
             }
-        } catch (error) {
-            console.log('Geolocation detection failed:', error);
         }
         
+        console.log('🚫 All geolocation services failed');
         return null;
     }
 
-    // Browser language detection
+    // Enhanced browser language detection with extensive logging
     function detectBrowserLanguage() {
-        console.log('Detecting browser language...');
+        console.log('🖥️ Starting browser language detection...');
         
-        const browserLang = (navigator.language || navigator.userLanguage || 'fr').toLowerCase();
-        console.log('Browser language:', browserLang);
+        const browserLang = navigator.language || navigator.userLanguage || 'en';
+        const allLanguages = navigator.languages || [browserLang];
         
-        const langCode = browserLang.split('-')[0];
-        const supportedLanguages = Object.keys(translations);
+        console.log('🗣️ Browser Language Info:', {
+            primary: browserLang,
+            all: allLanguages,
+            userLanguage: navigator.userLanguage,
+            systemLanguage: navigator.systemLanguage
+        });
         
-        if (supportedLanguages.includes(langCode)) {
-            console.log('Found supported browser language:', langCode);
-            return langCode;
+        // Check all browser languages in order of preference
+        for (const lang of allLanguages) {
+            const langCode = lang.toLowerCase().split('-')[0];
+            console.log(`🔍 Checking language: ${lang} → ${langCode}`);
+            
+            if (Object.keys(translations).includes(langCode)) {
+                console.log(`✅ Found supported language: ${langCode}`);
+                return langCode;
+            }
         }
         
-        console.log('Browser language not supported, defaulting to French');
-        return 'fr';
+        // Check primary language code
+        const primaryLangCode = browserLang.toLowerCase().split('-')[0];
+        if (Object.keys(translations).includes(primaryLangCode)) {
+            console.log(`✅ Using primary language: ${primaryLangCode}`);
+            return primaryLangCode;
+        }
+        
+        console.log('🏴󠁧󠁢󠁥󠁮󠁧󠁿 Defaulting to English (en)');
+        return 'en'; // Changed default from 'fr' to 'en'
     }
 
-    // Main language detection function
+    // Main language detection function with comprehensive logging
     async function detectLanguage() {
-        console.log('=== Starting Language Detection ===');
+        console.log('🎯 === STARTING COMPREHENSIVE LANGUAGE DETECTION ===');
         
-        // Check if the shared LanguageDetection module is available
-        if (typeof LanguageDetection !== 'undefined' && LanguageDetection.detectLanguage) {
-            console.log('Using shared LanguageDetection module');
-            return await LanguageDetection.detectLanguage();
+        let detectedLanguage = null;
+        const detectionSteps = [];
+        
+        // Step 1: URL parameter (highest priority)
+        if (urlLang && Object.keys(translations).includes(urlLang)) {
+            detectedLanguage = urlLang;
+            detectionSteps.push(`✅ URL Parameter: ${urlLang}`);
+            console.log('🔗 Using language from URL parameter:', urlLang);
+        } else if (urlLang) {
+            detectionSteps.push(`❌ URL Parameter Invalid: ${urlLang}`);
+            console.log('🔗 Invalid URL language parameter:', urlLang);
+        } else {
+            detectionSteps.push('⭕ URL Parameter: None');
+            console.log('🔗 No URL language parameter found');
         }
         
-        console.log('Using fallback language detection');
-        
-        let selectedLanguage;
-        
-        // 1. Check URL parameter first (highest priority)
-        selectedLanguage = urlLang;
-        if (selectedLanguage && Object.keys(translations).includes(selectedLanguage)) {
-            console.log('Using language from URL parameter:', selectedLanguage);
-            return selectedLanguage;
-        }
-        
-        // 2. Check localStorage
-        if (!selectedLanguage) {
+        // Step 2: localStorage (if no URL param)
+        if (!detectedLanguage) {
             try {
-                selectedLanguage = localStorage.getItem('selectedLanguage');
-                if (selectedLanguage && Object.keys(translations).includes(selectedLanguage)) {
-                    console.log('Using stored language preference:', selectedLanguage);
-                    return selectedLanguage;
+                const storedLang = localStorage.getItem('selectedLanguage');
+                if (storedLang && Object.keys(translations).includes(storedLang)) {
+                    detectedLanguage = storedLang;
+                    detectionSteps.push(`✅ localStorage: ${storedLang}`);
+                    console.log('💾 Using stored language preference:', storedLang);
+                } else if (storedLang) {
+                    detectionSteps.push(`❌ localStorage Invalid: ${storedLang}`);
+                    console.log('💾 Invalid stored language:', storedLang);
+                } else {
+                    detectionSteps.push('⭕ localStorage: None');
+                    console.log('💾 No stored language preference');
                 }
             } catch (e) {
-                console.log('localStorage not available');
+                detectionSteps.push('❌ localStorage: Error');
+                console.log('💾 localStorage error:', e.message);
             }
         }
         
-        // 3. Try country detection (geolocation)
-        if (!selectedLanguage) {
-            selectedLanguage = await detectCountryLanguage();
-            if (selectedLanguage) {
-                console.log('Using country-detected language:', selectedLanguage);
-                return selectedLanguage;
+        // Step 3: Geolocation (if no stored preference)
+        if (!detectedLanguage) {
+            console.log('🌍 Attempting geolocation detection...');
+            const geoLang = await detectCountryLanguage();
+            if (geoLang) {
+                detectedLanguage = geoLang;
+                detectionSteps.push(`✅ Geolocation: ${geoLang}`);
+                console.log('🌍 Using geolocation-detected language:', geoLang);
+            } else {
+                detectionSteps.push('❌ Geolocation: Failed');
+                console.log('🌍 Geolocation detection failed');
             }
         }
         
-        // 4. Use browser language
-        if (!selectedLanguage) {
-            selectedLanguage = detectBrowserLanguage();
-            console.log('Using browser-detected language:', selectedLanguage);
-            return selectedLanguage;
+        // Step 4: Browser language (fallback)
+        if (!detectedLanguage) {
+            detectedLanguage = detectBrowserLanguage();
+            detectionSteps.push(`✅ Browser: ${detectedLanguage}`);
+            console.log('🖥️ Using browser-detected language:', detectedLanguage);
         }
         
-        // 5. Final fallback to French
-        console.log('All detection methods failed, using French as fallback');
-        return 'fr';
+        // Step 5: Final fallback
+        if (!detectedLanguage || !Object.keys(translations).includes(detectedLanguage)) {
+            detectedLanguage = 'en'; // Changed from 'fr' to 'en'
+            detectionSteps.push(`✅ Fallback: ${detectedLanguage}`);
+            console.log('🆘 Using fallback language: English');
+        }
+        
+        // Final summary
+        console.log('🎯 === LANGUAGE DETECTION COMPLETE ===');
+        console.log('📋 Detection Steps:', detectionSteps);
+        console.log('🏆 Final Language:', detectedLanguage);
+        
+        return detectedLanguage;
     }
 
     function updateBrowserTable(lang) {
         const content = translations[lang];
         
         if (!elements.browserTable) {
-            console.log('Browser table not found');
+            console.log('⚠️ Browser table not found');
             return;
         }
         
@@ -412,7 +502,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function updateContent(lang) {
-        const content = translations[lang] || translations['fr'];
+        console.log('🎨 Updating page content for language:', lang);
+        
+        const content = translations[lang] || translations['en']; // Changed fallback from 'fr' to 'en'
         
         // Update language label
         if (elements.languageLabel) {
@@ -481,8 +573,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Store language preference
         try {
             localStorage.setItem('selectedLanguage', lang);
+            console.log('💾 Saved language preference:', lang);
         } catch (e) {
-            console.log('Could not save language preference');
+            console.log('💾 Could not save language preference:', e.message);
         }
         
         // Update document language
@@ -492,16 +585,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         const languageSelect = document.getElementById('language-select');
         if (languageSelect) {
             languageSelect.value = lang;
+            console.log('🔄 Updated language selector to:', lang);
         }
     }
 
     // Detect language and initialize page
-    console.log('Initializing page with proper language detection...');
+    console.log('🚀 Initializing page with proper language detection...');
     const detectedLanguage = await detectLanguage();
     
     // If no language parameter in URL and we detected a different language, update the URL
     if (!urlLang && detectedLanguage) {
-        console.log(`Updating URL to include detected language: ${detectedLanguage}`);
+        console.log(`🔗 Updating URL to include detected language: ${detectedLanguage}`);
         const url = new URL(window.location);
         url.searchParams.set('lang', detectedLanguage);
         window.history.replaceState({}, '', url);
@@ -513,8 +607,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Store the detected language preference
     try {
         localStorage.setItem('selectedLanguage', detectedLanguage);
+        console.log('💾 Final language preference saved:', detectedLanguage);
     } catch (e) {
-        console.log('Could not save language preference');
+        console.log('💾 Could not save final language preference:', e.message);
     }
 
     // Set up language change listener
@@ -522,6 +617,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const newLang = this.value;
+            console.log('🔄 Manual language change to:', newLang);
             
             // Update content
             updateContent(newLang);
@@ -530,7 +626,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             try {
                 localStorage.setItem('selectedLanguage', newLang);
             } catch (e) {
-                console.log('Could not save language preference');
+                console.log('💾 Could not save manual language preference:', e.message);
             }
             
             // Update URL
@@ -554,10 +650,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             const languageDropdown = document.getElementById('language-select');
             const currentLang = languageDropdown ? languageDropdown.value : detectedLanguage;
             
-            console.log('Login button clicked, current language:', currentLang);
+            console.log('🚪 Login button clicked, current language:', currentLang);
             window.location.href = `login.html?lang=${currentLang}`;
         });
     }
 
-    console.log('Page initialization complete with language:', detectedLanguage);
+    console.log('✅ Page initialization complete with language:', detectedLanguage);
+    console.log('📊 Final State:', {
+        detectedLanguage,
+        urlParameter: urlLang,
+        currentURL: window.location.href,
+        documentLang: document.documentElement.lang
+    });
 });
