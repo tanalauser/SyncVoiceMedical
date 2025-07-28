@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: syncvoicemedical
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    staticFilesDir: public
+    headers:
+      - path: "*.js"
+        name: "Content-Type"
+        value: "text/javascript; charset=utf-8"
+      - path: "*.css"
+        name: "Content-Type"  
+        value: "text/css; charset=utf-8"
