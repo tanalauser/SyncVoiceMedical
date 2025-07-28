@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Detection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .info-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .data-item {
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 200px;
+        }
+        .value {
+            color: #333;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .loading {
+            color: #ffc107;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>SyncVoiceMedical Language Detection Test</h1>
+        
+        <div class="info-section">
+            <h3>Geolocation Information</h3>
+            <div id="geoInfo" class="loading">Detecting location...</div>
+        </div>
+        
+        <div class="info-section">
+            <h3>Browser Information</h3>
+            <div id="browserInfo"></div>
+        </div>
+        
+        <div class="info-section">
+            <h3>Detection Results</h3>
+            <div id="detectionResults" class="loading">Running detection...</div>
+        </div>
+        
+        <button onclick="runTest()">Run Test Again</button>
+        <button onclick="clearStorageAndTest()">Clear Storage & Test</button>
+    </div>
+
+    <script>
+        async function getGeolocationInfo() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        function getBrowserInfo() {
+            return {
+                language: navigator.language || navigator.userLanguage || 'unknown',
+                languages: navigator.languages ? navigator.languages.join(', ') : 'not available',
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                localStorage: typeof(Storage) !== "undefined" ? 'available' : 'not available'
+            };
+        }
+
+        function detectLanguageFromCountry(countryCode) {
+            const countryToLanguage = {
+                'FR': 'fr', 'BE': 'fr', 'CH': 'fr', 'CA': 'fr',
+                'GB': 'en', 'US': 'en', 'AU': 'en', 'NZ': 'en',
+                'DE': 'de', 'AT': 'de',
+                'ES': 'es', 'MX': 'es', 'AR': 'es',
+                'IT': 'it',
+                'PT': 'pt', 'BR': 'pt'
+            };
+            return countryToLanguage[countryCode] || null;
+        }
+
+        async function runTest() {
+            // Update UI to show loading
+            document.getElementById('geoInfo').innerHTML = '<span class="loading">Detecting location...</span>';
+            document.getElementById('detectionResults').innerHTML = '<span class="loading">Running detection...</span>';
+            
+            // Get geolocation info
+            const geoData = await getGeolocationInfo();
+            const geoInfoDiv = document.getElementById('geoInfo');
+            
+            if (geoData.error) {
+                geoInfoDiv.innerHTML = `<div class="error">Error: ${geoData.error}</div>`;
+            } else {
+                geoInfoDiv.innerHTML = `
+                    <div class="data-item"><span class="label">IP Address:</span> <span class="value">${geoData.ip || 'unknown'}</span></div>
+                    <div class="data-item"><span class="label">Country:</span> <span class="value success">${geoData.country_name || 'unknown'} (${geoData.country_code || 'unknown'})</span></div>
+                    <div class="data-item"><span class="label">Region:</span> <span class="value">${geoData.region || 'unknown'}</span></div>
+                    <div class="data-item"><span class="label">City:</span> <span class="value">${geoData.city || 'unknown'}</span></div>
+                    <div class="data-item"><span class="label">Timezone:</span> <span class="value">${geoData.timezone || 'unknown'}</span></div>
+                `;
+            }
+            
+            // Get browser info
+            const browserData = getBrowserInfo();
+            const browserInfoDiv = document.getElementById('browserInfo');
+            browserInfoDiv.innerHTML = `
+                <div class="data-item"><span class="label">Browser Language:</span> <span class="value">${browserData.language}</span></div>
+                <div class="data-item"><span class="label">All Languages:</span> <span class="value">${browserData.languages}</span></div>
+                <div class="data-item"><span class="label">Platform:</span> <span class="value">${browserData.platform}</span></div>
+                <div class="data-item"><span class="label">LocalStorage:</span> <span class="value">${browserData.localStorage}</span></div>
+                <div class="data-item"><span class="label">Cookies Enabled:</span> <span class="value">${browserData.cookieEnabled}</span></div>
+            `;
+            
+            // Perform language detection
+            const detectionResultsDiv = document.getElementById('detectionResults');
+            
+            // Check URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlLang = urlParams.get('lang');
+            
+            // Check localStorage
+            let storedLang = null;
+            try {
+                storedLang = localStorage.getItem('selectedLanguage');
+            } catch (e) {
+                console.log('localStorage error:', e);
+            }
+            
+            // Detect from country
+            const countryLang = geoData.country_code ? detectLanguageFromCountry(geoData.country_code) : null;
+            
+            // Detect from browser
+            const browserLang = browserData.language.split('-')[0];
+            
+            // Determine final language (simulating your priority)
+            let finalLang = urlLang || storedLang || countryLang || browserLang || 'fr';
+            
+            detectionResultsDiv.innerHTML = `
+                <div class="data-item"><span class="label">URL Parameter:</span> <span class="value">${urlLang || 'none'}</span></div>
+                <div class="data-item"><span class="label">Stored Language:</span> <span class="value">${storedLang || 'none'}</span></div>
+                <div class="data-item"><span class="label">Country Detection:</span> <span class="value ${countryLang ? 'success' : ''}">${countryLang || 'none'} ${geoData.country_code ? `(from ${geoData.country_code})` : ''}</span></div>
+                <div class="data-item"><span class="label">Browser Detection:</span> <span class="value">${browserLang}</span></div>
+                <div class="data-item" style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #007bff;">
+                    <span class="label">FINAL LANGUAGE:</span> <span class="value success" style="font-size: 1.2em; font-weight: bold;">${finalLang.toUpperCase()}</span>
+                </div>
+            `;
+        }
+
+        function clearStorageAndTest() {
+            try {
+                localStorage.removeItem('selectedLanguage');
+                alert('Storage cleared! Running test again...');
+            } catch (e) {
+                alert('Could not clear storage: ' + e.message);
+            }
+            runTest();
+        }
+
+        // Run test on page load
+        runTest();
+    </script>
+</body>
+</html>
