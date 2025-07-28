@@ -1,27 +1,9 @@
-// index.js - Complete file with all original functionality using the shared languageDetection.js module
+// index.js - Fixed version with proper language detection
 document.addEventListener('DOMContentLoaded', async function() {
-    // FORCE FRENCH DEFAULT - Add this block at the very beginning
+    // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const urlLang = urlParams.get('lang');
     
-    // If no language in URL, redirect to French version
-    if (!urlLang) {
-        console.log('No language parameter found, redirecting to French version');
-        window.location.href = window.location.pathname + '?lang=fr';
-        return; // Stop execution while redirecting
-    }
-    
-    // If English is in localStorage but not in URL, clear it
-    try {
-        const storedLang = localStorage.getItem('selectedLanguage');
-        if (storedLang === 'en' && urlLang !== 'en') {
-            console.log('Clearing stored English preference');
-            localStorage.removeItem('selectedLanguage');
-        }
-    } catch (e) {
-        console.log('localStorage error:', e);
-    }
-
     const elements = {
         title: document.querySelector('.title'),
         subtitle: document.querySelector('.subtitle'),
@@ -254,8 +236,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     };
 
-    // Country to language mapping (ONLY IF languageDetection.js is not available)
-    // This is kept as a fallback - primary detection should come from the shared module
+    // Country to language mapping
     const countryToLanguage = {
         'FR': 'fr', // France
         'BE': 'fr', // Belgium (French part)
@@ -279,103 +260,103 @@ document.addEventListener('DOMContentLoaded', async function() {
         'BR': 'pt', // Brazil
     };
 
-    // Fallback language detection functions (ONLY IF languageDetection.js is not loaded)
-    async function fallbackDetectCountryLanguage() {
+    // Geolocation-based language detection
+    async function detectCountryLanguage() {
         try {
+            console.log('Attempting geolocation detection...');
             const response = await fetch('https://ipapi.co/json/');
             const data = await response.json();
             
-            console.log('Fallback geolocation data:', data);
+            console.log('Geolocation data:', data);
             
             if (data.country_code) {
                 const countryCode = data.country_code.toUpperCase();
                 const language = countryToLanguage[countryCode];
                 
                 if (language && translations[language]) {
-                    console.log(`Fallback detected country: ${countryCode}, setting language to: ${language}`);
+                    console.log(`Detected country: ${countryCode}, language: ${language}`);
                     return language;
                 }
             }
         } catch (error) {
-            console.log('Fallback geolocation detection failed:', error);
+            console.log('Geolocation detection failed:', error);
         }
         
         return null;
     }
 
-    function fallbackDetectBrowserLanguage() {
-        console.log('Fallback detecting browser language...');
+    // Browser language detection
+    function detectBrowserLanguage() {
+        console.log('Detecting browser language...');
         
         const browserLang = (navigator.language || navigator.userLanguage || 'fr').toLowerCase();
-        console.log('Fallback browser language:', browserLang);
+        console.log('Browser language:', browserLang);
         
         const langCode = browserLang.split('-')[0];
         const supportedLanguages = Object.keys(translations);
         
         if (supportedLanguages.includes(langCode)) {
-            console.log('Fallback found supported language:', langCode);
+            console.log('Found supported browser language:', langCode);
             return langCode;
         }
         
-        console.log('Fallback unrecognized language, defaulting to French');
+        console.log('Browser language not supported, defaulting to French');
         return 'fr';
     }
 
+    // Main language detection function
     async function detectLanguage() {
+        console.log('=== Starting Language Detection ===');
+        
         // Check if the shared LanguageDetection module is available
         if (typeof LanguageDetection !== 'undefined' && LanguageDetection.detectLanguage) {
             console.log('Using shared LanguageDetection module');
             return await LanguageDetection.detectLanguage();
         }
         
-        console.log('LanguageDetection module not found, using fallback');
+        console.log('Using fallback language detection');
         
-        // Fallback detection logic
         let selectedLanguage;
         
-        // 1. Check URL parameter
-        selectedLanguage = urlParams.get('lang');
-        console.log('URL lang param:', selectedLanguage);
+        // 1. Check URL parameter first (highest priority)
+        selectedLanguage = urlLang;
+        if (selectedLanguage && Object.keys(translations).includes(selectedLanguage)) {
+            console.log('Using language from URL parameter:', selectedLanguage);
+            return selectedLanguage;
+        }
         
         // 2. Check localStorage
         if (!selectedLanguage) {
             try {
                 selectedLanguage = localStorage.getItem('selectedLanguage');
-                console.log('Stored language:', selectedLanguage);
+                if (selectedLanguage && Object.keys(translations).includes(selectedLanguage)) {
+                    console.log('Using stored language preference:', selectedLanguage);
+                    return selectedLanguage;
+                }
             } catch (e) {
                 console.log('localStorage not available');
             }
         }
         
-        // 3. Try country detection
+        // 3. Try country detection (geolocation)
         if (!selectedLanguage) {
-            selectedLanguage = await fallbackDetectCountryLanguage();
-            console.log('Country detected language:', selectedLanguage);
+            selectedLanguage = await detectCountryLanguage();
+            if (selectedLanguage) {
+                console.log('Using country-detected language:', selectedLanguage);
+                return selectedLanguage;
+            }
         }
         
         // 4. Use browser language
         if (!selectedLanguage) {
-            selectedLanguage = fallbackDetectBrowserLanguage();
-            console.log('Browser detected language:', selectedLanguage);
+            selectedLanguage = detectBrowserLanguage();
+            console.log('Using browser-detected language:', selectedLanguage);
+            return selectedLanguage;
         }
         
-        // Ensure we have a supported language
-        const supportedLanguages = Object.keys(translations);
-        if (!supportedLanguages.includes(selectedLanguage)) {
-            console.log('Invalid language, defaulting to French');
-            selectedLanguage = 'fr';
-        }
-
-        console.log('Final selected language:', selectedLanguage);
-
-        // Store the selected language
-        try {
-            localStorage.setItem('selectedLanguage', selectedLanguage);
-        } catch (e) {
-            console.log('Could not save language preference');
-        }
-
-        return selectedLanguage;
+        // 5. Final fallback to French
+        console.log('All detection methods failed, using French as fallback');
+        return 'fr';
     }
 
     function updateBrowserTable(lang) {
@@ -508,16 +489,36 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.documentElement.lang = lang;
 
         // Update language selector
+        const languageSelect = document.getElementById('language-select');
         if (languageSelect) {
             languageSelect.value = lang;
         }
     }
 
-    // Initialize with language detection
-    const currentLanguage = await detectLanguage();
-    updateContent(currentLanguage);
+    // Detect language and initialize page
+    console.log('Initializing page with proper language detection...');
+    const detectedLanguage = await detectLanguage();
+    
+    // If no language parameter in URL and we detected a different language, update the URL
+    if (!urlLang && detectedLanguage) {
+        console.log(`Updating URL to include detected language: ${detectedLanguage}`);
+        const url = new URL(window.location);
+        url.searchParams.set('lang', detectedLanguage);
+        window.history.replaceState({}, '', url);
+    }
+    
+    // Update content with detected language
+    updateContent(detectedLanguage);
+    
+    // Store the detected language preference
+    try {
+        localStorage.setItem('selectedLanguage', detectedLanguage);
+    } catch (e) {
+        console.log('Could not save language preference');
+    }
 
     // Set up language change listener
+    const languageSelect = document.getElementById('language-select');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const newLang = this.value;
@@ -551,10 +552,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Get the CURRENT language from the dropdown
             const languageDropdown = document.getElementById('language-select');
-            const currentLang = languageDropdown.value;
+            const currentLang = languageDropdown ? languageDropdown.value : detectedLanguage;
             
-            console.log('Login button clicked, current language from dropdown:', currentLang);
+            console.log('Login button clicked, current language:', currentLang);
             window.location.href = `login.html?lang=${currentLang}`;
         });
     }
+
+    console.log('Page initialization complete with language:', detectedLanguage);
 });
