@@ -2,6 +2,16 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
+    // Password Reset Fields
+    passwordResetToken: {
+        type: String,
+        default: null
+    },
+    passwordResetExpiry: {
+        type: Date,
+        default: null
+    },
+    
     // Basic Information
     firstName: {
         type: String,

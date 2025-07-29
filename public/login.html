@@ -122,25 +122,26 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-    // Get URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Use languageDetection.js if available, otherwise fallback
-    let lang;
-    if (typeof detectUserLanguage === 'function') {
-        lang = detectUserLanguage();
-        saveLanguagePreference(lang);
-    } else {
-        // Fallback if languageDetection.js is not loaded
-        lang = urlParams.get('lang') || localStorage.getItem('selectedLanguage') || 'en';
-    }
-    
-    //console.log('Login page - using language:', lang);
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Use languageDetection.js if available, otherwise fallback
+            let lang;
+            if (typeof detectUserLanguage === 'function') {
+                lang = detectUserLanguage();
+                saveLanguagePreference(lang);
+                updateUrlLanguage(lang);
+            } else {
+                // Fallback if languageDetection.js is not loaded
+                lang = urlParams.get('lang') || localStorage.getItem('selectedLanguage') || 'en';
+            }
+            
+            console.log('Login page - detected language:', lang);
 
-    // Check for dev mode in URL (can still enable via URL parameter)
-    if (urlParams.get('dev') === 'true') {
-        document.body.classList.add('dev-mode');
-    }
+            // Check for dev mode in URL (can still enable via URL parameter)
+            if (urlParams.get('dev') === 'true') {
+                document.body.classList.add('dev-mode');
+            }
 
             // Translations
             const translations = {
@@ -156,7 +157,15 @@
                     invalidCredentials: 'Email ou mot de passe incorrect',
                     serverError: 'Erreur du serveur. Veuillez réessayer.',
                     loading: 'Connexion en cours...',
-                    loginSuccess: 'Connexion réussie! Redirection...'
+                    loginSuccess: 'Connexion réussie! Redirection...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Veuillez d\'abord saisir votre adresse email, puis cliquer sur "Mot de passe oublié?"',
+                    invalidEmail: 'Veuillez saisir une adresse email valide.',
+                    confirmReset: 'Envoyer un lien de réinitialisation du mot de passe à',
+                    sending: 'Envoi...',
+                    resetLinkSent: 'Lien de réinitialisation envoyé ! Vérifiez votre email.',
+                    resetError: 'Erreur lors de l\'envoi du lien de réinitialisation.',
+                    networkError: 'Erreur réseau. Veuillez réessayer.'
                 },
                 en: {
                     pageTitle: 'Login',
@@ -170,7 +179,15 @@
                     invalidCredentials: 'Invalid email or password',
                     serverError: 'Server error. Please try again.',
                     loading: 'Logging in...',
-                    loginSuccess: 'Login successful! Redirecting...'
+                    loginSuccess: 'Login successful! Redirecting...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Please enter your email address first, then click "Forgot password?"',
+                    invalidEmail: 'Please enter a valid email address.',
+                    confirmReset: 'Send password reset link to',
+                    sending: 'Sending...',
+                    resetLinkSent: 'Password reset link sent! Check your email.',
+                    resetError: 'Error sending reset link.',
+                    networkError: 'Network error. Please try again.'
                 },
                 de: {
                     pageTitle: 'Anmeldung',
@@ -184,7 +201,15 @@
                     invalidCredentials: 'Ungültige E-Mail oder Passwort',
                     serverError: 'Serverfehler. Bitte versuchen Sie es erneut.',
                     loading: 'Anmelden...',
-                    loginSuccess: 'Anmeldung erfolgreich! Weiterleitung...'
+                    loginSuccess: 'Anmeldung erfolgreich! Weiterleitung...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Bitte geben Sie zuerst Ihre E-Mail-Adresse ein und klicken Sie dann auf "Passwort vergessen?"',
+                    invalidEmail: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+                    confirmReset: 'Passwort-Reset-Link an',
+                    sending: 'Senden...',
+                    resetLinkSent: 'Passwort-Reset-Link gesendet! Überprüfen Sie Ihre E-Mail.',
+                    resetError: 'Fehler beim Senden des Reset-Links.',
+                    networkError: 'Netzwerkfehler. Bitte versuchen Sie es erneut.'
                 },
                 es: {
                     pageTitle: 'Iniciar sesión',
@@ -198,7 +223,15 @@
                     invalidCredentials: 'Correo electrónico o contraseña inválidos',
                     serverError: 'Error del servidor. Por favor, inténtelo de nuevo.',
                     loading: 'Iniciando sesión...',
-                    loginSuccess: '¡Inicio de sesión exitoso! Redirigiendo...'
+                    loginSuccess: '¡Inicio de sesión exitoso! Redirigiendo...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Por favor, ingrese primero su dirección de correo electrónico, luego haga clic en "¿Olvidó su contraseña?"',
+                    invalidEmail: 'Por favor, ingrese una dirección de correo electrónico válida.',
+                    confirmReset: '¿Enviar enlace de restablecimiento de contraseña a',
+                    sending: 'Enviando...',
+                    resetLinkSent: '¡Enlace de restablecimiento enviado! Revise su correo.',
+                    resetError: 'Error al enviar el enlace de restablecimiento.',
+                    networkError: 'Error de red. Por favor, inténtelo de nuevo.'
                 },
                 it: {
                     pageTitle: 'Accesso',
@@ -212,7 +245,15 @@
                     invalidCredentials: 'Email o password non validi',
                     serverError: 'Errore del server. Si prega di riprovare.',
                     loading: 'Accesso in corso...',
-                    loginSuccess: 'Accesso riuscito! Reindirizzamento...'
+                    loginSuccess: 'Accesso riuscito! Reindirizzamento...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Inserisci prima il tuo indirizzo email, poi clicca su "Password dimenticata?"',
+                    invalidEmail: 'Inserisci un indirizzo email valido.',
+                    confirmReset: 'Inviare link di ripristino password a',
+                    sending: 'Invio...',
+                    resetLinkSent: 'Link di ripristino inviato! Controlla la tua email.',
+                    resetError: 'Errore nell\'invio del link di ripristino.',
+                    networkError: 'Errore di rete. Si prega di riprovare.'
                 },
                 pt: {
                     pageTitle: 'Entrar',
@@ -226,12 +267,20 @@
                     invalidCredentials: 'Email ou senha inválidos',
                     serverError: 'Erro do servidor. Por favor, tente novamente.',
                     loading: 'Entrando...',
-                    loginSuccess: 'Login bem-sucedido! Redirecionando...'
+                    loginSuccess: 'Login bem-sucedido! Redirecionando...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Por favor, digite primeiro seu endereço de email, depois clique em "Esqueceu a senha?"',
+                    invalidEmail: 'Por favor, digite um endereço de email válido.',
+                    confirmReset: 'Enviar link de redefinição de senha para',
+                    sending: 'Enviando...',
+                    resetLinkSent: 'Link de redefinição enviado! Verifique seu email.',
+                    resetError: 'Erro ao enviar link de redefinição.',
+                    networkError: 'Erro de rede. Por favor, tente novamente.'
                 }
             };
 
             // Update content based on language
-            const t = translations[lang] || translations.fr;
+            const t = translations[lang] || translations.en;
             document.getElementById('htmlLang').lang = lang;
             document.getElementById('pageTitle').textContent = t.pageTitle;
             document.getElementById('emailLabel').textContent = t.emailLabel;
@@ -244,12 +293,13 @@
             document.getElementById('registerLink').textContent = t.register;
             document.getElementById('registerLink').href = `form.html?lang=${lang}`;
 
-            // Form submission
+            // Form elements
             const form = document.getElementById('loginForm');
             const submitButton = document.getElementById('submitButton');
             const errorMessage = document.getElementById('errorMessage');
             const successMessage = document.getElementById('successMessage');
 
+            // Form submission
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
@@ -264,7 +314,7 @@
                     const email = formData.get('email');
                     const password = formData.get('password');
 
-                    //console.log('Attempting login for:', email); // Dev logging
+                    console.log('Attempting login for:', email);
 
                     const response = await fetch('/api/login', {
                         method: 'POST',
@@ -275,7 +325,7 @@
                     });
 
                     const result = await response.json();
-                    //console.log('Login response:', result); // Dev logging
+                    console.log('Login response:', result);
 
                     if (response.ok && result.success) {
                         // Store user session
@@ -284,8 +334,6 @@
                         if (result.userInfo) {
                             sessionStorage.setItem('userInfo', JSON.stringify(result.userInfo));
                         }
-
-                        window.location.href = `dashboard.html?lang=${lang}`;
                         
                         // Show success message
                         successMessage.textContent = t.loginSuccess;
@@ -293,9 +341,9 @@
                         
                         // Redirect to appropriate page
                         setTimeout(() => {
-                            // Check if account.html exists, otherwise go to appForm.html
+                            // Check if user has dashboard access, otherwise go to appForm.html
                             const redirectUrl = result.userInfo && result.userInfo.version === 'paid' 
-                                ? `account.html?lang=${lang}` 
+                                ? `dashboard.html?lang=${lang}` 
                                 : `appForm.html?lang=${lang}&email=${encodeURIComponent(email)}`;
                             window.location.href = redirectUrl;
                         }, 1500);
@@ -313,32 +361,59 @@
                 }
             });
 
-            // Forgot password link
+            // Forgot password link - UPDATED WITH FULL IMPLEMENTATION
             document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
                 e.preventDefault();
-                // TODO: Implement password reset functionality
-                alert(t.forgotPassword + '\n\nThis feature is not yet implemented.');
+                
+                const email = document.getElementById('email').value;
+                
+                if (!email) {
+                    alert(t.enterEmailFirst);
+                    document.getElementById('email').focus();
+                    return;
+                }
+                
+                // Validate email format
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    alert(t.invalidEmail);
+                    document.getElementById('email').focus();
+                    return;
+                }
+                
+                // Confirmation message
+                if (confirm(`${t.confirmReset} ${email}?`)) {
+                    // Show loading state
+                    const originalText = document.getElementById('forgotPasswordLink').textContent;
+                    document.getElementById('forgotPasswordLink').textContent = '⏳ ' + t.sending;
+                    
+                    // Call forgot password API
+                    fetch('/api/forgot-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            alert(t.resetLinkSent);
+                        } else {
+                            alert(result.message || t.resetError);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert(t.networkError);
+                    })
+                    .finally(() => {
+                        // Restore original text
+                        document.getElementById('forgotPasswordLink').textContent = originalText;
+                    });
+                }
             });
         });
-
-        document.addEventListener('DOMContentLoaded', () => {
-        // Use common language detection
-        const lang = detectUserLanguage();
-        saveLanguagePreference(lang);
-        updateUrlLanguage(lang);
-        
-        console.log('Login page - detected language:', lang);
-
-        // Rest of your existing translations code...
-        const translations = {
-            // ... existing translations
-        };
-
-        // Update content based on detected language
-        const t = translations[lang] || translations.en; // Default to English, not French
-        
-        // ... rest of the existing code
-    });
     </script>
 </body>
 </html>

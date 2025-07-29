@@ -28,21 +28,6 @@ const userRoutes = require('./routes/userRoutes');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 
-function mapLanguageForDeepgram(clientLanguage) {
-    const languageMap = {
-        'fr': 'fr',      // French
-        'en': 'en',      // English  
-        'de': 'de',      // German
-        'es': 'es',      // Spanish
-        'it': 'it',      // Italian
-        'pt': 'pt'       // Portuguese
-    };
-    
-    const mappedLanguage = languageMap[clientLanguage] || 'en'; // Default to English if unknown
-    console.log(`🌐 Language mapping: ${clientLanguage} → ${mappedLanguage}`);
-    return mappedLanguage;
-}
-
 // Your functions and configuration
 function calculateValidationEndDate(version, startDate = new Date()) {
     const daysToAdd = version === 'free' ? 7 : 30;
@@ -55,28 +40,36 @@ if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = 'production';
 }
 
-// *** CRITICAL FIX: Never use localhost in production ***
+
 // In server.js, update the BASE_URL logic
-const BASE_URL = (function() {
-    // For Render deployment - use the official external URL
-    if (process.env.RENDER_EXTERNAL_URL) {
-        // Check if the URL already has a protocol
-        const renderUrl = process.env.RENDER_EXTERNAL_URL;
-        if (renderUrl.startsWith('http://') || renderUrl.startsWith('https://')) {
-            return renderUrl;
-        } else {
-            return `https://${renderUrl}`;
+const BASE_URL = (() => {
+    // Priority 1: Manual override (but not localhost in production)
+    if (process.env.BASE_URL) {
+        const isLocalhost = process.env.BASE_URL.includes('localhost') || 
+                           process.env.BASE_URL.includes('127.0.0.1');
+        const isDev = process.env.NODE_ENV === 'development';
+        
+        if (!isLocalhost || isDev) {
+            return process.env.BASE_URL;
         }
     }
-    // Allow manual override via environment variable
-    if (process.env.BASE_URL && !process.env.BASE_URL.includes('localhost')) {
-        return process.env.BASE_URL;
+    
+    // Priority 2: Render deployment URL
+    if (process.env.RENDER_EXTERNAL_URL) {
+        const renderUrl = process.env.RENDER_EXTERNAL_URL;
+        // Add protocol if missing
+        if (!renderUrl.match(/^https?:\/\//)) {
+            return `https://${renderUrl}`;
+        }
+        return renderUrl;
     }
-    // For local development
+    
+    // Priority 3: Development mode
     if (process.env.NODE_ENV === 'development') {
         return `http://localhost:${process.env.PORT || 8080}`;
     }
-    // Default to your Render URL
+    
+    // Priority 4: Production default
     return 'https://syncvoicemedical.onrender.com';
 })();
 
@@ -88,13 +81,6 @@ console.log('Environment check:', {
     BASE_URL_final: BASE_URL
 });
 
-console.log('Environment check:', {
-    NODE_ENV: process.env.NODE_ENV,
-    BASE_URL_env: process.env.BASE_URL,
-    BASE_URL_final: BASE_URL
-});
-
-console.log('🌐 Using BASE_URL:', BASE_URL);
 
 // Create an array of development emails that can bypass the check
 const DEV_EMAILS = [
@@ -219,9 +205,6 @@ app.get('/webhook-test', async (req, res) => {
     }
 });
 
-
-app.use(express.static('public'));
-
 // CORS middleware
 app.use(cors({
     origin: '*', // Be cautious with this in production
@@ -335,17 +318,13 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
 // Define base directory for your application
 const baseDir = __dirname;
 console.log('Base directory for static files:', baseDir);
 
-// Serve static files from the public directory
-const publicDir = path.join(baseDir, 'public');
-console.log('Public directory for static files:', publicDir);
+const publicDir = path.join(__dirname, 'public');
 app.use(express.static(publicDir));
-
-// Serve root directory files as well (for non-public files)
-app.use(express.static(baseDir));
 
 // Serve terms files from the terms directory
 const termsDir = path.join(baseDir, 'terms');
@@ -590,6 +569,202 @@ app.get('/api/status', (req, res) => {
 
 // Routes
 app.use('/api', userRoutes);
+
+// Password reset request route
+app.post('/api/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        // Find user by email
+        const user = await User.findOne({ email: email.toLowerCase() });
+        
+        if (!user) {
+            // Don't reveal if user exists or not for security
+            return res.json({
+                success: true,
+                message: 'If this email exists, you will receive a password reset link.'
+            });
+        }
+        
+        // Only allow password reset for paid users who have passwords
+        if (user.version !== 'paid' || !user.password) {
+            return res.json({
+                success: false,
+                message: 'Password reset is only available for paid accounts with existing passwords.'
+            });
+        }
+        
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        user.passwordResetToken = resetToken;
+        user.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        
+        await user.save();
+        
+        // Create reset link
+        const resetLink = `${BASE_URL}/reset-password.html?token=${resetToken}&email=${encodeURIComponent(email)}`;
+        
+        // Send email
+        const lang = user.language || 'en';
+        const emailSubject = {
+            fr: 'SyncVoice Medical - Réinitialisation du mot de passe',
+            en: 'SyncVoice Medical - Password Reset',
+            de: 'SyncVoice Medical - Passwort zurücksetzen',
+            es: 'SyncVoice Medical - Restablecer contraseña',
+            it: 'SyncVoice Medical - Ripristino password',
+            pt: 'SyncVoice Medical - Redefinir senha'
+        };
+        
+        const emailBody = {
+            fr: `
+                <h2>Réinitialisation de votre mot de passe</h2>
+                <p>Bonjour ${user.firstName},</p>
+                <p>Vous avez demandé la réinitialisation de votre mot de passe pour SyncVoice Medical.</p>
+                <p>Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :</p>
+                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Réinitialiser mon mot de passe</a></p>
+                <p>Ce lien expire dans 1 heure.</p>
+                <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+                <br>
+                <p>L'équipe SyncVoice Medical</p>
+            `,
+            en: `
+                <h2>Reset Your Password</h2>
+                <p>Hello ${user.firstName},</p>
+                <p>You have requested to reset your password for SyncVoice Medical.</p>
+                <p>Click the link below to create a new password:</p>
+                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset My Password</a></p>
+                <p>This link expires in 1 hour.</p>
+                <p>If you didn't request this reset, please ignore this email.</p>
+                <br>
+                <p>The SyncVoice Medical Team</p>
+            `,
+            de: `
+                <h2>Passwort zurücksetzen</h2>
+                <p>Hallo ${user.firstName},</p>
+                <p>Sie haben die Zurücksetzung Ihres Passworts für SyncVoice Medical angefordert.</p>
+                <p>Klicken Sie auf den untenstehenden Link, um ein neues Passwort zu erstellen:</p>
+                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Mein Passwort zurücksetzen</a></p>
+                <p>Dieser Link läuft in 1 Stunde ab.</p>
+                <p>Falls Sie diese Zurücksetzung nicht angefordert haben, ignorieren Sie diese E-Mail.</p>
+                <br>
+                <p>Das SyncVoice Medical Team</p>
+            `,
+            es: `
+                <h2>Restablecer su contraseña</h2>
+                <p>Hola ${user.firstName},</p>
+                <p>Ha solicitado restablecer su contraseña para SyncVoice Medical.</p>
+                <p>Haga clic en el enlace de abajo para crear una nueva contraseña:</p>
+                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Restablecer mi contraseña</a></p>
+                <p>Este enlace expira en 1 hora.</p>
+                <p>Si no solicitó este restablecimiento, ignore este correo.</p>
+                <br>
+                <p>El equipo de SyncVoice Medical</p>
+            `,
+            it: `
+                <h2>Ripristina la tua password</h2>
+                <p>Ciao ${user.firstName},</p>
+                <p>Hai richiesto di ripristinare la tua password per SyncVoice Medical.</p>
+                <p>Clicca sul link qui sotto per creare una nuova password:</p>
+                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ripristina la mia password</a></p>
+                <p>Questo link scade tra 1 ora.</p>
+                <p>Se non hai richiesto questo ripristino, ignora questa email.</p>
+                <br>
+                <p>Il team di SyncVoice Medical</p>
+            `,
+            pt: `
+                <h2>Redefinir sua senha</h2>
+                <p>Olá ${user.firstName},</p>
+                <p>Você solicitou a redefinição de sua senha para o SyncVoice Medical.</p>
+                <p>Clique no link abaixo para criar uma nova senha:</p>
+                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Redefinir minha senha</a></p>
+                <p>Este link expira em 1 hora.</p>
+                <p>Se você não solicitou esta redefinição, ignore este email.</p>
+                <br>
+                <p>A equipe SyncVoice Medical</p>
+            `
+        };
+        
+        // CREATE TRANSPORTER
+        const transporter = await createTransporter();
+        
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: emailSubject[lang] || emailSubject.en,
+            html: emailBody[lang] || emailBody.en
+        });
+        
+        res.json({
+            success: true,
+            message: 'Password reset link sent to your email.'
+        });
+        
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    }
+});
+
+// Password reset route
+app.post('/api/reset-password', async (req, res) => {
+    try {
+        const { token, email, newPassword } = req.body;
+        
+        // Validate input
+        if (!token || !email || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields.'
+            });
+        }
+        
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 8 characters long.'
+            });
+        }
+        
+        // Find user with valid reset token
+        const user = await User.findOne({
+            email: email.toLowerCase(),
+            passwordResetToken: token,
+            passwordResetExpiry: { $gt: new Date() }
+        });
+        
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired reset token.'
+            });
+        }
+        
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        
+        // Update user
+        user.password = hashedPassword;
+        user.passwordResetToken = null;
+        user.passwordResetExpiry = null;
+        
+        await user.save();
+        
+        res.json({
+            success: true,
+            message: 'Password reset successful. You can now login with your new password.'
+        });
+        
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    }
+});
 
 // API Routes
 app.get('/api/test', (req, res) => {
@@ -1451,37 +1626,6 @@ app.post('/api/create-user', async (req, res) => {
     }
 });
 
-// Add this route for development/testing
-app.get('/reset-trials', async (req, res) => {
-    try {
-        // CHECK DATABASE CONNECTION FIRST
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            console.error('Database not connected in /reset-trials');
-            return res.status(503).json({
-                success: false,
-                message: 'Database connection unavailable'
-            });
-        }
-        
-        await User.deleteMany({ 
-            version: 'free', 
-            isActive: false 
-        });
-        res.json({ 
-            success: true, 
-            message: 'All inactive free trial users deleted' 
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            message: error.message 
-        });
-    }
-});
-
-// Stripe webhook
-
 
 async function handleSuccessfulPayment(paymentIntent) {
     try {
@@ -1758,57 +1902,6 @@ app.get('/test', (req, res) => {
     res.send('Server is working!');
 });
 
-// Add this route BEFORE your catch-all handlers in server.js
-app.get('/debug-files', (req, res) => {
-    const baseDir = __dirname;
-    const publicDir = path.join(baseDir, 'public');
-    
-    try {
-        // Check if directories exist
-        const publicExists = fs.existsSync(publicDir);
-        
-        // List files in public directory
-        let filesInPublic = [];
-        if (publicExists) {
-            filesInPublic = fs.readdirSync(publicDir);
-        }
-        
-        // Check specific files
-        const loginHtmlExists = fs.existsSync(path.join(publicDir, 'login.html'));
-        const formHtmlExists = fs.existsSync(path.join(publicDir, 'form.html'));
-        const indexHtmlExists = fs.existsSync(path.join(publicDir, 'index.html'));
-        
-        res.json({
-            success: true,
-            paths: {
-                baseDir: baseDir,
-                publicDir: publicDir
-            },
-            directories: {
-                publicExists: publicExists
-            },
-            files: {
-                filesInPublic: filesInPublic,
-                loginHtmlExists: loginHtmlExists,
-                formHtmlExists: formHtmlExists,
-                indexHtmlExists: indexHtmlExists
-            },
-            staticMiddleware: {
-                configured: true,
-                path: publicDir
-            }
-        });
-    } catch (error) {
-        res.json({
-            success: false,
-            error: error.message,
-            paths: {
-                baseDir: baseDir,
-                publicDir: publicDir
-            }
-        });
-    }
-});
 
 // Test login route - accepts any email/password for testing
 app.post('/api/login', async (req, res) => {
@@ -1962,53 +2055,6 @@ app.get('/api/user-details/:email', async (req, res) => {
     }
 });
 
-app.post('/api/forgot-password', async (req, res) => {
-    try {
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            return res.status(503).json({
-                success: false,
-                message: 'Database connection unavailable'
-            });
-        }
-
-        const { email } = req.body;
-        
-        const user = await User.findOne({ email: email.toLowerCase() });
-        
-        if (!user) {
-            // Don't reveal if email exists or not
-            return res.json({
-                success: true,
-                message: 'If an account with that email exists, a password reset link has been sent.'
-            });
-        }
-
-        // Generate new activation code for password reset
-        const resetCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-        const resetExpiry = new Date();
-        resetExpiry.setHours(resetExpiry.getHours() + 1); // 1 hour expiry
-
-        user.activationCode = resetCode;
-        user.activationCodeExpiry = resetExpiry;
-        await user.save();
-
-        // Send password reset email (implement this based on your email system)
-        // ... email sending logic here ...
-
-        res.json({
-            success: true,
-            message: 'If an account with that email exists, a password reset link has been sent.'
-        });
-
-    } catch (error) {
-        console.error('Password reset error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
-    }
-});
 
 app.get('/api/test-deepgram', async (req, res) => {
     try {
@@ -2166,11 +2212,26 @@ const server = app.listen(PORT, HOST, () => {
     console.log('WebSocket server is ready on the same port');
 });
 
-// Create WebSocket server using the same HTTP server (for Render.com)
-const wss = new WebSocket.Server({ server });
+function mapLanguageForDeepgram(clientLanguage) {
+    const languageMap = {
+        'fr': 'fr',      // French
+        'en': 'en',      // English  
+        'de': 'de',      // German
+        'es': 'es',      // Spanish
+        'it': 'it',      // Italian
+        'pt': 'pt'       // Portuguese
+    };
+    
+    const mappedLanguage = languageMap[clientLanguage] || 'en';
+    console.log(`🌐 Language mapping: ${clientLanguage} → ${mappedLanguage}`);
+    return mappedLanguage;
+}
 
 // Store active WebSocket connections
 const activeConnections = new Map();
+// Create WebSocket server using the same HTTP server (for Render.com)
+const wss = new WebSocket.Server({ server });
+
 
 
 // Keep the existing cleanup handler
