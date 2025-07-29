@@ -11,3 +11,4 @@ uploads/
 *.zip
 Doc/*.jpg
 initTestUsers.js
+public/test-language-detection.html

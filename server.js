@@ -73,7 +73,6 @@ const BASE_URL = (() => {
     return 'https://syncvoicemedical.onrender.com';
 })();
 
-console.log('🌐 Using BASE_URL:', BASE_URL);
 console.log('Environment check:', {
     NODE_ENV: process.env.NODE_ENV,
     RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL,
@@ -213,6 +212,10 @@ app.use(cors({
     credentials: true
 }));
 
+const publicDir = path.join(__dirname, 'public');
+console.log('Serving static files from:', publicDir);
+app.use(express.static(publicDir));
+
 app.options('*', cors()); // Enable pre-flight for all routes
 
 app.use((req, res, next) => {
@@ -323,8 +326,6 @@ app.use(express.urlencoded({ extended: true }));
 const baseDir = __dirname;
 console.log('Base directory for static files:', baseDir);
 
-const publicDir = path.join(__dirname, 'public');
-app.use(express.static(publicDir));
 
 // Serve terms files from the terms directory
 const termsDir = path.join(baseDir, 'terms');
@@ -764,6 +765,26 @@ app.post('/api/reset-password', async (req, res) => {
             message: 'Server error. Please try again.'
         });
     }
+});
+
+app.get('/reset-password.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'reset-password.html'));
+});
+
+app.get('/debug-reset-password', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    const filePath = path.join(__dirname, 'public', 'reset-password.html');
+    
+    res.json({
+        __dirname: __dirname,
+        publicDir: path.join(__dirname, 'public'),
+        filePath: filePath,
+        fileExists: fs.existsSync(filePath),
+        publicDirContents: fs.existsSync(path.join(__dirname, 'public')) 
+            ? fs.readdirSync(path.join(__dirname, 'public')) 
+            : 'public dir not found'
+    });
 });
 
 // API Routes
