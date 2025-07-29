@@ -9,6 +9,130 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <style>
+        /* Desktop Client Section Styles */
+        .desktop-client-section {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e8f2ff 100%);
+            border-radius: 12px;
+            padding: 2.5rem;
+            margin: 3rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .desktop-client-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .desktop-client-title {
+            color: #1a5f7a;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .desktop-client-subtitle {
+            color: #555;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .desktop-features {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .desktop-feature {
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .desktop-feature-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            background: #1a5f7a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .desktop-feature-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .desktop-feature h5 {
+            color: #1a5f7a;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .desktop-feature p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .download-section {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 2rem;
+            background: #1a5f7a;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .download-btn:hover {
+            background: #164d63;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .download-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .system-requirements {
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-client-section {
+                padding: 1.5rem;
+            }
+
+            .desktop-features {
+                flex-direction: column;
+            }
+
+            .desktop-client-title {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="hero">
@@ -69,6 +193,56 @@
                     </ul>
                     <p>Le texte précis sera produit. Copiez et collez.</p>
                     <p>Aucun téléchargement ni installation de logiciel dans votre ordinateur. Partagez le document avec vos collègues par email.</p>
+                </div>
+
+                <!-- Desktop Client Section -->
+                <div class="desktop-client-section" id="desktopClientSection">
+                    <div class="desktop-client-header">
+                        <h2 class="desktop-client-title" id="desktopClientTitle">Application de Bureau SyncVoice Medical</h2>
+                        <p class="desktop-client-subtitle" id="desktopClientSubtitle">Travaillez hors ligne avec notre application de bureau Windows</p>
+                    </div>
+
+                    <div class="desktop-features">
+                        <div class="desktop-feature">
+                            <div class="desktop-feature-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                            </div>
+                            <h5 id="offlineFeatureTitle">Utilisation Hors Ligne</h5>
+                            <p id="offlineFeatureDesc">Transcrivez sans connexion internet</p>
+                        </div>
+                        <div class="desktop-feature">
+                            <div class="desktop-feature-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                                </svg>
+                            </div>
+                            <h5 id="securityFeatureTitle">Sécurité Renforcée</h5>
+                            <p id="securityFeatureDesc">Vos données restent sur votre ordinateur</p>
+                        </div>
+                        <div class="desktop-feature">
+                            <div class="desktop-feature-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                                </svg>
+                            </div>
+                            <h5 id="performanceFeatureTitle">Performance Optimale</h5>
+                            <p id="performanceFeatureDesc">Transcription rapide et précise</p>
+                        </div>
+                    </div>
+
+                    <div class="download-section">
+                        <a href="/downloads/SyncVoiceMedical-Setup.exe" class="download-btn" id="downloadBtn">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                            </svg>
+                            <span id="downloadBtnText">Télécharger pour Windows</span>
+                        </a>
+                        <p class="system-requirements" id="systemRequirements">
+                            Nécessite Windows 10 ou supérieur • 200 MB d'espace disque
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Browser Support Table -->
