@@ -47,27 +47,44 @@
             margin: 2rem 0;
         }
         .activation-code {
-    font-family: monospace;
-    font-size: 2rem;
-    color: #69B578;
-    font-weight: bold;
-    padding: 1rem;
-    background: white;
-    border: 2px solid #69B578;
-    border-radius: 8px;
-    display: inline-block;
-    margin-top: 1rem;
-    cursor: pointer;            /* Add this */
-    transition: all 0.3s ease;  /* Add this */
-    text-decoration: none;      /* Add this */
-}
-
-.activation-code:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(105, 181, 120, 0.3);
-    background: #69B578;
-    color: white;
-}
+            font-family: monospace;
+            font-size: 2rem;
+            color: #69B578;
+            font-weight: bold;
+            padding: 1rem;
+            background: white;
+            border: 2px solid #69B578;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .activation-code:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(105, 181, 120, 0.3);
+            background: #69B578;
+            color: white;
+        }
+        .launch-app-btn {
+            background: #69B578;
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .launch-app-btn:hover {
+            background: #5aa469;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
         .logout-btn {
             background: #dc3545;
             color: white;
@@ -80,6 +97,10 @@
         }
         .logout-btn:hover {
             background: #c82333;
+        }
+        .button-group {
+            text-align: center;
+            margin-top: 2rem;
         }
     </style>
 </head>
@@ -99,6 +120,8 @@
                 <h2 id="activationCodeTitle">Votre code d'activation</h2>
                 <p id="activationCodeDesc">Utilisez ce code pour lancer l'application SyncVoice Medical:</p>
                 <a href="#" class="activation-code" id="activationCode">Loading...</a>
+                <br>
+                <button id="launchAppButton" class="launch-app-btn" onclick="launchApplication()">Lancer l'application</button>
             </div>
 
             <div class="account-details" id="accountDetails">
@@ -108,7 +131,9 @@
                 </div>
             </div>
 
-            <button id="logoutButton" class="logout-btn">Se déconnecter</button>
+            <div class="button-group">
+                <button id="logoutButton" class="logout-btn">Se déconnecter</button>
+            </div>
         </main>
     </div>
 
@@ -133,6 +158,7 @@
                     pageTitle: 'Mon Compte',
                     activationCodeTitle: 'Votre code d\'activation',
                     activationCodeDesc: 'Utilisez ce code pour lancer l\'application SyncVoice Medical:',
+                    launchAppButton: 'Lancer l\'application',
                     detailsTitle: 'Détails du compte',
                     firstName: 'Prénom',
                     lastName: 'Nom',
@@ -160,6 +186,7 @@
                     pageTitle: 'My Account',
                     activationCodeTitle: 'Your Activation Code',
                     activationCodeDesc: 'Use this code to launch the SyncVoice Medical application:',
+                    launchAppButton: 'Launch Application',
                     detailsTitle: 'Account Details',
                     firstName: 'First Name',
                     lastName: 'Last Name',
@@ -187,6 +214,7 @@
                     pageTitle: 'Mein Konto',
                     activationCodeTitle: 'Ihr Aktivierungscode',
                     activationCodeDesc: 'Verwenden Sie diesen Code, um die SyncVoice Medical-Anwendung zu starten:',
+                    launchAppButton: 'Anwendung starten',
                     detailsTitle: 'Kontodetails',
                     firstName: 'Vorname',
                     lastName: 'Nachname',
@@ -214,6 +242,7 @@
                     pageTitle: 'Mi Cuenta',
                     activationCodeTitle: 'Su Código de Activación',
                     activationCodeDesc: 'Use este código para iniciar la aplicación SyncVoice Medical:',
+                    launchAppButton: 'Iniciar Aplicación',
                     detailsTitle: 'Detalles de la Cuenta',
                     firstName: 'Nombre',
                     lastName: 'Apellido',
@@ -241,6 +270,7 @@
                     pageTitle: 'Il mio Account',
                     activationCodeTitle: 'Il tuo Codice di Attivazione',
                     activationCodeDesc: 'Usa questo codice per avviare l\'applicazione SyncVoice Medical:',
+                    launchAppButton: 'Avvia Applicazione',
                     detailsTitle: 'Dettagli dell\'Account',
                     firstName: 'Nome',
                     lastName: 'Cognome',
@@ -268,6 +298,7 @@
                     pageTitle: 'Minha Conta',
                     activationCodeTitle: 'Seu Código de Ativação',
                     activationCodeDesc: 'Use este código para iniciar o aplicativo SyncVoice Medical:',
+                    launchAppButton: 'Iniciar Aplicativo',
                     detailsTitle: 'Detalhes da Conta',
                     firstName: 'Nome',
                     lastName: 'Sobrenome',
@@ -299,6 +330,7 @@
             document.getElementById('pageTitle').textContent = t.pageTitle;
             document.getElementById('activationCodeTitle').textContent = t.activationCodeTitle;
             document.getElementById('activationCodeDesc').textContent = t.activationCodeDesc;
+            document.getElementById('launchAppButton').textContent = t.launchAppButton;
             document.getElementById('detailsTitle').textContent = t.detailsTitle;
             document.getElementById('returnBtn').textContent = t.returnButton;
             document.getElementById('returnBtn').href = `index.html?lang=${lang}`;
@@ -312,21 +344,20 @@
                 if (response.ok && data.success) {
                     const user = data.user;
                     
-                    // Display activation code
                     // Display activation code as clickable link
-const activationCodeElement = document.getElementById('activationCode');
-activationCodeElement.textContent = user.activationCode;
+                    const activationCodeElement = document.getElementById('activationCode');
+                    activationCodeElement.textContent = user.activationCode;
 
-// Set the href for the activation link
-const activationUrl = `/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
-activationCodeElement.href = activationUrl;
+                    // Set the href for the activation link
+                    const activationUrl = `/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    activationCodeElement.href = activationUrl;
 
-// Add click event for better control
-activationCodeElement.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Navigating to app with activation code:', user.activationCode);
-    window.location.href = activationUrl;
-});
+                    // Add click event for better control
+                    activationCodeElement.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('Navigating to app with activation code:', user.activationCode);
+                        window.location.href = activationUrl;
+                    });
 
                     // Format dates
                     const formatDate = (dateString) => {
@@ -412,6 +443,19 @@ activationCodeElement.addEventListener('click', (e) => {
                 window.location.href = `index.html?lang=${lang}`;
             });
         });
+
+        // Function to launch the application
+        function launchApplication() {
+            const lang = new URLSearchParams(window.location.search).get('lang') || 'fr';
+            const userEmail = sessionStorage.getItem('userEmail');
+            
+            if (userEmail) {
+                window.location.href = `appForm.html?lang=${lang}&email=${encodeURIComponent(userEmail)}`;
+            } else {
+                console.error('No user email found in session');
+                window.location.href = `login.html?lang=${lang}`;
+            }
+        }
     </script>
 </body>
 </html>
