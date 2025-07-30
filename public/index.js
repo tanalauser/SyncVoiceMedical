@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const urlLang = urlParams.get('lang');
     console.log('🔗 URL Language Parameter:', urlLang);
 
-    // Get all DOM elements
+    // Get all DOM elements - UPDATED to include desktop client elements
     const elements = {
         title: document.querySelector('.title'),
         subtitle: document.querySelector('.subtitle'),
@@ -28,7 +28,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         features: document.querySelector('.features'),
         browserSupportTitle: document.querySelector('.browser-support-title'),
         browserTable: document.querySelector('.browser-support-table'),
-        browserNote: document.querySelector('.browser-note')
+        browserNote: document.querySelector('.browser-note'),
+        // Desktop client elements
+        desktopClientTitle: document.getElementById('desktopClientTitle'),
+        desktopClientSubtitle: document.getElementById('desktopClientSubtitle'),
+        offlineFeatureTitle: document.getElementById('offlineFeatureTitle'),
+        offlineFeatureDesc: document.getElementById('offlineFeatureDesc'),
+        securityFeatureTitle: document.getElementById('securityFeatureTitle'),
+        securityFeatureDesc: document.getElementById('securityFeatureDesc'),
+        performanceFeatureTitle: document.getElementById('performanceFeatureTitle'),
+        performanceFeatureDesc: document.getElementById('performanceFeatureDesc'),
+        downloadBtnText: document.getElementById('downloadBtnText'),
+        systemRequirements: document.getElementById('systemRequirements')
     };
 
     // Translation definitions - Updated with desktop client translations
@@ -638,6 +649,38 @@ const translations = {
                 featuresPs[0].textContent = content.accurateText;
                 featuresPs[1].textContent = content.noDownload;
             }
+        }
+
+        // UPDATE DESKTOP CLIENT SECTION - This was missing!
+        if (elements.desktopClientTitle) {
+            elements.desktopClientTitle.textContent = content.desktopClientTitle;
+        }
+        if (elements.desktopClientSubtitle) {
+            elements.desktopClientSubtitle.textContent = content.desktopClientSubtitle;
+        }
+        if (elements.offlineFeatureTitle) {
+            elements.offlineFeatureTitle.textContent = content.offlineFeatureTitle;
+        }
+        if (elements.offlineFeatureDesc) {
+            elements.offlineFeatureDesc.textContent = content.offlineFeatureDesc;
+        }
+        if (elements.securityFeatureTitle) {
+            elements.securityFeatureTitle.textContent = content.securityFeatureTitle;
+        }
+        if (elements.securityFeatureDesc) {
+            elements.securityFeatureDesc.textContent = content.securityFeatureDesc;
+        }
+        if (elements.performanceFeatureTitle) {
+            elements.performanceFeatureTitle.textContent = content.performanceFeatureTitle;
+        }
+        if (elements.performanceFeatureDesc) {
+            elements.performanceFeatureDesc.textContent = content.performanceFeatureDesc;
+        }
+        if (elements.downloadBtnText) {
+            elements.downloadBtnText.textContent = content.downloadBtnText;
+        }
+        if (elements.systemRequirements) {
+            elements.systemRequirements.textContent = content.systemRequirements;
         }
 
         // Update browser support section
