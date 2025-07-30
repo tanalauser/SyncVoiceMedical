@@ -23,7 +23,7 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon512x512.ico"
     },
     "nsis": {
       "oneClick": false,

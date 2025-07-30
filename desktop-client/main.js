@@ -8,6 +8,11 @@ app.commandLine.appendSwitch('enable-speech-synthesis');
 app.commandLine.appendSwitch('enable-web-speech');
 app.commandLine.appendSwitch('enable-media-stream');
 app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
+// Additional media permission switches for better compatibility
+app.commandLine.appendSwitch('enable-media-stream-audio-source');
+app.commandLine.appendSwitch('enable-media-stream-video-source');
+app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor');
+app.commandLine.appendSwitch('allow-elevated-browser');
 
 let mainWindow = null;
 let tray = null;
@@ -24,7 +29,7 @@ function setupContentSecurityPolicy() {
                     "script-src 'self' 'unsafe-inline'; " +
                     "style-src 'self' 'unsafe-inline'; " +
                     "connect-src 'self' ws: wss: https:; " +
-                    "media-src 'self' blob: mediastream:; " +
+                    "media-src 'self' blob: mediastream: data:; " +
                     "img-src 'self' data: blob:; " +
                     "font-src 'self'; " +
                     "object-src 'none'; " +
@@ -32,6 +37,74 @@ function setupContentSecurityPolicy() {
                 ]
             }
         });
+    });
+}
+
+function setupMediaPermissions() {
+    console.log('🎤 Setting up comprehensive media permissions...');
+    
+    // Set permission request handler for media access
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
+        console.log(`🔐 Permission requested: ${permission}`, details);
+        
+        const allowedPermissions = [
+            'media',
+            'microphone', 
+            'audioCapture',
+            'camera',
+            'videoCapture',
+            'mediaKeySystem',
+            'geolocation',
+            'notifications',
+            'pointerLock',
+            'fullscreen'
+        ];
+        
+        if (allowedPermissions.includes(permission)) {
+            console.log(`✅ Auto-approving permission: ${permission}`);
+            callback(true);
+        } else {
+            console.log(`❌ Denying permission: ${permission}`);
+            callback(false);
+        }
+    });
+
+    // Set permission check handler (for checking existing permissions)
+    session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+        console.log(`🔍 Permission check: ${permission} from ${requestingOrigin}`);
+        
+        const allowedPermissions = [
+            'media',
+            'microphone', 
+            'audioCapture',
+            'camera',
+            'videoCapture',
+            'mediaKeySystem'
+        ];
+        
+        const result = allowedPermissions.includes(permission);
+        console.log(`🔍 Permission check result for ${permission}: ${result}`);
+        return result;
+    });
+
+    // Handle device permission requests
+    session.defaultSession.setDevicePermissionHandler((details) => {
+        console.log('🎤 Device permission requested:', details);
+        
+        // Allow microphone and camera devices
+        if (details.deviceType === 'microphone' || details.deviceType === 'camera') {
+            console.log(`✅ Allowing ${details.deviceType} device access`);
+            return true;
+        }
+        
+        console.log(`❌ Denying device access for: ${details.deviceType}`);
+        return false;
+    });
+
+    // Additional media stream permission setup
+    session.defaultSession.protocol.registerHttpProtocol('media-stream', (request, callback) => {
+        console.log('📡 Media stream protocol request:', request.url);
+        callback({ path: '' });
     });
 }
 
@@ -50,6 +123,8 @@ if (!gotTheLock) {
 }
 
 function createWindow() {
+    console.log('🏗️ Creating main window with enhanced permissions...');
+    
     mainWindow = new BrowserWindow({
         width: 400,
         height: 650,
@@ -59,13 +134,23 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js'),
-            webSecurity: true,
-            allowRunningInsecureContent: false,
+            webSecurity: false, // Temporarily disable for better media access
+            allowRunningInsecureContent: true,
             experimentalFeatures: true,
             webviewTag: true,
             javascript: true,
             webgl: true,
-            plugins: true
+            plugins: true,
+            // Enhanced media permissions
+            enableRemoteModule: false,
+            backgroundThrottling: false,
+            additionalArguments: [
+                '--enable-media-stream',
+                '--enable-speech-input',
+                '--allow-running-insecure-content',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor'
+            ]
         },
         icon: path.join(__dirname, 'assets', 'icon.png'),
         show: false,
@@ -74,26 +159,141 @@ function createWindow() {
         title: 'SyncVoice Medical Desktop'
     });
 
-    mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-        // Auto-approve microphone permissions
-        if (permission === 'media' || permission === 'microphone') {
+    // Set window-specific permission handlers
+    mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
+        console.log(`🪟 Window permission requested: ${permission}`, details);
+        
+        // Always approve media-related permissions for this window
+        const mediaPermissions = ['media', 'microphone', 'audioCapture', 'camera', 'videoCapture'];
+        
+        if (mediaPermissions.includes(permission)) {
+            console.log(`✅ Window: Auto-approving media permission: ${permission}`);
+            callback(true);
+            return;
+        }
+        
+        // Approve other common permissions
+        const otherAllowedPermissions = ['notifications', 'fullscreen', 'pointerLock'];
+        if (otherAllowedPermissions.includes(permission)) {
+            console.log(`✅ Window: Approving permission: ${permission}`);
             callback(true);
         } else {
-            callback(true); // Approve other permissions too
+            console.log(`❌ Window: Denying permission: ${permission}`);
+            callback(false);
+        }
+    });
+
+    // Handle media access errors
+    mainWindow.webContents.on('media-started-playing', () => {
+        console.log('🎵 Media started playing');
+    });
+
+    mainWindow.webContents.on('media-paused', () => {
+        console.log('⏸️ Media paused');
+    });
+
+    // Log any permission-related console messages
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+        if (message.includes('permission') || message.includes('media') || message.includes('microphone')) {
+            console.log(`🖥️ Renderer permission log [${level}]:`, message);
         }
     });
 
     mainWindow.loadFile('index.html');
 
     mainWindow.once('ready-to-show', () => {
+        console.log('🎉 Window ready - checking media permissions...');
         mainWindow.show();
+        
+        // Test media permissions after window loads
+        setTimeout(() => {
+            testMediaPermissions();
+        }, 2000);
     });
 
     mainWindow.on('close', (event) => {
+        // Give user option: minimize to tray or quit completely
         if (!app.isQuitting) {
             event.preventDefault();
-            mainWindow.hide();
+            
+            // For now, let's just quit the app completely to fix the launch issue
+            console.log('🚪 Main window closing - quitting application...');
+            app.isQuitting = true;
+            
+            // Clean up resources
+            if (overlayWindow) {
+                overlayWindow.close();
+                overlayWindow = null;
+            }
+            
+            // Unregister shortcuts
+            globalShortcut.unregisterAll();
+            
+            // Quit the app
+            app.quit();
         }
+    });
+}
+
+function testMediaPermissions() {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    
+    console.log('🧪 Testing media permissions...');
+    
+    // Test getUserMedia availability
+    mainWindow.webContents.executeJavaScript(`
+        (async () => {
+            try {
+                console.log('🎤 Testing microphone access...');
+                
+                // Check if getUserMedia is available
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    console.error('❌ getUserMedia not available');
+                    return { success: false, error: 'getUserMedia not available' };
+                }
+                
+                // Try to get microphone permission
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 44100
+                    } 
+                });
+                
+                console.log('✅ Microphone access granted!', stream);
+                
+                // Stop the stream immediately
+                stream.getTracks().forEach(track => track.stop());
+                
+                return { success: true, message: 'Microphone access working' };
+                
+            } catch (error) {
+                console.error('❌ Microphone access failed:', error);
+                return { success: false, error: error.message };
+            }
+        })()
+    `).then(result => {
+        console.log('🎤 Media permission test result:', result);
+        
+        if (!result.success) {
+            console.error('❌ Media permissions not working:', result.error);
+            
+            // Show user-friendly error message
+            mainWindow.webContents.executeJavaScript(`
+                console.warn('⚠️ Microphone access issue detected');
+                const statusEl = document.getElementById('recordingStatus');
+                if (statusEl && !statusEl.textContent.includes('Recording')) {
+                    statusEl.innerHTML = '⚠️ Microphone access blocked. Check antivirus settings.';
+                    statusEl.style.color = '#dc3545';
+                }
+            `).catch(e => console.warn('UI update failed:', e));
+        } else {
+            console.log('✅ Media permissions working correctly');
+        }
+    }).catch(error => {
+        console.error('❌ Permission test execution failed:', error);
     });
 }
 
@@ -160,6 +360,12 @@ function createTray() {
             }
         },
         { type: 'separator' },
+        {
+            label: 'Test Microphone',
+            click: () => {
+                testMediaPermissions();
+            }
+        },
         {
             label: 'Settings',
             click: () => {
@@ -298,7 +504,10 @@ function showNotification(title, message) {
 
 // App ready event
 app.whenReady().then(() => {
+    console.log('🚀 App ready - setting up permissions and window...');
+    
     setupContentSecurityPolicy();
+    setupMediaPermissions(); // Set up comprehensive media permissions
     
     createWindow();
     createTray();
@@ -470,6 +679,12 @@ ipcMain.on('test-shortcut-from-renderer', () => {
     if (mainWindow) {
         mainWindow.webContents.send('toggle-recording-global');
     }
+});
+
+// Add media permission test IPC handler
+ipcMain.on('test-media-permissions', () => {
+    console.log('🧪 Manual media permission test requested');
+    testMediaPermissions();
 });
 
 ipcMain.on('countdown-started', (event, count) => {

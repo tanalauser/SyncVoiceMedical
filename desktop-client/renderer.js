@@ -1022,7 +1022,7 @@ function setupEventListeners() {
 if (websiteLink) {
     websiteLink.addEventListener('click', (e) => {
         e.preventDefault();
-        const url = 'https://www.syncvoicemedical.com';
+        const url = 'https://syncvoicemedical.onrender.com';
         
         // Check if electronAPI exists and has openExternal method
         if (window.electronAPI && window.electronAPI.openExternal) {

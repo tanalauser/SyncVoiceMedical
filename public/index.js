@@ -426,94 +426,109 @@ const translations = {
 
     // Browser language detection
     function detectBrowserLanguage() {
-        console.log('🖥️ Starting browser language detection...');
+    console.log('🖥️ Starting browser language detection...');
+    
+    const browserLang = navigator.language || navigator.userLanguage || 'en';
+    const allLanguages = navigator.languages || [browserLang];
+    
+    console.log('🗣️ Browser Language Info:', {
+        primary: browserLang,
+        all: allLanguages
+    });
+    
+    // Check all browser languages in order of preference
+    for (const lang of allLanguages) {
+        const langCode = lang.toLowerCase().split('-')[0];
         
-        const browserLang = navigator.language || navigator.userLanguage || 'en';
-        const allLanguages = navigator.languages || [browserLang];
-        
-        console.log('🗣️ Browser Language Info:', {
-            primary: browserLang,
-            all: allLanguages
-        });
-        
-        // Check all browser languages in order of preference
-        for (const lang of allLanguages) {
-            const langCode = lang.toLowerCase().split('-')[0];
-            
-            if (Object.keys(translations).includes(langCode)) {
-                console.log(`✅ Found supported language: ${langCode}`);
-                return langCode;
-            }
+        if (Object.keys(translations).includes(langCode)) {
+            console.log(`✅ Found supported language: ${langCode}`);
+            return langCode;
         }
-        
-        // Check primary language code
-        const primaryLangCode = browserLang.toLowerCase().split('-')[0];
-        if (Object.keys(translations).includes(primaryLangCode)) {
-            console.log(`✅ Using primary language: ${primaryLangCode}`);
-            return primaryLangCode;
-        }
-        
-        console.log('🏴 Defaulting to French (fr)');
-        return 'fr';
     }
+    
+    // Check primary language code
+    const primaryLangCode = browserLang.toLowerCase().split('-')[0];
+    if (Object.keys(translations).includes(primaryLangCode)) {
+        console.log(`✅ Using primary language: ${primaryLangCode}`);
+        return primaryLangCode;
+    }
+    
+    // Better fallback logic based on common language patterns
+    if (browserLang.includes('en') || browserLang.includes('gb')) {
+        console.log('🇬🇧 Detected English variant, using English');
+        return 'en';
+    }
+    
+    console.log('🌍 Defaulting to English (en) as global fallback');
+    return 'en'; // Default to English instead of French
+}
 
     // Main language detection function
     async function detectLanguage() {
-        console.log('🎯 === STARTING LANGUAGE DETECTION ===');
-        
-        let detectedLanguage = null;
-        const detectionSteps = [];
-        
-        // Step 1: URL parameter (highest priority)
-        if (urlLang && Object.keys(translations).includes(urlLang)) {
-            detectedLanguage = urlLang;
-            detectionSteps.push(`✅ URL Parameter: ${urlLang}`);
-            console.log('🔗 Using language from URL parameter:', urlLang);
-        }
-        
-        // Step 2: localStorage
-        if (!detectedLanguage) {
-            try {
-                const storedLang = localStorage.getItem('selectedLanguage');
-                if (storedLang && Object.keys(translations).includes(storedLang)) {
+    console.log('🎯 === STARTING LANGUAGE DETECTION ===');
+    
+    let detectedLanguage = null;
+    const detectionSteps = [];
+    
+    // Step 1: URL parameter (highest priority)
+    if (urlLang && Object.keys(translations).includes(urlLang)) {
+        detectedLanguage = urlLang;
+        detectionSteps.push(`✅ URL Parameter: ${urlLang}`);
+        console.log('🔗 Using language from URL parameter:', urlLang);
+    }
+    
+    // Step 2: localStorage (but only if it makes sense geographically)
+    if (!detectedLanguage) {
+        try {
+            const storedLang = localStorage.getItem('selectedLanguage');
+            if (storedLang && Object.keys(translations).includes(storedLang)) {
+                // First check if geolocation is available to validate the stored preference
+                const geoLang = await detectCountryLanguage();
+                
+                if (geoLang && geoLang !== storedLang) {
+                    console.log(`💭 Stored preference (${storedLang}) differs from location (${geoLang}), using location`);
+                    detectedLanguage = geoLang;
+                    detectionSteps.push(`✅ Geolocation Override: ${geoLang} (was stored: ${storedLang})`);
+                } else {
                     detectedLanguage = storedLang;
                     detectionSteps.push(`✅ localStorage: ${storedLang}`);
                     console.log('💾 Using stored language preference:', storedLang);
                 }
-            } catch (e) {
-                console.log('💾 localStorage error:', e.message);
             }
+        } catch (e) {
+            console.log('💾 localStorage error:', e.message);
         }
-        
-        // Step 3: Geolocation (country-based detection)
-        if (!detectedLanguage) {
-            const geoLang = await detectCountryLanguage();
-            if (geoLang) {
-                detectedLanguage = geoLang;
-                detectionSteps.push(`✅ Geolocation: ${geoLang}`);
-                console.log('🌍 Using geolocation-detected language:', geoLang);
-            }
-        }
-        
-        // Step 4: Browser language
-        if (!detectedLanguage) {
-            detectedLanguage = detectBrowserLanguage();
-            detectionSteps.push(`✅ Browser: ${detectedLanguage}`);
-            console.log('🖥️ Using browser-detected language:', detectedLanguage);
-        }
-        
-        // Step 5: Final fallback
-        if (!detectedLanguage || !Object.keys(translations).includes(detectedLanguage)) {
-            detectedLanguage = 'fr'; // Default to French as per your requirement
-            detectionSteps.push(`✅ Fallback: ${detectedLanguage}`);
-            console.log('🆘 Using fallback language: French');
-        }
-        
-        console.log('📋 Detection Steps:', detectionSteps);
-        console.log('🏆 Final Language:', detectedLanguage);
-        
-        return detectedLanguage;
     }
+    
+    // Step 3: Geolocation (country-based detection) - if not used above
+    if (!detectedLanguage) {
+        const geoLang = await detectCountryLanguage();
+        if (geoLang) {
+            detectedLanguage = geoLang;
+            detectionSteps.push(`✅ Geolocation: ${geoLang}`);
+            console.log('🌍 Using geolocation-detected language:', geoLang);
+        }
+    }
+    
+    // Step 4: Browser language
+    if (!detectedLanguage) {
+        detectedLanguage = detectBrowserLanguage();
+        detectionSteps.push(`✅ Browser: ${detectedLanguage}`);
+        console.log('🖥️ Using browser-detected language:', detectedLanguage);
+    }
+    
+    // Step 5: Final fallback - use English instead of French as default
+    if (!detectedLanguage || !Object.keys(translations).includes(detectedLanguage)) {
+        detectedLanguage = 'en'; // Default to English instead of French
+        detectionSteps.push(`✅ Fallback: ${detectedLanguage}`);
+        console.log('🆘 Using fallback language: English');
+    }
+    
+    console.log('📋 Detection Steps:', detectionSteps);
+    console.log('🏆 Final Language:', detectedLanguage);
+    
+    return detectedLanguage;
+}
 
     // Update browser compatibility table
     function updateBrowserTable(lang) {
