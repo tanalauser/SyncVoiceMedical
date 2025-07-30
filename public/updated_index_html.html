@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Transcription Médicale</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <script src="languageDetection.js"></script>
+</head>
+<body>
+    <div class="hero">
+        
+        <div class="wrapper">
+            <nav class="nav">
+                <div class="logo">
+                    <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+                </div>
+                <div class="nav-controls">
+                    <button class="login-btn">Se connecter</button>
+                    <div class="language-container">
+                        <label for="language-select">Language:</label>
+                        <select id="language-select" class="language-select">
+                            <option value="fr" selected>Français</option>
+                            <option value="en">English</option>
+                            <option value="de">Deutsch</option>
+                            <option value="es">Español</option>
+                            <option value="it">Italiano</option>
+                            <option value="pt">Português</option>
+                        </select>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="content-section">
+                <h1 class="title">TRANSCRIVEZ EN DIRECT VOS COMPTES RENDUS MEDICAUX AVEC L'AIDE DE L'IA.</h1>
+                <p class="subtitle">Convertissez en direct votre voix en texte.<br>Dictées illimitées.</p>
+
+                <div class="plans">
+                    <div class="plan">
+                        <div class="plan-header">
+                            <h3>Essayez gratuitement pendant 7 jours</h3>
+                        </div>
+                        <div class="plan-content">
+                            <a href="form.html?plan=free" class="btn">Commencez</a>
+                        </div>
+                    </div>
+
+                    <div class="plan featured">
+                        <div class="plan-header">
+                            <h3>Achetez, arrêtez quand vous voulez.</h3>
+                            <div class="price">25 € TTC / mois</div>
+                        </div>
+                        <div class="plan-content">
+                            <a href="form.html?plan=paid" class="btn">Commencez</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Web App Features Section -->
+                <div class="features">
+                    <h4>Il suffit de:</h4>
+                    <ul>
+                        <li>vous connecter à notre plateforme.</li>
+                        <li>saisir votre code d'activation (Accès direct tant que vous êtes en ligne avec la plateforme.)</li>
+                        <li>Parler</li>
+                        <li>Copier et coller le texte.</li>
+                    </ul>
+                    <p>Un texte précis sera produit. Copier et coller.</p>
+                    <p>Aucun téléchargement ou installation de logiciel requis sur votre ordinateur. Partager le document avec les collègues par email.</p>
+                </div>
+
+                <!-- NEW: Desktop Client Section -->
+                <div class="desktop-client-section">
+                    <div class="desktop-client-card">
+                        <h2 id="desktopClientTitle">Application Desktop SyncVoice Medical</h2>
+                        <p id="desktopClientSubtitle">Travaillez hors ligne avec notre application desktop Windows</p>
+                        
+                        <div class="desktop-features">
+                            <div class="feature">
+                                <div class="feature-icon">💻</div>
+                                <h3 id="offlineFeatureTitle">Utilisation Hors ligne</h3>
+                                <p id="offlineFeatureDesc">Transcrivez sans connexion internet</p>
+                            </div>
+                            <div class="feature">
+                                <div class="feature-icon">🔒</div>
+                                <h3 id="securityFeatureTitle">Sécurité Renforcée</h3>
+                                <p id="securityFeatureDesc">Vos données restent sur votre ordinateur</p>
+                            </div>
+                            <div class="feature">
+                                <div class="feature-icon">⚡</div>
+                                <h3 id="performanceFeatureTitle">Performance Optimale</h3>
+                                <p id="performanceFeatureDesc">Transcription rapide et précise</p>
+                            </div>
+                        </div>
+                        
+                        <!-- PROTECTED DOWNLOAD BUTTON -->
+                        <button id="desktopDownloadBtn" class="desktop-download-btn">
+                            <span id="downloadBtnText">Télécharger pour Windows</span>
+                        </button>
+                        
+                        <p class="system-requirements">
+                            <small id="systemRequirements">Nécessite Windows 10 ou supérieur • 200 MB d'espace disque</small>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Browser Support Section -->
+                <div class="browser-support">
+                    <h3 class="browser-support-title">Compatibilité des navigateurs pour la reconnaissance vocale</h3>
+                    <table class="browser-support-table">
+                        <thead>
+                            <tr>
+                                <th>Navigateur</th>
+                                <th>Support</th>
+                                <th>Recommandation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Chrome</td>
+                                <td><span class="support full">Complet</span></td>
+                                <td><span class="recommendation recommended">Recommandé</span></td>
+                            </tr>
+                            <tr>
+                                <td>Edge</td>
+                                <td><span class="support full">Complet</span></td>
+                                <td><span class="recommendation recommended">Recommandé</span></td>
+                            </tr>
+                            <tr>
+                                <td>Safari</td>
+                                <td><span class="support full">Complet</span></td>
+                                <td><span class="recommendation recommended">Recommandé</span></td>
+                            </tr>
+                            <tr>
+                                <td>Firefox</td>
+                                <td><span class="support limited">Limité</span></td>
+                                <td><span class="recommendation not-recommended">Non recommandé</span></td>
+                            </tr>
+                            <tr>
+                                <td>Opera</td>
+                                <td><span class="support full">Complet</span></td>
+                                <td><span class="recommendation recommended">Recommandé</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="browser-note">Pour une expérience optimale, nous recommandons l'utilisation de Chrome, Edge ou Opera.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+</html>

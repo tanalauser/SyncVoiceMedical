@@ -17,16 +17,76 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 const axios = require('axios');
 const WebSocket = require('ws');
+const Joi = require('joi');
+const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
+const winston = require('winston');
 
-// Import your custom modules
-const connectDB = require('./config/db');
-const User = require('./models/User');
-const userRoutes = require('./routes/userRoutes');
+// Create logger
+const logger = winston.createLogger({
+    level: process.env.LOG_LEVEL || 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.errors({ stack: true }),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.Console({
+            format: winston.format.simple()
+        })
+    ]
+});
 
+// Validate environment variables with Joi
+const envSchema = Joi.object({
+    NODE_ENV: Joi.string().valid('development', 'production'),
+    EMAIL_USER: Joi.string().email().required(),
+    EMAIL_PASS: Joi.string().required(),
+    APP_DB_USER: Joi.string().required(),
+    APP_DB_PASS: Joi.string().required(),
+    APP_DB_INSTANCE: Joi.string().required(),
+    STRIPE_SECRET_KEY: Joi.string().required(),
+    STRIPE_PRICE_ID: Joi.string().required(),
+    STRIPE_WEBHOOK_SECRET: Joi.string().required(),
+    DEEPGRAM_API_KEY: Joi.string().optional(),
+    JWT_SECRET: Joi.string().required(),
+    PORT: Joi.number().default(8080),
+    BASE_URL: Joi.string().optional()
+}).unknown();
+
+const { error } = envSchema.validate(process.env);
+if (error) {
+    logger.error('Config validation error:', error.message);
+    process.exit(1);
+}
 
 // Import Stripe
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
+// MongoDB connection function
+const connectDB = async () => {
+    try {
+        const uri = `mongodb+srv://${process.env.APP_DB_USER}:${process.env.APP_DB_PASS}@${process.env.APP_DB_INSTANCE}.mongodb.net/?retryWrites=true&w=majority`;
+        
+        await mongoose.connect(uri, {
+            maxPoolSize: 10,
+            minPoolSize: 2,
+            socketTimeoutMS: 45000,
+            serverSelectionTimeoutMS: 5000,
+        });
+        logger.info('MongoDB connected with pooling');
+    } catch (error) {
+        logger.error('MongoDB connection error:', error);
+        process.exit(1);
+    }
+};
+
+// Import models and routes
+const User = require('./models/User');
+const userRoutes = require('./routes/userRoutes');
+
+// Constants
+const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB limit
 
 // Your functions and configuration
 function calculateValidationEndDate(version, startDate = new Date()) {
@@ -36,10 +96,9 @@ function calculateValidationEndDate(version, startDate = new Date()) {
 
 // TEMPORARY FIX - Force production mode
 if (!process.env.NODE_ENV) {
-    console.log('NODE_ENV not set, forcing to production');
+    logger.info('NODE_ENV not set, forcing to production');
     process.env.NODE_ENV = 'production';
 }
-
 
 // In server.js, update the BASE_URL logic
 const BASE_URL = (() => {
@@ -73,13 +132,12 @@ const BASE_URL = (() => {
     return 'https://syncvoicemedical.onrender.com';
 })();
 
-console.log('Environment check:', {
+logger.info('Environment check:', {
     NODE_ENV: process.env.NODE_ENV,
     RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL,
     BASE_URL_env: process.env.BASE_URL,
     BASE_URL_final: BASE_URL
 });
-
 
 // Create an array of development emails that can bypass the check
 const DEV_EMAILS = [
@@ -92,63 +150,61 @@ const DEV_EMAILS = [
     'dr.d.m.tanala@wanadoo.fr'
 ];
 
-// Validate required environment variables
-const requiredEnvVars = [
-    'EMAIL_PASS',            // Instead of GOOGLE_PASSWORD
-    'EMAIL_USER',
-    'APP_DB_USER',           // Instead of MONGODB_URI
-    'APP_DB_PASS',
-    'APP_DB_INSTANCE',
-    'STRIPE_SECRET_KEY',
-    'STRIPE_PRICE_ID',
-    'STRIPE_WEBHOOK_SECRET'
-];
-
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-
-if (missingEnvVars.length > 0) {
-    console.error('Missing required environment variables:', missingEnvVars);
-    process.exit(1);
-}
-
-// Test if crypto is loaded
-console.log('Crypto module loaded:', typeof crypto);
-
 // Create Express app instance
 const app = express();
 
-
+// CORS configuration
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? [
+      'https://syncvoicemedical.onrender.com',
+      'https://syncvoicemedical.com',
+      'https://www.syncvoicemedical.com'
+    ]
+  : ['http://localhost:3000', 'http://localhost:8080'];
 
 // CORS middleware
 app.use(cors({
-    origin: '*', // Be cautious with this in production
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: allowedOrigins,
     credentials: true
 }));
 
+// Rate limiting
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: 'Too many requests from this IP'
+});
+
+app.use('/api/', apiLimiter);
+
+// Stricter limit for auth endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: 'Too many authentication attempts'
+});
+
+app.use('/api/send-activation', authLimiter);
+app.use('/api/login', authLimiter);
+app.use('/api/forgot-password', authLimiter);
+
+// Webhook route (must be before express.json())
 app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
 
     // Enhanced debug logging
-    console.log('🔍 Webhook Debug:');
-    console.log('  - Request URL:', req.url);
-    console.log('  - Request method:', req.method);
-    console.log('  - Signature header:', sig ? 'present' : 'missing');
-    console.log('  - Body type:', typeof req.body);
-    console.log('  - Body length:', req.body ? req.body.length : 0);
-    console.log('  - Secret configured:', !!process.env.STRIPE_WEBHOOK_SECRET);
-    console.log('  - Secret length:', process.env.STRIPE_WEBHOOK_SECRET?.length);
-    
-    // Also log the raw body for debugging (first 100 chars)
-    if (req.body) {
-        console.log('  - Body preview:', req.body.toString().substring(0, 100));
-    }
+    logger.info('🔍 Webhook Debug:', {
+        url: req.url,
+        method: req.method,
+        signature: sig ? 'present' : 'missing',
+        bodyType: typeof req.body,
+        bodyLength: req.body ? req.body.length : 0
+    });
 
     try {
         if (!sig) {
-            console.log('❌ Webhook called without signature');
+            logger.error('❌ Webhook called without signature');
             return res.status(400).send('Webhook Error: No signature');
         }
 
@@ -158,10 +214,9 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
             process.env.STRIPE_WEBHOOK_SECRET
         );
         
-        console.log(`✅ Webhook verified: ${event.type}`);
+        logger.info(`✅ Webhook verified: ${event.type}`);
     } catch (err) {
-        console.error(`❌ Webhook signature verification failed:`, err.message);
-        console.error('Raw body (first 100 chars):', req.body.toString().substring(0, 100));
+        logger.error(`❌ Webhook signature verification failed:`, err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
@@ -185,80 +240,27 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
                 await handleSubscriptionChange(event.data.object);
                 break;
             default:
-                console.log(`Unhandled event type: ${event.type}`);
+                logger.info(`Unhandled event type: ${event.type}`);
         }
     } catch (error) {
-        console.error('Error processing webhook:', error);
-        // Don't return error to Stripe - we already responded with 200
+        logger.error('Error processing webhook:', error);
     }
 });
 
-app.post('/webhook-manual-test', express.json(), async (req, res) => {
-    try {
-        console.log('Manual webhook test received');
-        console.log('Headers:', req.headers);
-        console.log('Body:', req.body);
-        
-        // Test that the webhook secret is configured
-        if (!process.env.STRIPE_WEBHOOK_SECRET) {
-            return res.status(500).json({ 
-                error: 'STRIPE_WEBHOOK_SECRET not configured' 
-            });
-        }
-        
-        res.json({
-            success: true,
-            message: 'Webhook endpoint is reachable',
-            secretConfigured: true,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-app.get('/webhook-test', async (req, res) => {
-    try {
-        // Test webhook secret is configured
-        if (!process.env.STRIPE_WEBHOOK_SECRET) {
-            return res.status(500).json({ 
-                error: 'STRIPE_WEBHOOK_SECRET not configured',
-                configured: false 
-            });
-        }
-
-        // Test Stripe connection
-        const testResult = await stripe.webhookEndpoints.list({ limit: 1 });
-        
-        res.json({
-            success: true,
-            secretConfigured: true,
-            secretLength: process.env.STRIPE_WEBHOOK_SECRET.length,
-            stripeConnected: true,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
+// Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Static files
 const publicDir = path.join(__dirname, 'public');
-console.log('Serving static files from:', publicDir);
+logger.info('Serving static files from:', publicDir);
 app.use(express.static(publicDir));
 
-app.options('*', cors()); // Enable pre-flight for all routes
+// Pre-flight requests
+app.options('*', cors());
 
+// Security headers
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     
     // Universal CSP - Compatible with all antivirus software
@@ -271,61 +273,38 @@ app.use((req, res, next) => {
         "connect-src 'self' https:; " +
         "img-src 'self' data: https:; " +
         "style-src 'self' 'unsafe-inline' https:; " +
-        "media-src 'self' blob: mediastream:; " +  // ← ADD THIS LINE
+        "media-src 'self' blob: mediastream:; " +
         "object-src 'none'; " +
         "base-uri 'self';"
     );
     next();
 });
 
-app.get('/debug-headers', (req, res) => {
-    // Return all response headers (that were set by the main middleware)
-    res.json({
-        'csp-header': res.getHeader('Content-Security-Policy'),
-        'all-headers': res.getHeaders(),
-        'timestamp': new Date().toISOString()
-    });
-});
-
-// Add this BEFORE connecting to MongoDB - TEST 10062025
-mongoose.set('bufferTimeoutMS', 20000); // Increase timeout
+// MongoDB settings
+mongoose.set('bufferTimeoutMS', 20000);
 
 // Connect to MongoDB
 connectDB();
 
-// ADD MONGODB CONNECTION MONITORING
+// MongoDB connection monitoring
 mongoose.connection.on('connected', () => {
-    console.log('✅ MongoDB connected successfully');
-    console.log('📊 Database:', mongoose.connection.name);
+    logger.info('✅ MongoDB connected successfully');
+    logger.info('📊 Database:', mongoose.connection.name);
 });
 
 mongoose.connection.on('error', (err) => {
-    console.error('❌ MongoDB connection error:', err);
-    console.error('Error details:', {
-        message: err.message,
-        code: err.code,
-        name: err.name
-    });
+    logger.error('❌ MongoDB connection error:', err);
 });
 
 mongoose.connection.on('disconnected', () => {
-    console.log('⚠️  MongoDB disconnected');
+    logger.warn('⚠️  MongoDB disconnected');
 });
 
 mongoose.connection.on('reconnected', () => {
-    console.log('🔄 MongoDB reconnected');
+    logger.info('🔄 MongoDB reconnected');
 });
 
-// Monitor connection state changes
-mongoose.connection.on('connecting', () => {
-    console.log('🔄 Connecting to MongoDB...');
-});
-
-mongoose.connection.on('disconnecting', () => {
-    console.log('🔄 Disconnecting from MongoDB...');
-});
-
-// Add a helper function to check MongoDB connection
+// Helper function to check MongoDB connection
 function checkMongoConnection() {
     const states = {
         0: 'disconnected',
@@ -341,99 +320,43 @@ function checkMongoConnection() {
     };
 }
 
-// Debug middleware - log all requests
-app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-    if (req.body && Object.keys(req.body).length > 0) {
-        console.log('Request body:', JSON.stringify(req.body, null, 2));
-    }
-    // ADD MongoDB state to request logs
-    const dbState = checkMongoConnection();
-    console.log('MongoDB state:', dbState);
-    next();
-});
+// Debug middleware - log all requests (development only)
+if (process.env.NODE_ENV === 'development') {
+    app.use((req, res, next) => {
+        logger.info(`${req.method} ${req.url}`, {
+            headers: req.headers,
+            body: req.body
+        });
+        next();
+    });
+}
 
-
-// Define base directory for your application
-const baseDir = __dirname;
-console.log('Base directory for static files:', baseDir);
-
-
-// Serve terms files from the terms directory
-const termsDir = path.join(baseDir, 'terms');
-console.log('Terms directory for static files:', termsDir);
+// Serve terms files
+const termsDir = path.join(__dirname, 'terms');
 app.use('/terms', express.static(termsDir));
 
-// Add a route to check if terms files exist (for debugging)
-app.get('/debug-terms', (req, res) => {
-    const languages = ['fr', 'en', 'de', 'es', 'it', 'pt'];
-    const fileTypes = ['cge.html', 'cgv.html'];
-    
-    const results = {};
-    
-    languages.forEach(lang => {
-        results[lang] = {};
-        fileTypes.forEach(fileType => {
-            const filePath = path.join(termsDir, lang, fileType);
-            results[lang][fileType] = fs.existsSync(filePath);
-        });
-    });
-    
-    res.json({
-        termsDirectoryExists: fs.existsSync(termsDir),
-        filesExist: results,
-        termsDirectoryPath: termsDir
-    });
-});
-
-app.get('/check-terms-path', (req, res) => {
-    const termsPath = path.join(__dirname, 'VoiceToText2/terms');
-    const frPath = path.join(termsPath, 'fr');
-    const cgePath = path.join(frPath, 'cge.html');
-    
-    res.json({
-        termsPathExists: fs.existsSync(termsPath),
-        frPathExists: fs.existsSync(frPath),
-        cgePathExists: fs.existsSync(cgePath),
-        termsPath,
-        frPath,
-        cgePath
-    });
-});
-
-// Create transporter function for Gmail App Password
+// Email transporter
 async function createTransporter() {
     try {
-        console.log('Creating email transporter with App Password...');
-        
-        // Validate required environment variables
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-            throw new Error('Missing required environment variables: EMAIL_USER or EMAIL_PASS');
-        }
-        
-        // Create transporter with App Password
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 587,
-            secure: false, // true for 465, false for other ports
+            secure: false,
             auth: {
                 user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS // Gmail App Password
+                pass: process.env.EMAIL_PASS
             },
             tls: {
-                rejectUnauthorized: false // Allow self-signed certificates
+                rejectUnauthorized: false
             }
         });
         
-        // Verify the transporter
         await transporter.verify();
-        console.log('✅ Email transporter verified successfully');
-        
+        logger.info('✅ Email transporter verified successfully');
         return transporter;
         
     } catch (error) {
-        console.error('❌ Error creating transporter:', error.message);
+        logger.error('❌ Error creating transporter:', error.message);
         throw new Error(`Email service configuration error: ${error.message}`);
     }
 }
@@ -444,7 +367,6 @@ function getExpiryDate() {
     date.setDate(date.getDate() + 7);
     return date;
 }
-console.log('At definition time - getExpiryDate:', typeof getExpiryDate);
 
 // Email translations
 const messages = {
@@ -504,7 +426,18 @@ const messages = {
     }
 };
 
-// HEALTH ENDPOINTS - Production safe monitoring
+// API Error class
+class ApiError extends Error {
+    constructor(statusCode, message) {
+        super(message);
+        this.statusCode = statusCode;
+    }
+}
+
+// Routes
+app.use('/api', userRoutes);
+
+// Health endpoints
 app.get('/health', (req, res) => {
     const dbState = checkMongoConnection();
     res.status(200).json({
@@ -543,8 +476,6 @@ app.get('/api/status', (req, res) => {
         const missingVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
         const isFullyConfigured = missingVars.length === 0;
         
-        // Check service availability
-        // Check service availability
         const services = {
             database: {
                 configured: !!(process.env.APP_DB_USER && process.env.APP_DB_PASS && process.env.APP_DB_INSTANCE),
@@ -570,7 +501,6 @@ app.get('/api/status', (req, res) => {
                 required: 'For desktop client transcription'
             }
         };
-
         
         res.json({
             success: true,
@@ -589,7 +519,7 @@ app.get('/api/status', (req, res) => {
         });
         
     } catch (error) {
-        console.error('Status check error:', error);
+        logger.error('Status check error:', error);
         res.status(500).json({
             success: false,
             timestamp: new Date().toISOString(),
@@ -601,26 +531,20 @@ app.get('/api/status', (req, res) => {
     }
 });
 
-// Routes
-app.use('/api', userRoutes);
-
 // Password reset request route
 app.post('/api/forgot-password', async (req, res) => {
     try {
         const { email } = req.body;
         
-        // Find user by email
         const user = await User.findOne({ email: email.toLowerCase() });
         
         if (!user) {
-            // Don't reveal if user exists or not for security
             return res.json({
                 success: true,
                 message: 'If this email exists, you will receive a password reset link.'
             });
         }
         
-        // Only allow password reset for paid users who have passwords
         if (user.version !== 'paid' || !user.password) {
             return res.json({
                 success: false,
@@ -628,17 +552,14 @@ app.post('/api/forgot-password', async (req, res) => {
             });
         }
         
-        // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
         user.passwordResetToken = resetToken;
-        user.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        user.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000);
         
         await user.save();
         
-        // Create reset link
         const resetLink = `${BASE_URL}/reset-password.html?token=${resetToken}&email=${encodeURIComponent(email)}`;
         
-        // Send email
         const lang = user.language || 'en';
         const emailSubject = {
             fr: 'SyncVoice Medical - Réinitialisation du mot de passe',
@@ -718,12 +639,11 @@ app.post('/api/forgot-password', async (req, res) => {
             `
         };
         
-        // CREATE TRANSPORTER
         const transporter = await createTransporter();
         
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
-            to: email,
+            to: user.email,
             subject: emailSubject[lang] || emailSubject.en,
             html: emailBody[lang] || emailBody.en
         });
@@ -734,7 +654,7 @@ app.post('/api/forgot-password', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Forgot password error:', error);
+        logger.error('Forgot password error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error. Please try again.'
@@ -747,7 +667,6 @@ app.post('/api/reset-password', async (req, res) => {
     try {
         const { token, email, newPassword } = req.body;
         
-        // Validate input
         if (!token || !email || !newPassword) {
             return res.status(400).json({
                 success: false,
@@ -762,7 +681,6 @@ app.post('/api/reset-password', async (req, res) => {
             });
         }
         
-        // Find user with valid reset token
         const user = await User.findOne({
             email: email.toLowerCase(),
             passwordResetToken: token,
@@ -776,10 +694,8 @@ app.post('/api/reset-password', async (req, res) => {
             });
         }
         
-        // Hash new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
-        // Update user
         user.password = hashedPassword;
         user.passwordResetToken = null;
         user.passwordResetExpiry = null;
@@ -792,7 +708,7 @@ app.post('/api/reset-password', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Reset password error:', error);
+        logger.error('Reset password error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error. Please try again.'
@@ -802,22 +718,6 @@ app.post('/api/reset-password', async (req, res) => {
 
 app.get('/reset-password.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'reset-password.html'));
-});
-
-app.get('/debug-reset-password', (req, res) => {
-    const fs = require('fs');
-    const path = require('path');
-    const filePath = path.join(__dirname, 'public', 'reset-password.html');
-    
-    res.json({
-        __dirname: __dirname,
-        publicDir: path.join(__dirname, 'public'),
-        filePath: filePath,
-        fileExists: fs.existsSync(filePath),
-        publicDirContents: fs.existsSync(path.join(__dirname, 'public')) 
-            ? fs.readdirSync(path.join(__dirname, 'public')) 
-            : 'public dir not found'
-    });
 });
 
 // API Routes
@@ -831,7 +731,7 @@ app.get('/api/debug-baseurl', (req, res) => {
         NODE_ENV: process.env.NODE_ENV,
         BASE_URL_env: process.env.BASE_URL,
         timestamp: new Date().toISOString(),
-        deploymentTest: 'PRODUCTION_URL_FIX_v3',  // ← CHANGE THIS
+        deploymentTest: 'PRODUCTION_URL_FIX_v3',
         isProduction: !BASE_URL.includes('localhost'),
         host: req.get('host'),
         protocol: req.protocol
@@ -841,10 +741,8 @@ app.get('/api/debug-baseurl', (req, res) => {
 // Check if email exists for trial
 app.post('/api/check-email', async (req, res) => {
     try {
-        // CHECK DATABASE CONNECTION FIRST
         const dbState = checkMongoConnection();
         if (!dbState.isConnected) {
-            console.error('Database not connected in /api/check-email');
             return res.status(503).json({
                 success: false,
                 message: 'Database connection unavailable',
@@ -854,27 +752,20 @@ app.post('/api/check-email', async (req, res) => {
         
         const { email } = req.body;
         
-        // Skip check for development emails
         if (DEV_EMAILS.includes(email.toLowerCase())) {
             return res.json({ success: true });
         }
         
-        console.log('Checking email:', email);
         const existingUser = await User.findOne({ 
             email: email.toLowerCase(),
             version: 'free'
         });
         
         if (existingUser) {
-            // Check if the trial period is still valid
             const trialStartDate = existingUser.createdAt || existingUser.updatedAt;
             const daysSinceStart = Math.floor((new Date() - new Date(trialStartDate)) / (1000 * 60 * 60 * 24));
             
-            console.log(`User trial started: ${trialStartDate}, Days since start: ${daysSinceStart}`);
-            
-            // If within 7-day trial period, allow access
             if (daysSinceStart < 7) {
-                console.log('User is within trial period');
                 return res.json({ 
                     success: true, 
                     withinTrial: true,
@@ -882,8 +773,6 @@ app.post('/api/check-email', async (req, res) => {
                     message: `You have ${7 - daysSinceStart} days remaining in your trial`
                 });
             } else {
-                // Trial has expired
-                console.log('User trial has expired');
                 return res.status(400).json({
                     success: false,
                     message: 'Your 7-day trial has expired. Please purchase a subscription to continue.'
@@ -891,10 +780,9 @@ app.post('/api/check-email', async (req, res) => {
             }
         }
         
-        // No existing user, allow new trial
         res.json({ success: true });
     } catch (error) {
-        console.error('Error in check-email:', error);
+        logger.error('Error in check-email:', error);
         res.status(500).json({
             success: false,
             message: 'Server error',
@@ -903,58 +791,18 @@ app.post('/api/check-email', async (req, res) => {
     }
 });
 
-app.get('/test-email', async (req, res) => {
-    try {
-        console.log('Testing email transporter...');
-        
-        // Test transporter creation
-        const transporter = await createTransporter();
-        console.log('✅ Transporter created successfully');
-        
-        // Test sending an actual email
-        const testEmail = {
-            from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_USER, // Send to yourself for testing
-            subject: 'Test Email - ' + new Date().toISOString(),
-            text: 'This is a test email to verify the transporter works!',
-            html: '<p>This is a test email to verify the transporter works!</p>'
-        };
-        
-        const result = await transporter.sendMail(testEmail);
-        console.log('✅ Email sent successfully:', result.messageId);
-        
-        res.json({ 
-            success: true, 
-            message: 'Email sent successfully',
-            messageId: result.messageId 
-        });
-        
-    } catch (error) {
-        console.error('❌ Email test failed:', error.message);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
-
+// Hash password helper
 async function hashPassword(password) {
     const saltRounds = 12;
     return await bcrypt.hash(password, saltRounds);
 }
 
-// *** FIXED: Send activation code and handle user creation ***
+// Send activation code
 app.post('/api/send-activation', async (req, res) => {
-    console.log('=== SEND-ACTIVATION ROUTE CALLED ===');
-    console.log('Starting activation request processing');
-    console.log('🌐 Using BASE_URL:', BASE_URL);
+    logger.info('=== SEND-ACTIVATION ROUTE CALLED ===');
     
-    // CHECK DATABASE CONNECTION FIRST
     const dbState = checkMongoConnection();
-    console.log('Database state at start of send-activation:', dbState);
-    
     if (!dbState.isConnected) {
-        console.error('❌ Database not connected in /api/send-activation');
         return res.status(503).json({
             success: false,
             message: 'Database connection unavailable. Please try again later.',
@@ -966,44 +814,34 @@ app.post('/api/send-activation', async (req, res) => {
         const { email, firstName, lastName, version, language, termsAccepted, ...otherData } = req.body;
         const t = messages[language] || messages.en;
         
-        console.log('Processing activation for:', { email, version });
-        
-        // Handle paid version first
+        // Handle paid version
         if (version === 'paid') {
-    console.log('Processing paid version...');
-    
-    // Create or update user for paid version
-    const userData = {
-        firstName,
-        lastName,
-        email: email.toLowerCase(),
-        version,
-        language,
-        termsAccepted,
-        isActive: false,
-        isPaid: false,
-        updatedAt: new Date(),
-        company: otherData.company,
-        address: otherData.address,
-        addressContinued: otherData.addressContinued,
-        postalCode: otherData.postalCode,
-        city: otherData.city,
-        country: otherData.country,
-        autoRenewal: otherData.autoRenewal,
-        // ADD THESE:
-        validationStartDate: new Date(),
-        validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days for paid
-    };
+            const userData = {
+                firstName,
+                lastName,
+                email: email.toLowerCase(),
+                version,
+                language,
+                termsAccepted,
+                isActive: false,
+                isPaid: false,
+                updatedAt: new Date(),
+                company: otherData.company,
+                address: otherData.address,
+                addressContinued: otherData.addressContinued,
+                postalCode: otherData.postalCode,
+                city: otherData.city,
+                country: otherData.country,
+                autoRenewal: otherData.autoRenewal,
+                validationStartDate: new Date(),
+                validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                downloadIntent: otherData.downloadIntent || false
+            };
 
-            // Create or update user
-            console.log('Looking for existing user...');
             let user = await User.findOne({ email: email.toLowerCase() });
             if (user) {
-                console.log('Found existing user, updating...');
                 Object.assign(user, userData);
             } else {
-                console.log('Creating new user with Stripe customer...');
-                // Create Stripe customer for new user
                 const customer = await stripe.customers.create({
                     email: email.toLowerCase(),
                     name: `${firstName} ${lastName}`,
@@ -1015,20 +853,15 @@ app.post('/api/send-activation', async (req, res) => {
                 userData.stripeCustomerId = customer.id;
                 user = new User(userData);
             }
-            console.log('Saving user...');
+            
             await user.save();
-            console.log('User saved successfully');
 
-            // Get currency and amount from request (passed from frontend)
             const currency = otherData.currency || 'eur';
             const amount = otherData.amount || 2500;
-            
-            console.log(`Creating payment intent with currency: ${currency}, amount: ${amount}`);
 
-            // Create payment intent with dynamic currency
             const paymentIntent = await stripe.paymentIntents.create({
-                amount: amount, // Dynamic amount based on currency
-                currency: currency.toLowerCase(), // Dynamic currency (eur or gbp)
+                amount: amount,
+                currency: currency.toLowerCase(),
                 automatic_payment_methods: {
                     enabled: true,
                 },
@@ -1039,9 +872,7 @@ app.post('/api/send-activation', async (req, res) => {
                 },
                 description: 'SyncVoice Medical - Monthly Subscription'
             });
-            console.log('Payment intent created successfully with currency:', currency);
 
-            // Return payment data
             return res.json({
                 success: true,
                 requiresPayment: true,
@@ -1053,40 +884,20 @@ app.post('/api/send-activation', async (req, res) => {
 
         // Handle free version
         if (version === 'free') {
-            console.log('Processing free version...');
-            
-            // Skip check for development emails
             if (!DEV_EMAILS.includes(email.toLowerCase())) {
-                console.log('Checking for existing free trial user...');
                 const existingUser = await User.findOne({ 
                     email: email.toLowerCase(),
                     version: 'free'
                 });
                 
                 if (existingUser) {
-                    // Check if the trial period is still valid
                     const trialStartDate = existingUser.createdAt || existingUser.updatedAt;
                     const daysSinceStart = Math.floor((new Date() - new Date(trialStartDate)) / (1000 * 60 * 60 * 24));
                     
-                    console.log(`Existing user found. Trial started: ${trialStartDate}, Days since start: ${daysSinceStart}`);
-                    
                     if (daysSinceStart < 7) {
-                        // Still within trial period
-                        console.log('User is within trial period - allowing re-activation');
-                        
-                        // Update the existing user with new activation code
-                        let activationCode;
-                        try {
-                            activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-                            console.log('Code generated successfully:', activationCode);
-                        } catch (genError) {
-                            console.error('Error generating code:', genError);
-                            throw genError;
-                        }
-                        
+                        const activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
                         const expiryDate = getExpiryDate();
                         
-                        // Update existing user
                         existingUser.activationCode = activationCode;
                         existingUser.activationCodeExpiry = expiryDate;
                         existingUser.firstName = firstName;
@@ -1096,85 +907,31 @@ app.post('/api/send-activation', async (req, res) => {
                         existingUser.updatedAt = new Date();
                         
                         await existingUser.save();
-                        console.log('Existing user updated with new activation code');
                         
-                        // FIXED: Create activation link using global BASE_URL
                         let activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
-                        console.log('🔗 Generated activation link:', activationLink);
-
-                        // SAFETY CHECK: Never send localhost links in production
-if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
-    console.warn('⚠️ WARNING: Activation link contains localhost, forcing production URL');
-    activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
-}
-
-console.log('🔗 Final activation link:', activationLink);
                         
-                        // Create transporter with fresh token
-                        let transporter;
-                        try {
-                            console.log('Creating email transporter...');
-                            transporter = await createTransporter();
-                            console.log('Email transporter created successfully');
-                        } catch (transporterError) {
-                            console.error('Failed to create transporter:', transporterError);
-                            throw new Error('Email service temporarily unavailable: ' + transporterError.message);
+                        if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
+                            activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
                         }
                         
-                        // Prepare mail options
+                        const transporter = await createTransporter();
+                        
                         const mailOptions = {
                             from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
-                            to: email,
+                            to: existingUser.email,
                             subject: t.subject,
-                            html: `
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <meta charset="UTF-8">
-                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            </head>
-                            <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
-                                <p style="margin: 40px 0; font-size: 24px; color: #333333;">
-                                    ${t.greeting} ${firstName} ${lastName},
-                                </p>
-                                <div style="text-align: center;">
-                                    <p style="margin: 20px 0; color: #666666;">
-                                        ${t.thankyou}<br>
-                                        ${t.clickToActivate}
-                                    </p>
-                                    <p style="margin: 20px 0; color: #69B578; font-weight: bold;">
-                                        You have ${7 - daysSinceStart} days remaining in your trial.
-                                    </p>
-                                    <div style="margin: 20px 0;">
-                                        <a href="${activationLink}"
-                                           style="display: inline-block; background-color: #69B578; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; font-family: monospace; font-size: 24px; font-weight: bold;">
-                                            ${activationCode}
-                                        </a>
-                                    </div>
-                                </div>
-                            </body>
-                            </html>`
+                            html: createActivationEmailHTML(existingUser, activationLink, existingUser.language || lang, existingUser.downloadIntent || false)
                         };
                         
-                        // Send email
-                        try {
-                            console.log('Sending activation email...');
-                            await transporter.sendMail(mailOptions);
-                            console.log('Email sent successfully');
-                            res.json({
-                                success: true,
-                                message: t.success,
-                                userId: existingUser._id.toString(),
-                                daysRemaining: 7 - daysSinceStart
-                            });
-                            return; // Important: return here to prevent creating a new user
-                        } catch (emailError) {
-                            console.error('Email sending error:', emailError);
-                            throw new Error('Failed to send email: ' + emailError.message);
-                        }
+                        await transporter.sendMail(mailOptions);
+                        
+                        return res.json({
+                            success: true,
+                            message: t.success,
+                            userId: existingUser._id.toString(),
+                            daysRemaining: 7 - daysSinceStart
+                        });
                     } else {
-                        // Trial has expired
-                        console.log('User trial has expired');
                         return res.status(400).json({
                             success: false,
                             message: 'Your 7-day trial has expired. Please purchase a subscription to continue.'
@@ -1184,182 +941,93 @@ console.log('🔗 Final activation link:', activationLink);
             }
         }
 
-        // Generate activation code and expiry for new users
-        console.log('About to generate activation code...');
-        
-        let activationCode;
-try {
-    activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-    console.log('Code generated successfully:', activationCode);
-} catch (genError) {
-    console.error('Error generating code:', genError);
-    throw genError;
-}
+        // Generate activation code for new users
+        const activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+        const expiryDate = getExpiryDate();
 
-const expiryDate = getExpiryDate();
-console.log('Generated activation code:', activationCode);
-
-// Prepare user data
-const userData = {
-    firstName,
-    lastName,
-    email: email.toLowerCase(),
-    activationCode,
-    activationCodeExpiry: expiryDate,
-    version,
-    language,
-    termsAccepted,
-    isActive: false,
-    updatedAt: new Date(),
-    validationStartDate: new Date(),
-    validationEndDate: expiryDate
-};
-
-// Add password for both free and paid users
-if (otherData.password) {
-    userData.password = await hashPassword(otherData.password);
-}
-
-// *** ADD THIS LINE ***
-let user;
-
-        // Create or update user
-        if (DEV_EMAILS.includes(email.toLowerCase())) {
-    console.log('Processing dev email...');
-    // For bypass emails, first check if user exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    
-    if (existingUser) {
-        // Update existing user
-        existingUser.activationCode = activationCode;
-        existingUser.activationCodeExpiry = expiryDate;
-        existingUser.firstName = firstName;
-        existingUser.lastName = lastName;
-        existingUser.language = language;
-        existingUser.termsAccepted = termsAccepted;
-        existingUser.updatedAt = new Date();
-        
-        // Add password if provided
-        if (otherData.password) {
-            existingUser.password = await hashPassword(otherData.password);
-        }
-        
-        // ADD THESE if not already present:
-        if (!existingUser.validationStartDate) {
-            existingUser.validationStartDate = existingUser.createdAt || new Date();
-        }
-        if (!existingUser.validationEndDate) {
-            existingUser.validationEndDate = expiryDate;
-        }
-        
-        await existingUser.save();
-        console.log('Existing dev user updated successfully');
-        
-        // *** FIX: Assign the updated user to the user variable ***
-        user = existingUser;
-    } else {
-        // Create new dev user
-        console.log('Creating new dev user...');
-        user = new User(userData);
-        await user.save();
-        console.log('New dev user created successfully');
-    }
-} else {
-    console.log('Creating new user...');
-    // Create new user
-    user = new User(userData);
-    await user.save();
-}
-        console.log('User saved successfully with ID:', user._id);
-
-        // FIXED: Create activation link using global BASE_URL
-let activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
-
-// SAFETY CHECK: Never send localhost links in production
-if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
-    console.warn('⚠️ WARNING: Activation link contains localhost, forcing production URL');
-    activationLink = `https://www.syncvoicemedical.com/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
-}
-
-console.log('🔗 Generated activation link:', activationLink);
-
-        // Create transporter with fresh token
-        let transporter;
-        try {
-            console.log('Creating email transporter...');
-            transporter = await createTransporter();
-            console.log('Email transporter created successfully');
-        } catch (transporterError) {
-            console.error('Failed to create transporter:', transporterError);
-            throw new Error('Email service temporarily unavailable: ' + transporterError.message);
-        }
-        
-        // Prepare mail options
-        const mailOptions = {
-            from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: t.subject,
-            html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            </head>
-            <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
-                <p style="margin: 40px 0; font-size: 24px; color: #333333;">
-                    ${t.greeting} ${firstName} ${lastName},
-                </p>
-                <div style="text-align: center;">
-                    <p style="margin: 20px 0; color: #666666;">
-                        ${t.thankyou}<br>
-                        ${t.clickToActivate}
-                    </p>
-                    <div style="margin: 20px 0;">
-                        <a href="${activationLink}"
-                           style="display: inline-block; background-color: #69B578; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; font-family: monospace; font-size: 24px; font-weight: bold;">
-                            ${activationCode}
-                        </a>
-                    </div>
-                </div>
-            </body>
-            </html>`
+        const userData = {
+            firstName,
+            lastName,
+            email: email.toLowerCase(),
+            activationCode,
+            activationCodeExpiry: expiryDate,
+            version,
+            language,
+            termsAccepted,
+            isActive: false,
+            updatedAt: new Date(),
+            validationStartDate: new Date(),
+            validationEndDate: expiryDate
         };
 
-        // Send email
-        try {
-            console.log('Sending activation email...');
-            await transporter.sendMail(mailOptions);
-            console.log('Email sent successfully');
-            res.json({
-                success: true,
-                message: t.success,
-                userId: user._id.toString()
-            });
-        } catch (emailError) {
-            console.error('Email sending error:', emailError);
-            
-            // Check if this is an authentication error
-            if (emailError.message.includes('invalid_grant')) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Authentication required. Please re-authenticate with Google.',
-                    reAuth: true
-                });
-            }
-            
-            throw new Error('Failed to send email: ' + emailError.message);
+        if (otherData.password) {
+            userData.password = await hashPassword(otherData.password);
         }
 
-    } catch (error) {
-        console.error('Comprehensive error in /api/send-activation:', error);
-        console.error('Error stack:', error.stack);
+        let user;
+
+        if (DEV_EMAILS.includes(email.toLowerCase())) {
+            const existingUser = await User.findOne({ email: email.toLowerCase() });
+            
+            if (existingUser) {
+                existingUser.activationCode = activationCode;
+                existingUser.activationCodeExpiry = expiryDate;
+                existingUser.firstName = firstName;
+                existingUser.lastName = lastName;
+                existingUser.language = language;
+                existingUser.termsAccepted = termsAccepted;
+                existingUser.updatedAt = new Date();
+                
+                if (otherData.password) {
+                    existingUser.password = await hashPassword(otherData.password);
+                }
+                
+                if (!existingUser.validationStartDate) {
+                    existingUser.validationStartDate = existingUser.createdAt || new Date();
+                }
+                if (!existingUser.validationEndDate) {
+                    existingUser.validationEndDate = expiryDate;
+                }
+                
+                await existingUser.save();
+                user = existingUser;
+            } else {
+                user = new User(userData);
+                await user.save();
+            }
+        } else {
+            user = new User(userData);
+            await user.save();
+        }
+
+        let activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
+
+        if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
+            activationLink = `https://www.syncvoicemedical.com/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
+        }
+
+        const transporter = await createTransporter();
         
-        // Check if this is a MongoDB timeout error
+        const mailOptions = {
+            from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: t.subject,
+            html: createActivationEmailHTML(user, activationLink, user.language || lang, user.downloadIntent || false)
+        };
+
+        await transporter.sendMail(mailOptions);
+        
+        res.json({
+            success: true,
+            message: t.success,
+            userId: user._id.toString()
+        });
+
+    } catch (error) {
+        logger.error('Comprehensive error in /api/send-activation:', error);
+        
         if (error.message.includes('buffering timed out')) {
             const dbState = checkMongoConnection();
-            console.error('MongoDB timeout - Current DB state:', dbState);
-            
             return res.status(503).json({
                 success: false,
                 message: 'Database connection timeout. Please check your MongoDB connection.',
@@ -1370,9 +1038,7 @@ console.log('🔗 Generated activation link:', activationLink);
             });
         }
         
-        // Handle authentication errors
         if (error.message.includes('invalid_grant') || error.message.includes('credentials_required')) {
-            // Refresh token is invalid, tell the client to re-authenticate
             return res.status(401).json({
                 success: false,
                 message: 'Authentication required. Please re-authenticate with Google.',
@@ -1388,86 +1054,11 @@ console.log('🔗 Generated activation link:', activationLink);
     }
 });
 
-app.get('/api/debug-user/:email', async (req, res) => {
-    try {
-        const user = await User.findOne({ email: req.params.email.toLowerCase() });
-        if (user) {
-            res.json({
-                email: user.email,
-                version: user.version,
-                isPaid: user.isPaid,
-                isActive: user.isActive,
-                validationStartDate: user.validationStartDate,
-                validationEndDate: user.validationEndDate,
-                daysRemaining: Math.ceil((user.validationEndDate - new Date()) / (1000 * 60 * 60 * 24)),
-                activationCode: user.activationCode
-            });
-        } else {
-            res.status(404).json({ error: 'User not found' });
-        }
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/trial-status/:email', async (req, res) => {
-    try {
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            return res.status(503).json({
-                success: false,
-                message: 'Database connection unavailable'
-            });
-        }
-        
-        const { email } = req.params;
-        
-        const user = await User.findOne({ 
-            email: email.toLowerCase(),
-            version: 'free'
-        });
-        
-        if (!user) {
-            return res.json({
-                success: true,
-                hasTrialStarted: false,
-                message: 'No trial found for this email'
-            });
-        }
-        
-        const trialStartDate = user.createdAt || user.updatedAt;
-        const daysSinceStart = Math.floor((new Date() - new Date(trialStartDate)) / (1000 * 60 * 60 * 24));
-        const daysRemaining = Math.max(0, 7 - daysSinceStart);
-        const isExpired = daysSinceStart >= 7;
-        
-        res.json({
-            success: true,
-            hasTrialStarted: true,
-            trialStartDate: trialStartDate,
-            daysSinceStart: daysSinceStart,
-            daysRemaining: daysRemaining,
-            isExpired: isExpired,
-            isActive: user.isActive,
-            message: isExpired ? 'Trial has expired' : `${daysRemaining} days remaining`
-        });
-        
-    } catch (error) {
-        console.error('Error checking trial status:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            details: error.message
-        });
-    }
-});
-
 // Handle activation
 app.get('/api/activate/:code', async (req, res) => {
     try {
-        // CHECK DATABASE CONNECTION FIRST
         const dbState = checkMongoConnection();
         if (!dbState.isConnected) {
-            console.error('Database not connected in /api/activate');
             return res.status(503).send('Database unavailable. Please try again later.');
         }
         
@@ -1486,17 +1077,15 @@ app.get('/api/activate/:code', async (req, res) => {
             });
         }
 
-        // Activate user
         user.isActive = true;
         user.lastLoginAt = new Date();
         user.loginCount = 1;
         await user.save();
 
-        // Redirect to app
         res.redirect(`/appForm.html?code=${code}&email=${encodeURIComponent(email)}&lang=${lang}`);
 
     } catch (error) {
-        console.error('Error in activation:', error);
+        logger.error('Error in activation:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -1506,9 +1095,6 @@ app.get('/api/activate/:code', async (req, res) => {
 
 // Payment routes
 app.post('/api/create-payment-intent', async (req, res) => {
-    console.log('Payment intent request received');
-    console.log('Full request body:', JSON.stringify(req.body, null, 2));
-    
     try {
         const { email, name, amount, currency } = req.body;
         
@@ -1519,12 +1105,11 @@ app.post('/api/create-payment-intent', async (req, res) => {
             });
         }
 
-        // Use dynamic currency, default to EUR if not provided
         const paymentCurrency = currency || 'eur';
         
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount, // Use passed amount
-            currency: paymentCurrency.toLowerCase(), // Use dynamic currency
+            amount: amount,
+            currency: paymentCurrency.toLowerCase(),
             automatic_payment_methods: {
                 enabled: true,
             },
@@ -1535,13 +1120,12 @@ app.post('/api/create-payment-intent', async (req, res) => {
             description: 'SyncVoice Medical - Monthly Subscription'
         });
 
-        console.log(`Payment intent created successfully: ${paymentIntent.id} with currency: ${paymentCurrency}`);
         res.json({ 
             clientSecret: paymentIntent.client_secret,
             paymentIntentId: paymentIntent.id
         });
     } catch (error) {
-        console.error('Detailed error creating payment intent:', error);
+        logger.error('Detailed error creating payment intent:', error);
         res.status(500).json({ 
             error: 'Failed to create payment intent',
             details: error.message,
@@ -1550,420 +1134,11 @@ app.post('/api/create-payment-intent', async (req, res) => {
     }
 });
 
-app.post('/api/create-subscription', async (req, res) => {
-    try {
-        // CHECK DATABASE CONNECTION FIRST
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            console.error('Database not connected in /api/create-subscription');
-            return res.status(503).json({
-                error: 'Database connection unavailable'
-            });
-        }
-        
-        const { email } = req.body;
-        const user = await User.findOne({ email: email.toLowerCase() });
-        
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        // First, check if the customer has a payment method
-        const paymentMethods = await stripe.paymentMethods.list({
-            customer: user.stripeCustomerId,
-            type: 'card',
-        });
-
-        if (!paymentMethods.data.length) {
-            return res.status(400).json({ error: 'No payment method found for this customer' });
-        }
-
-        // Create the subscription
-        const subscription = await stripe.subscriptions.create({
-            customer: user.stripeCustomerId,
-            items: [{ price: process.env.STRIPE_PRICE_ID }],
-            default_payment_method: paymentMethods.data[0].id,
-            payment_behavior: 'default_incomplete',
-            expand: ['latest_invoice.payment_intent'],
-        });
-
-        // Update user
-        user.subscriptionId = subscription.id;
-        await user.save();
-
-        res.json({
-            subscriptionId: subscription.id,
-            clientSecret: subscription.latest_invoice.payment_intent.client_secret
-        });
-    } catch (error) {
-        console.error('Subscription creation error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Add this route to create users
-app.post('/api/create-user', async (req, res) => {
-    console.log('Received create user request:', JSON.stringify(req.body, null, 2));
-    
-    try {
-        // CHECK DATABASE CONNECTION FIRST
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            console.error('Database not connected in /api/create-user');
-            return res.status(503).json({
-                success: false,
-                message: 'Database connection unavailable'
-            });
-        }
-        
-        const { email, firstName, lastName, version, language, termsAccepted, ...otherData } = req.body;
-        
-        // Prepare user data
-        const userData = {
-        firstName,
-        lastName,
-        email: email.toLowerCase(),
-        version,
-        language,
-        termsAccepted,
-        isActive: false,
-        updatedAt: new Date(),
-        // ADD THESE:
-        validationStartDate: new Date(),
-        validationEndDate: version === 'free' 
-            ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)  // 7 days for free
-            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days for paid
-    };
-
-
-        // Handle paid version specifics
-        if (version === 'paid') {
-        userData.isPaid = true;
-        userData.company = otherData.company;
-        userData.address = otherData.address;
-        userData.addressContinued = otherData.addressContinued;
-        userData.postalCode = otherData.postalCode;
-        userData.city = otherData.city;
-        userData.country = otherData.country;
-        userData.autoRenewal = otherData.autoRenewal;
-
-        // Create Stripe customer
-        const customer = await stripe.customers.create({
-            email: email.toLowerCase(),
-            name: `${firstName} ${lastName}`
-        });
-        userData.stripeCustomerId = customer.id;
-    }
-
-        // Log user data before saving
-        console.log('User data to be saved:', JSON.stringify(userData, null, 2));
-
-        // Create user
-        const user = new User(userData);
-        await user.save();
-
-        // Log created user
-        console.log('Created user:', JSON.stringify(user, null, 2));
-
-        res.json({ 
-            success: true, 
-            message: 'User created', 
-            userId: user._id 
-        });
-    } catch (error) {
-        console.error('Error creating user:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message,
-            errorStack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
-    }
-});
-
-
-async function handleSuccessfulPayment(paymentIntent) {
-    try {
-        // CHECK DATABASE CONNECTION FIRST
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            console.error('Database not connected in handleSuccessfulPayment');
-            return;
-        }
-        
-        console.log('Payment successful:', paymentIntent.id);
-        
-        // Find the user by metadata
-        if (paymentIntent.metadata && paymentIntent.metadata.userId) {
-            const user = await User.findById(paymentIntent.metadata.userId);
-            
-            if (user) {
-                // Generate activation code if not already set
-                if (!user.activationCode) {
-                    user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-                }
-                
-                // Update user status
-                user.isPaid = true;
-                user.isActive = true;
-                user.paymentStatus = 'completed';
-                user.lastPaymentDate = new Date();
-                user.validationStartDate = new Date();
-                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                
-                await user.save();
-                console.log(`User ${user.email} marked as paid and active`);
-                
-                // SEND ACTIVATION EMAIL
-                const lang = user.language || 'en';
-                const t = messages[lang] || messages.en;
-                
-                try {
-                    // Create activation link
-                    let activationLink = `${BASE_URL}/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
-                    
-                    // Safety check
-                    if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
-                        activationLink = `https://syncvoicemedical.onrender.com/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
-                    }
-                    
-                    console.log('Sending activation email for paid user:', user.email);
-                    
-                    // Create transporter
-                    const transporter = await createTransporter();
-                    
-                    // Email content
-                    const mailOptions = {
-                        from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
-                        to: user.email,
-                        subject: t.subject,
-                        html: `
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        </head>
-                        <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
-                            <p style="margin: 40px 0; font-size: 24px; color: #333333;">
-                                ${t.greeting} ${user.firstName} ${user.lastName},
-                            </p>
-                            <div style="text-align: center;">
-                                <p style="margin: 20px 0; color: #666666;">
-                                    ${t.thankyou}<br>
-                                    ${t.clickToActivate}
-                                </p>
-                                <p style="margin: 20px 0; color: #69B578; font-weight: bold;">
-                                    Your payment was successful! You now have 30 days of access.
-                                </p>
-                                <div style="margin: 20px 0;">
-                                    <a href="${activationLink}"
-                                       style="display: inline-block; background-color: #69B578; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; font-family: monospace; font-size: 24px; font-weight: bold;">
-                                        ${user.activationCode}
-                                    </a>
-                                </div>
-                            </div>
-                        </body>
-                        </html>`
-                    };
-                    
-                    // Send email
-                    await transporter.sendMail(mailOptions);
-                    console.log('Activation email sent successfully to:', user.email);
-                    
-                } catch (emailError) {
-                    console.error('Error sending activation email:', emailError);
-                    // Don't throw - payment was successful even if email fails
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error handling successful payment:', error);
-    }
-}
-
-async function handleFailedPayment(failedPayment) {
-    try {
-        // CHECK DATABASE CONNECTION FIRST
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            console.error('Database not connected in handleFailedPayment');
-            return;
-        }
-        
-        // Implement payment failure logic
-        console.error('Payment failed:', failedPayment.id);
-        
-        // Find the user by metadata
-        if (failedPayment.metadata && failedPayment.metadata.userId) {
-            const user = await User.findById(failedPayment.metadata.userId);
-            
-            if (user) {
-                user.paymentStatus = 'failed';
-                await user.save();
-                console.log(`Payment failed for user ${user.email}`);
-            }
-        }
-    } catch (error) {
-        console.error('Error handling failed payment:', error);
-    }
-}
-
-async function handleSuccessfulInvoice(invoice) {
-    try {
-        // CHECK DATABASE CONNECTION FIRST
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            console.error('Database not connected in handleSuccessfulInvoice');
-            return;
-        }
-        
-        console.log('Invoice payment successful:', invoice.id);
-        
-        if (invoice.customer) {
-            const user = await User.findOne({ stripeCustomerId: invoice.customer });
-            
-            if (user) {
-                // Generate activation code if not already set
-                if (!user.activationCode) {
-                    user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                }
-                
-                // Update user status
-                user.isPaid = true;
-                user.isActive = true;
-                user.paymentStatus = 'completed';
-                user.lastPaymentDate = new Date();
-                user.validationStartDate = new Date();
-                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                
-                await user.save();
-                console.log(`Invoice paid for user ${user.email}`);
-                
-                // SEND ACTIVATION EMAIL (same logic as above)
-                const lang = user.language || 'en';
-                const t = messages[lang] || messages.en;
-                
-                try {
-                    // Create activation link
-                    let activationLink = `${BASE_URL}/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
-                    
-                    if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
-                        activationLink = `https://syncvoicemedical.onrender.com/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
-                    }
-                    
-                    console.log('Sending activation email for paid user (invoice):', user.email);
-                    
-                    const transporter = await createTransporter();
-                    
-                    const mailOptions = {
-                        from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
-                        to: user.email,
-                        subject: t.subject,
-                        html: `
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        </head>
-                        <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
-                            <p style="margin: 40px 0; font-size: 24px; color: #333333;">
-                                ${t.greeting} ${user.firstName} ${user.lastName},
-                            </p>
-                            <div style="text-align: center;">
-                                <p style="margin: 20px 0; color: #666666;">
-                                    ${t.thankyou}<br>
-                                    ${t.clickToActivate}
-                                </p>
-                                <p style="margin: 20px 0; color: #69B578; font-weight: bold;">
-                                    Your payment was successful! You now have 30 days of access.
-                                </p>
-                                <div style="margin: 20px 0;">
-                                    <a href="${activationLink}"
-                                       style="display: inline-block; background-color: #69B578; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; font-family: monospace; font-size: 24px; font-weight: bold;">
-                                        ${user.activationCode}
-                                    </a>
-                                </div>
-                            </div>
-                        </body>
-                        </html>`
-                    };
-                    
-                    await transporter.sendMail(mailOptions);
-                    console.log('Activation email sent successfully to:', user.email);
-                    
-                } catch (emailError) {
-                    console.error('Error sending activation email:', emailError);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error handling successful invoice:', error);
-    }
-}
-
-async function handleSubscriptionChange(subscription) {
-    try {
-        // CHECK DATABASE CONNECTION FIRST
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            console.error('Database not connected in handleSubscriptionChange');
-            return;
-        }
-        
-        // Process subscription updates
-        console.log('Subscription changed:', subscription.id);
-        
-        if (subscription.customer) {
-            const user = await User.findOne({ stripeCustomerId: subscription.customer });
-            
-            if (user) {
-                user.subscriptionStatus = subscription.status;
-                
-                if (subscription.status === 'active') {
-                    user.isPaid = true;
-                    user.isActive = true;
-                } else if (subscription.status === 'canceled') {
-                    // Don't immediately deactivate - they still have access until the end of their billing period
-                    user.autoRenewal = false;
-                }
-                
-                await user.save();
-                console.log(`Subscription updated for user ${user.email} to ${subscription.status}`);
-            }
-        }
-    } catch (error) {
-        console.error('Error handling subscription change:', error);
-    }
-}
-
-// Version check endpoint
-app.get('/api/version', (req, res) => {
-    res.json({
-        version: '1.0.2',  // ← CHANGE THIS
-        deployedAt: '2025-06-17T16:45:00Z',  // ← UPDATE THIS
-        hasGenerateFunction: true,
-        baseUrlFix: true,  // ← ADD THIS
-        currentBaseUrl: BASE_URL,  // ← ADD THIS
-        message: 'SyncVoiceMedical API v1.0.2 - BASE_URL Fix Applied'  // ← CHANGE THIS
-    });
-});
-
-// Also add a simple test
-app.get('/test', (req, res) => {
-    res.send('Server is working!');
-});
-
-
-// Test login route - accepts any email/password for testing
+// Login route
 app.post('/api/login', async (req, res) => {
     try {
-        // CHECK DATABASE CONNECTION FIRST
         const dbState = checkMongoConnection();
         if (!dbState.isConnected) {
-            console.error('Database not connected in /api/login');
             return res.status(503).json({
                 success: false,
                 message: 'Database connection unavailable'
@@ -1979,7 +1154,6 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Find user by email
         const user = await User.findOne({ email: email.toLowerCase() });
 
         if (!user) {
@@ -1989,7 +1163,6 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Check if user has a password (for backward compatibility)
         if (!user.password) {
             return res.status(401).json({
                 success: false,
@@ -1997,7 +1170,6 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Verify password
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
@@ -2007,7 +1179,6 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Check if user account is active
         if (!user.isActive) {
             return res.status(401).json({
                 success: false,
@@ -2015,7 +1186,6 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Check if subscription is still valid
         if (user.isSubscriptionExpired()) {
             return res.status(401).json({
                 success: false,
@@ -2023,15 +1193,21 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Update login tracking
         user.loginCount = (user.loginCount || 0) + 1;
         user.lastLoginAt = new Date();
         await user.save();
 
-        // Successful login
+        // Generate JWT token
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
         res.json({
             success: true,
             message: 'Login successful',
+            token: token,
             userId: user._id.toString(),
             userEmail: user.email,
             userInfo: {
@@ -2043,7 +1219,7 @@ app.post('/api/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Login error:', error);
+        logger.error('Login error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error during login'
@@ -2051,13 +1227,309 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Test user details route - returns fake user data
-app.get('/api/user-details/:email', async (req, res) => {
+// Webhook handlers
+async function handleSuccessfulPayment(paymentIntent) {
     try {
-        // CHECK DATABASE CONNECTION FIRST
         const dbState = checkMongoConnection();
         if (!dbState.isConnected) {
-            console.error('Database not connected in /api/user-details');
+            logger.error('Database not connected in handleSuccessfulPayment');
+            return;
+        }
+        
+        logger.info('Payment successful:', paymentIntent.id);
+        
+        if (paymentIntent.metadata && paymentIntent.metadata.userId) {
+            const user = await User.findById(paymentIntent.metadata.userId);
+            
+            if (user) {
+                if (!user.activationCode) {
+                    user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                }
+                
+                user.isPaid = true;
+                user.isActive = true;
+                user.paymentStatus = 'completed';
+                user.lastPaymentDate = new Date();
+                user.validationStartDate = new Date();
+                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                
+                await user.save();
+                logger.info(`User ${user.email} marked as paid and active`);
+                
+                const lang = user.language || 'en';
+                const t = messages[lang] || messages.en;
+                
+                try {
+                    let activationLink = `${BASE_URL}/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    
+                    if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
+                        activationLink = `https://syncvoicemedical.onrender.com/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    }
+                    
+                    const transporter = await createTransporter();
+                    
+                    const mailOptions = {
+                        from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                        to: user.email,
+                        subject: t.subject,
+                        html: createActivationEmailHTML(user, activationLink, user.language || lang, user.downloadIntent || false)
+                    };
+                    
+                    await transporter.sendMail(mailOptions);
+                    logger.info('Activation email sent successfully to:', user.email);
+                    
+                } catch (emailError) {
+                    logger.error('Error sending activation email:', emailError);
+                }
+            }
+        }
+    } catch (error) {
+        logger.error('Error handling successful payment:', error);
+    }
+}
+
+async function handleFailedPayment(failedPayment) {
+    try {
+        const dbState = checkMongoConnection();
+        if (!dbState.isConnected) {
+            logger.error('Database not connected in handleFailedPayment');
+            return;
+        }
+        
+        logger.error('Payment failed:', failedPayment.id);
+        
+        if (failedPayment.metadata && failedPayment.metadata.userId) {
+            const user = await User.findById(failedPayment.metadata.userId);
+            
+            if (user) {
+                user.paymentStatus = 'failed';
+                await user.save();
+                logger.info(`Payment failed for user ${user.email}`);
+            }
+        }
+    } catch (error) {
+        logger.error('Error handling failed payment:', error);
+    }
+}
+
+async function handleSuccessfulInvoice(invoice) {
+    try {
+        const dbState = checkMongoConnection();
+        if (!dbState.isConnected) {
+            logger.error('Database not connected in handleSuccessfulInvoice');
+            return;
+        }
+        
+        logger.info('Invoice payment successful:', invoice.id);
+        
+        if (invoice.customer) {
+            const user = await User.findOne({ stripeCustomerId: invoice.customer });
+            
+            if (user) {
+                if (!user.activationCode) {
+                    user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                }
+                
+                user.isPaid = true;
+                user.isActive = true;
+                user.paymentStatus = 'completed';
+                user.lastPaymentDate = new Date();
+                user.validationStartDate = new Date();
+                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                
+                await user.save();
+                logger.info(`Invoice paid for user ${user.email}`);
+                
+                const lang = user.language || 'en';
+                const t = messages[lang] || messages.en;
+                
+                try {
+                    let activationLink = `${BASE_URL}/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    
+                    if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
+                        activationLink = `https://syncvoicemedical.onrender.com/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    }
+                    
+                    const transporter = await createTransporter();
+                    
+                    const mailOptions = {
+                        from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                        to: user.email,
+                        subject: t.subject,
+                        html: createActivationEmailHTML(user, activationLink, user.language || lang, user.downloadIntent || false)
+                    };
+                    
+                    await transporter.sendMail(mailOptions);
+                    logger.info('Activation email sent successfully to:', user.email);
+                    
+                } catch (emailError) {
+                    logger.error('Error sending activation email:', emailError);
+                }
+            }
+        }
+    } catch (error) {
+        logger.error('Error handling successful invoice:', error);
+    }
+}
+
+async function handleSubscriptionChange(subscription) {
+    try {
+        const dbState = checkMongoConnection();
+        if (!dbState.isConnected) {
+            logger.error('Database not connected in handleSubscriptionChange');
+            return;
+        }
+        
+        logger.info('Subscription changed:', subscription.id);
+        
+        if (subscription.customer) {
+            const user = await User.findOne({ stripeCustomerId: subscription.customer });
+            
+            if (user) {
+                user.subscriptionStatus = subscription.status;
+                
+                if (subscription.status === 'active') {
+                    user.isPaid = true;
+                    user.isActive = true;
+                } else if (subscription.status === 'canceled') {
+                    user.autoRenewal = false;
+                }
+                
+                await user.save();
+                logger.info(`Subscription updated for user ${user.email} to ${subscription.status}`);
+            }
+        }
+    } catch (error) {
+        logger.error('Error handling subscription change:', error);
+    }
+}
+
+// Email template
+const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = false) => {
+    const t = messages[lang] || messages.fr;
+    
+    const downloadSection = downloadIntent ? `
+        <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); border: 1px solid #2196F3; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+            <h3 style="color: #1565C0; margin-top: 0;">📥 ${lang === 'fr' ? 'Téléchargez votre application desktop' : 'Download your desktop application'}</h3>
+            <p style="color: #1565C0; margin-bottom: 15px;">
+                ${lang === 'fr' 
+                    ? 'Votre application SyncVoice Medical pour Windows est prête à être téléchargée.'
+                    : 'Your SyncVoice Medical application for Windows is ready to download.'
+                }
+            </p>
+            <a href="${BASE_URL}/api/download-desktop?lang=${lang}&email=${encodeURIComponent(user.email)}&code=${user.activationCode}&source=email"
+               style="display: inline-block; background-color: #296396; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; font-weight: bold; margin: 10px 0;">
+                ${lang === 'fr' ? '⬇️ Télécharger pour Windows' : '⬇️ Download for Windows'}
+            </a>
+            <p style="color: #666; font-size: 12px; margin-bottom: 0;">
+                ${lang === 'fr' 
+                    ? 'Système requis: Windows 10 ou supérieur'
+                    : 'System requirements: Windows 10 or higher'
+                }
+            </p>
+        </div>
+    ` : '';
+    
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #296396, #69B578); padding: 30px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">SyncVoice Medical</h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">
+                    ${lang === 'fr' ? 'Transcription Médicale Intelligente' : 'Intelligent Medical Transcription'}
+                </p>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 30px;">
+                <p style="margin: 0 0 20px 0; font-size: 24px; color: #333333;">
+                    ${t.greeting} ${user.firstName} ${user.lastName},
+                </p>
+                
+                <p style="margin: 20px 0; color: #666666; line-height: 1.6;">
+                    ${t.thankyou}<br>
+                    ${t.clickToActivate}
+                </p>
+                
+                <!-- Activation Button -->
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${activationLink}"
+                       style="display: inline-block; background-color: #69B578; color: white; text-decoration: none; padding: 20px 30px; border-radius: 8px; font-family: monospace; font-size: 24px; font-weight: bold; box-shadow: 0 4px 12px rgba(105, 181, 120, 0.3);">
+                        ${user.activationCode}
+                    </a>
+                </div>
+                
+                <!-- Download Section (if download intent) -->
+                ${downloadSection}
+                
+                <!-- Instructions -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="color: #296396; margin-top: 0;">
+                        ${lang === 'fr' ? '🚀 Comment commencer:' : '🚀 How to get started:'}
+                    </h3>
+                    <ol style="color: #666; line-height: 1.6; margin: 0; padding-left: 20px;">
+                        <li>${lang === 'fr' ? 'Cliquez sur le code d\'activation ci-dessus' : 'Click on the activation code above'}</li>
+                        ${downloadIntent ? `<li>${lang === 'fr' ? 'Téléchargez et installez l\'application desktop' : 'Download and install the desktop application'}</li>` : ''}
+                        <li>${lang === 'fr' ? 'Entrez vos identifiants dans l\'application' : 'Enter your credentials in the application'}</li>
+                        <li>${lang === 'fr' ? 'Commencez à transcrire!' : 'Start transcribing!'}</li>
+                    </ol>
+                </div>
+                
+                <!-- Support -->
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 0; color: #856404;">
+                        <strong>${lang === 'fr' ? '💡 Besoin d\'aide?' : '💡 Need help?'}</strong><br>
+                        ${lang === 'fr' 
+                            ? 'Contactez notre support: support@syncvoicemedical.com'
+                            : 'Contact our support: support@syncvoicemedical.com'
+                        }
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                <p style="margin: 0; color: #666; font-size: 14px;">
+                    © 2025 SyncVoice Medical. ${lang === 'fr' ? 'Tous droits réservés.' : 'All rights reserved.'}
+                </p>
+                <p style="margin: 10px 0 0 0; color: #999; font-size: 12px;">
+                    ${lang === 'fr' 
+                        ? 'Cet email a été envoyé car vous vous êtes inscrit sur SyncVoice Medical.'
+                        : 'This email was sent because you signed up for SyncVoice Medical.'
+                    }
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>`;
+};
+
+// Version endpoint
+app.get('/api/version', (req, res) => {
+    res.json({
+        version: '1.0.3',
+        deployedAt: new Date().toISOString(),
+        hasGenerateFunction: true,
+        baseUrlFix: true,
+        currentBaseUrl: BASE_URL,
+        message: 'SyncVoiceMedical API v1.0.3 - Production Ready'
+    });
+});
+
+// User details route
+app.get('/api/user-details/:email', async (req, res) => {
+    try {
+        const dbState = checkMongoConnection();
+        if (!dbState.isConnected) {
             return res.status(503).json({
                 success: false,
                 message: 'Database connection unavailable'
@@ -2066,7 +1538,6 @@ app.get('/api/user-details/:email', async (req, res) => {
 
         const { email } = req.params;
         
-        // Find the user in the database
         const user = await User.findOne({ email: email.toLowerCase() });
         
         if (!user) {
@@ -2076,7 +1547,6 @@ app.get('/api/user-details/:email', async (req, res) => {
             });
         }
 
-        // Return real user data
         const userData = {
             firstName: user.firstName,
             lastName: user.lastName,
@@ -2101,7 +1571,7 @@ app.get('/api/user-details/:email', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Error fetching user details:', error);
+        logger.error('Error fetching user details:', error);
         res.status(500).json({
             success: false,
             message: 'Server error'
@@ -2109,40 +1579,27 @@ app.get('/api/user-details/:email', async (req, res) => {
     }
 });
 
-
+// Deepgram test endpoint
 app.get('/api/test-deepgram', async (req, res) => {
     try {
-        console.log('=== Testing Deepgram Configuration ===');
-        
-        // Check if API key exists
         if (!process.env.DEEPGRAM_API_KEY) {
-            console.log('❌ Deepgram API key not found');
             return res.json({
                 success: false,
                 message: 'Deepgram API key not configured',
                 hasApiKey: false,
-                envVars: Object.keys(process.env).filter(key => key.includes('DEEPGRAM')),
                 instructions: 'Add DEEPGRAM_API_KEY environment variable in Render.com'
             });
         }
         
         const apiKey = process.env.DEEPGRAM_API_KEY;
-        console.log('✅ Deepgram API key found, length:', apiKey.length);
-        console.log('✅ API key starts with:', apiKey.substring(0, 5) + '...');
         
-        // Test Deepgram API connection
-        try {           
-            console.log('🔍 Testing Deepgram API connection...');
-            
-            // Test with Deepgram projects endpoint (simple API test)
+        try {
             const response = await axios.get('https://api.deepgram.com/v1/projects', {
                 headers: {
                     'Authorization': `Token ${apiKey}`,
                 },
                 timeout: 10000
             });
-            
-            console.log('✅ Deepgram API connection successful');
             
             res.json({
                 success: true,
@@ -2156,8 +1613,6 @@ app.get('/api/test-deepgram', async (req, res) => {
             });
             
         } catch (apiError) {
-            console.error('❌ Deepgram API test failed:', apiError.message);
-            
             res.json({
                 success: false,
                 message: 'Deepgram API key configured but connection failed',
@@ -2172,7 +1627,7 @@ app.get('/api/test-deepgram', async (req, res) => {
         }
         
     } catch (error) {
-        console.error('❌ Deepgram test error:', error);
+        logger.error('❌ Deepgram test error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error testing Deepgram',
@@ -2181,130 +1636,111 @@ app.get('/api/test-deepgram', async (req, res) => {
     }
 });
 
-// Keep the app awake (if using free tier)
+// Desktop download endpoint
+app.get('/api/download-desktop', async (req, res) => {
+    try {
+        const { lang, email, code, source } = req.query;
+        
+        logger.info('Desktop download request:', { lang, email, code, source });
+        
+        if (email && code) {
+            const user = await User.findOne({ 
+                email: email.toLowerCase(),
+                activationCode: code
+            });
+            
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid credentials. Please register first.'
+                });
+            }
+        }
+        
+        const downloadUrl = 'https://github.com/syncvoicemedical/desktop-client/releases/latest/download/SyncVoiceMedical-Setup.exe';
+        res.redirect(downloadUrl);
+        
+    } catch (error) {
+        logger.error('Desktop download error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Download service temporarily unavailable. Please try again later.'
+        });
+    }
+});
+
+// Keep alive ping (for free tier hosting)
 if (process.env.NODE_ENV === 'production') {
     setInterval(() => {
         axios.get(`${BASE_URL}/health`)
-            .then(() => console.log('Keep-alive ping successful'))
-            .catch(err => console.error('Keep-alive ping failed:', err.message));
+            .then(() => logger.info('Keep-alive ping successful'))
+            .catch(err => logger.error('Keep-alive ping failed:', err.message));
     }, 14 * 60 * 1000); // Every 14 minutes
 }
 
-// Add this near the top of your file
-app.use((req, res, next) => {
-    if (req.path === '/webhook') {
-        console.log('🔔 Webhook request received:', {
-            method: req.method,
-            headers: {
-                'stripe-signature': req.headers['stripe-signature'] ? 'present' : 'missing',
-                'content-type': req.headers['content-type']
-            },
-            bodyLength: req.body ? req.body.length : 0,
-            timestamp: new Date().toISOString()
-        });
-    }
-    next();
-});
-
-// Catch unmatched API routes and return JSON instead of HTML
+// Catch unmatched API routes
 app.use('/api/*', (req, res) => {
-    console.log(`API route not found: ${req.method} ${req.url}`);
+    logger.warn(`API route not found: ${req.method} ${req.url}`);
     res.status(404).json({
         success: false,
         message: `API endpoint not found: ${req.method} ${req.url}`,
-        timestamp: new Date().toISOString(),
-        availableEndpoints: [
-            'GET /health',
-            'GET /api/health',
-            'GET /api/status', 
-            'GET /api/test',
-            'POST /api/login',
-            'GET /api/user-details/:email',
-            'POST /api/send-activation',
-            'POST /api/check-email',
-            'POST /api/create-payment-intent',
-            'POST /api/create-subscription',
-            'POST /api/create-user',
-            'GET /api/activate/:code'
-        ]
+        timestamp: new Date().toISOString()
     });
 });
 
-// Error handling middleware should be last
+// Global error handler
 app.use((err, req, res, next) => {
-    console.error('Unhandled Error:', err);
+    logger.error('Unhandled Error:', err);
     
-    // Determine error status code
-    const statusCode = err.status || 500;
+    const statusCode = err.statusCode || err.status || 500;
     
-    // Send error response
     res.status(statusCode).json({
         success: false,
-        message: err.message || 'An unexpected error occurred',
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        error: {
+            message: err.message || 'An unexpected error occurred',
+            ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        }
     });
 });
 
-// Print registered routes for debugging
-console.log('Registered routes:');
-app._router.stack.forEach(function(r){
-    if (r.route && r.route.path){
-        console.log(`Route: ${Object.keys(r.route.methods).join(',')} ${r.route.path}`);
-    }
-});
-
-// ScaleWay Serverless Container Configuration
-// Get port from environment variable or default to 8080
+// Server configuration
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
 
 const server = app.listen(PORT, HOST, () => {
-    console.log(`Server running on http://${HOST}:${PORT}`);
-    console.log('Environment variables:');
-    console.log('- NODE_ENV:', process.env.NODE_ENV);
-    console.log('🔍 MongoDB Connection State:', checkMongoConnection());
-    console.log('WebSocket server is ready on the same port');
+    logger.info(`Server running on http://${HOST}:${PORT}`);
+    logger.info('Environment:', process.env.NODE_ENV);
+    logger.info('MongoDB Connection State:', checkMongoConnection());
+    logger.info('WebSocket server is ready on the same port');
 });
 
+// WebSocket server setup
+const wss = new WebSocket.Server({ server });
+
+// WebSocket helpers
 function mapLanguageForDeepgram(clientLanguage) {
     const languageMap = {
-        'fr': 'fr',      // French
-        'en': 'en',      // English  
-        'de': 'de',      // German
-        'es': 'es',      // Spanish
-        'it': 'it',      // Italian
-        'pt': 'pt'       // Portuguese
+        'fr': 'fr',
+        'en': 'en',
+        'de': 'de',
+        'es': 'es',
+        'it': 'it',
+        'pt': 'pt'
     };
     
     const mappedLanguage = languageMap[clientLanguage] || 'en';
-    console.log(`🌐 Language mapping: ${clientLanguage} → ${mappedLanguage}`);
+    logger.info(`Language mapping: ${clientLanguage} → ${mappedLanguage}`);
     return mappedLanguage;
 }
 
 // Store active WebSocket connections
 const activeConnections = new Map();
-// Create WebSocket server using the same HTTP server (for Render.com)
-const wss = new WebSocket.Server({ server });
 
-
-
-// Keep the existing cleanup handler
-process.on('SIGTERM', () => {
-    wss.close(() => {
-        console.log('WebSocket server closed');
-    });
-});
-
-
-// Export only the app - remove the conflicting module.exports
-module.exports = app;
-
-
+// WebSocket connection handler
 wss.on('connection', (ws, req) => {
     const connectionId = crypto.randomBytes(16).toString('hex');
-    console.log(`New WebSocket connection: ${connectionId}`);
+    logger.info(`New WebSocket connection: ${connectionId}`);
     
-    // Store connection with explicit defaults
     activeConnections.set(connectionId, {
         ws,
         authenticated: false,
@@ -2314,7 +1750,6 @@ wss.on('connection', (ws, req) => {
         audioChunks: []
     });
     
-    // Send connection acknowledgment
     ws.send(JSON.stringify({
         type: 'connection',
         connectionId,
@@ -2326,8 +1761,7 @@ wss.on('connection', (ws, req) => {
             const data = JSON.parse(message);
             const connection = activeConnections.get(connectionId);
             
-            // Log every message for debugging
-            console.log(`📨 Message from ${connectionId}: ${data.type} (auth: ${connection.authenticated}, client: ${connection.clientType})`);
+            logger.info(`Message from ${connectionId}: ${data.type}`);
             
             switch (data.type) {
                 case 'auth':
@@ -2338,15 +1772,11 @@ wss.on('connection', (ws, req) => {
                     });
                     
                     if (user && user.isActive) {
-                        // Update connection info
                         connection.authenticated = true;
                         connection.email = email.toLowerCase();
                         connection.language = user.language || 'en';
-                        connection.clientType = clientType || 'desktop'; // Default to desktop for this app
+                        connection.clientType = clientType || 'desktop';
                         
-                        console.log(`✅ Authenticated ${connection.clientType} client: ${email}`);
-                        
-                        // Calculate days remaining safely
                         let daysRemaining = 0;
                         try {
                             if (user.daysUntilExpiration && typeof user.daysUntilExpiration === 'function') {
@@ -2357,7 +1787,7 @@ wss.on('connection', (ws, req) => {
                                 daysRemaining = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)));
                             }
                         } catch (dateError) {
-                            console.warn('Error calculating days remaining:', dateError.message);
+                            logger.warn('Error calculating days remaining:', dateError.message);
                             daysRemaining = 0;
                         }
                         
@@ -2374,7 +1804,6 @@ wss.on('connection', (ws, req) => {
                             clientType: connection.clientType
                         }));
                     } else {
-                        console.log(`❌ Authentication failed for: ${email}`);
                         ws.send(JSON.stringify({
                             type: 'auth',
                             status: 'error',
@@ -2383,324 +1812,253 @@ wss.on('connection', (ws, req) => {
                     }
                     break;
 
-                    case 'updateLanguage':
-                if (!connection.authenticated) {
-                    console.log(`❌ Language update rejected: not authenticated`);
-                    ws.send(JSON.stringify({
-                        type: 'error',
-                        message: 'Not authenticated'
-                    }));
-                    return;
-                }
-                
-                const { language } = data;
-                if (language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(language)) {
-                    connection.language = language;
-                    console.log(`🌐 Updated language for ${connection.email} to ${language}`);
+                case 'updateLanguage':
+                    if (!connection.authenticated) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Not authenticated'
+                        }));
+                        return;
+                    }
                     
-                    ws.send(JSON.stringify({
-                        type: 'languageUpdated',
-                        language: language
-                    }));
-                } else {
-                    console.log(`❌ Invalid language: ${language}`);
-                    ws.send(JSON.stringify({
-                        type: 'error',
-                        message: 'Invalid language specified'
-                    }));
-                }
-                break;
+                    const { language } = data;
+                    if (language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(language)) {
+                        connection.language = language;
+                        ws.send(JSON.stringify({
+                            type: 'languageUpdated',
+                            language: language
+                        }));
+                    } else {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Invalid language specified'
+                        }));
+                    }
+                    break;
                     
                 case 'startTranscription':
-    if (!connection.authenticated) {
-        console.log(`❌ Start transcription rejected: not authenticated`);
-        ws.send(JSON.stringify({
-            type: 'error',
-            message: 'Not authenticated'
-        }));
-        return;
-    }
-    
-    // Get language from message or fall back to connection language
-    const transcriptionLanguage = data.language || connection.language || 'en';
-    
-    // Validate and update language - FIXED: Support all languages
-    if (['fr', 'en', 'de', 'es', 'it', 'pt'].includes(transcriptionLanguage)) {
-        if (connection.language !== transcriptionLanguage) {
-            console.log(`🌐 Language changed from ${connection.language} to ${transcriptionLanguage}`);
-            connection.language = transcriptionLanguage;
-        }
-    } else {
-        console.log(`⚠️ Invalid language ${transcriptionLanguage}, using ${connection.language}`);
-    }
-    
-    // Reset audio chunks
-    connection.audioChunks = [];
-    console.log(`🎤 Started transcription for ${connection.email} in ${connection.language}`);
-    
-    ws.send(JSON.stringify({
-        type: 'transcriptionStarted',
-        clientType: connection.clientType,
-        language: connection.language
-    }));
-    break;
+                    if (!connection.authenticated) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Not authenticated'
+                        }));
+                        return;
+                    }
+                    
+                    const transcriptionLanguage = data.language || connection.language || 'en';
+                    
+                    if (['fr', 'en', 'de', 'es', 'it', 'pt'].includes(transcriptionLanguage)) {
+                        if (connection.language !== transcriptionLanguage) {
+                            connection.language = transcriptionLanguage;
+                        }
+                    }
+                    
+                    connection.audioChunks = [];
+                    
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionStarted',
+                        clientType: connection.clientType,
+                        language: connection.language
+                    }));
+                    break;
                     
                 case 'audioChunk':
-    if (!connection.authenticated) {
-        return;
-    }
-    
-    // Initialize audio chunks array if not exists
-    if (!connection.audioChunks) {
-        connection.audioChunks = [];
-    }
-    
-    // Add chunk to buffer
-    if (data.audio && typeof data.audio === 'string') {
-        const chunkBuffer = Buffer.from(data.audio, 'base64');
-        connection.audioChunks.push(chunkBuffer);
-        console.log(`📦 Audio chunk received: ${chunkBuffer.length} bytes (total chunks: ${connection.audioChunks.length})`);
-    }
-    
-    // Send acknowledgment
-    ws.send(JSON.stringify({
-        type: 'audioChunkReceived',
-        chunkIndex: connection.audioChunks.length - 1,
-        totalSize: connection.audioChunks.reduce((sum, chunk) => sum + chunk.length, 0)
-    }));
-    break;
+                    if (!connection.authenticated) {
+                        return;
+                    }
                     
-                // CORRECTED: Replace your entire audioComplete case with this fixed version
-
-case 'audioComplete':
-    if (!connection.authenticated) {
-        console.log('❌ Unauthenticated audio request');
-        return;
-    }
-    
-    // UPDATE: Accept language from the message if provided
-    if (data.language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(data.language)) {
-        connection.language = data.language;
-        console.log(`🌐 Using language ${data.language} for this audio`);
-    }
-    
-    console.log(`🎤 Audio complete from ${connection.email} (${connection.clientType}) - Language: ${connection.language}`);
-    
-    try {
-        let audioBuffer = null;
-        
-        // Handle different audio data formats
-        if (data.audio && typeof data.audio === 'string') {
-            console.log(`📦 Processing base64 audio data: ${data.audio.length} chars`);
-            console.log(`🎵 Audio format: ${data.mimeType}`);
-            console.log(`📊 Audio size: ${data.size} bytes`);
-            
-            // Decode base64 audio
-            audioBuffer = Buffer.from(data.audio, 'base64');
-            console.log(`✅ Decoded audio buffer: ${audioBuffer.length} bytes`);
-        } else {
-            console.log('❌ No valid audio data received');
-            ws.send(JSON.stringify({
-                type: 'transcriptionError',
-                message: 'No audio data provided'
-            }));
-            return;
-        }
-        
-        // Validate audio buffer
-        if (!audioBuffer || audioBuffer.length < 100) {
-            console.log(`⚠️ Audio too small: ${audioBuffer?.length || 0} bytes`);
-            ws.send(JSON.stringify({
-                type: 'transcriptionResult',
-                transcript: '',
-                isFinal: true,
-                message: 'Audio too short or empty'
-            }));
-            return;
-        }
-        
-        console.log(`🔍 Audio buffer details:`);
-        console.log(`  - Size: ${audioBuffer.length} bytes`);
-        console.log(`  - Type: ${data.mimeType}`);
-        console.log(`  - Language: ${connection.language}`);
-        console.log(`  - First 20 bytes: ${Array.from(audioBuffer.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
-        
-        // Check Deepgram API key
-        if (!process.env.DEEPGRAM_API_KEY) {
-            console.log('⚠️ No Deepgram API key - using test transcription');
-            setTimeout(() => {
-                ws.send(JSON.stringify({
-                    type: 'transcriptionResult',
-                    transcript: `Test transcription from ${connection.language} at ${new Date().toLocaleTimeString()}`,
-                    isFinal: true,
-                    source: 'test'
-                }));
-            }, 1000);
-            return;
-        }
-        
-        // FIXED: Use proper language mapping for Deepgram
-        const deepgramLanguage = mapLanguageForDeepgram(connection.language);
-        
-        // FIXED: Build Deepgram URL and Content-Type based on audio format
-        let contentType = 'audio/wav'; // Default
-        let deepgramParams = `model=general&punctuate=true&smart_format=true&language=${deepgramLanguage}`;
-        
-        if (data.mimeType) {
-            if (data.mimeType.includes('webm')) {
-                contentType = 'audio/webm';
-                // For WebM, let Deepgram auto-detect format
-            } else if (data.mimeType.includes('wav')) {
-                contentType = 'audio/wav';
-                // For WAV, add encoding parameters
-                deepgramParams += '&encoding=linear16&sample_rate=16000&channels=1';
-            } else if (data.mimeType.includes('mp3')) {
-                contentType = 'audio/mp3';
-            } else if (data.mimeType.includes('ogg')) {
-                contentType = 'audio/ogg';
-            } else {
-                // Unknown format, treat as WAV
-                contentType = 'audio/wav';
-            }
-        }
-        
-        const deepgramUrl = `https://api.deepgram.com/v1/listen?${deepgramParams}`;
-        
-        console.log(`📤 Sending to Deepgram:`);
-        console.log(`  - URL: ${deepgramUrl}`);
-        console.log(`  - Content-Type: ${contentType}`);
-        console.log(`  - Buffer size: ${audioBuffer.length} bytes`);
-        console.log(`  - Language: ${connection.language} → ${deepgramLanguage}`);
-        
-        // Send to Deepgram
-        const response = await axios.post(deepgramUrl, audioBuffer, {
-            headers: {
-                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
-                'Content-Type': contentType
-            },
-            timeout: 30000,
-            maxContentLength: 50 * 1024 * 1024,
-            maxBodyLength: 50 * 1024 * 1024
-        });
-        
-        console.log(`✅ Deepgram response received`);
-        console.log(`📊 Response status: ${response.status}`);
-        console.log(`📋 Response data:`, JSON.stringify(response.data, null, 2));
-        
-        // Extract transcript from Deepgram response
-        let transcript = '';
-        try {
-            const results = response.data?.results;
-            if (results && results.channels && results.channels[0] && 
-                results.channels[0].alternatives && results.channels[0].alternatives[0]) {
-                transcript = results.channels[0].alternatives[0].transcript || '';
-            }
-        } catch (extractError) {
-            console.error('❌ Error extracting transcript:', extractError.message);
-            console.log('Full response:', JSON.stringify(response.data, null, 2));
-        }
-        
-        console.log(`📝 Extracted transcript: "${transcript}"`);
-        
-        // Send result back to client
-        if (transcript && transcript.trim()) {
-            ws.send(JSON.stringify({
-                type: 'transcriptionResult',
-                transcript: transcript.trim(),
-                isFinal: true,
-                source: 'deepgram',
-                language: deepgramLanguage,
-                confidence: response.data?.results?.channels?.[0]?.alternatives?.[0]?.confidence || null
-            }));
-            console.log(`✅ Transcription sent to client: "${transcript}" (${deepgramLanguage})`);
-        } else {
-            ws.send(JSON.stringify({
-                type: 'transcriptionResult',
-                transcript: '',
-                isFinal: true,
-                source: 'deepgram',
-                language: deepgramLanguage,
-                message: 'No speech detected in audio'
-            }));
-            console.log('⚠️ No transcript extracted from Deepgram response');
-        }
-        
-    } catch (error) {
-        console.error(`❌ Audio processing error: ${error.message}`);
-        console.error(`❌ Error details:`, error.response?.data || error);
-        
-        // Send error to client
-        ws.send(JSON.stringify({
-            type: 'transcriptionError',
-            message: `Transcription failed: ${error.message}`,
-            source: 'server'
-        }));
-    }
-    break;
+                    const totalSize = connection.audioChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+                    if (totalSize > MAX_AUDIO_SIZE) {
+                        connection.audioChunks = [];
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Audio size limit exceeded'
+                        }));
+                        return;
+                    }
+                    
+                    if (data.audio && typeof data.audio === 'string') {
+                        const chunkBuffer = Buffer.from(data.audio, 'base64');
+                        connection.audioChunks.push(chunkBuffer);
+                    }
+                    
+                    ws.send(JSON.stringify({
+                        type: 'audioChunkReceived',
+                        chunkIndex: connection.audioChunks.length - 1,
+                        totalSize: connection.audioChunks.reduce((sum, chunk) => sum + chunk.length, 0)
+                    }));
+                    break;
+                    
+                case 'audioComplete':
+                    if (!connection.authenticated) {
+                        return;
+                    }
+                    
+                    if (data.language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(data.language)) {
+                        connection.language = data.language;
+                    }
+                    
+                    try {
+                        let audioBuffer = null;
+                        
+                        if (data.audio && typeof data.audio === 'string') {
+                            audioBuffer = Buffer.from(data.audio, 'base64');
+                        } else {
+                            ws.send(JSON.stringify({
+                                type: 'transcriptionError',
+                                message: 'No audio data provided'
+                            }));
+                            return;
+                        }
+                        
+                        if (!audioBuffer || audioBuffer.length < 100) {
+                            ws.send(JSON.stringify({
+                                type: 'transcriptionResult',
+                                transcript: '',
+                                isFinal: true,
+                                message: 'Audio too short or empty'
+                            }));
+                            return;
+                        }
+                        
+                        if (!process.env.DEEPGRAM_API_KEY) {
+                            setTimeout(() => {
+                                ws.send(JSON.stringify({
+                                    type: 'transcriptionResult',
+                                    transcript: `Test transcription from ${connection.language} at ${new Date().toLocaleTimeString()}`,
+                                    isFinal: true,
+                                    source: 'test'
+                                }));
+                            }, 1000);
+                            return;
+                        }
+                        
+                        const deepgramLanguage = mapLanguageForDeepgram(connection.language);
+                        
+                        let contentType = 'audio/wav';
+                        let deepgramParams = `model=general&punctuate=true&smart_format=true&language=${deepgramLanguage}`;
+                        
+                        if (data.mimeType) {
+                            if (data.mimeType.includes('webm')) {
+                                contentType = 'audio/webm';
+                            } else if (data.mimeType.includes('wav')) {
+                                contentType = 'audio/wav';
+                                deepgramParams += '&encoding=linear16&sample_rate=16000&channels=1';
+                            } else if (data.mimeType.includes('mp3')) {
+                                contentType = 'audio/mp3';
+                            } else if (data.mimeType.includes('ogg')) {
+                                contentType = 'audio/ogg';
+                            }
+                        }
+                        
+                        const deepgramUrl = `https://api.deepgram.com/v1/listen?${deepgramParams}`;
+                        
+                        const response = await axios.post(deepgramUrl, audioBuffer, {
+                            headers: {
+                                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+                                'Content-Type': contentType
+                            },
+                            timeout: 30000,
+                            maxContentLength: 50 * 1024 * 1024,
+                            maxBodyLength: 50 * 1024 * 1024
+                        });
+                        
+                        let transcript = '';
+                        try {
+                            const results = response.data?.results;
+                            if (results && results.channels && results.channels[0] && 
+                                results.channels[0].alternatives && results.channels[0].alternatives[0]) {
+                                transcript = results.channels[0].alternatives[0].transcript || '';
+                            }
+                        } catch (extractError) {
+                            logger.error('Error extracting transcript:', extractError.message);
+                        }
+                        
+                        if (transcript && transcript.trim()) {
+                            ws.send(JSON.stringify({
+                                type: 'transcriptionResult',
+                                transcript: transcript.trim(),
+                                isFinal: true,
+                                source: 'deepgram',
+                                language: deepgramLanguage,
+                                confidence: response.data?.results?.channels?.[0]?.alternatives?.[0]?.confidence || null
+                            }));
+                        } else {
+                            ws.send(JSON.stringify({
+                                type: 'transcriptionResult',
+                                transcript: '',
+                                isFinal: true,
+                                source: 'deepgram',
+                                language: deepgramLanguage,
+                                message: 'No speech detected in audio'
+                            }));
+                        }
+                        
+                    } catch (error) {
+                        logger.error('Audio processing error:', error.message);
+                        ws.send(JSON.stringify({
+                            type: 'transcriptionError',
+                            message: `Transcription failed: ${error.message}`,
+                            source: 'server'
+                        }));
+                    }
+                    break;
                     
                 case 'stopTranscription':
-    if (!connection.authenticated) {
-        return;
-    }
-    
-    console.log(`🛑 Stopped transcription for ${connection.email}`);
-    
-    // Process any remaining chunks BEFORE clearing
-    if (connection.audioChunks && connection.audioChunks.length > 0) {
-        console.log(`📦 Processing ${connection.audioChunks.length} remaining chunks`);
-        
-        // Combine and process chunks
-        const fullAudioBuffer = Buffer.concat(connection.audioChunks);
-        connection.audioChunks = []; // Clear after combining
-        
-        // Process with Deepgram
-        if (fullAudioBuffer.length > 100) {
-            // Send to Deepgram (copy the Deepgram processing code from audioComplete case)
-            const language = connection.language === 'fr' ? 'fr' : 'en';
-            
-            try {
-                const response = await axios.post(
-                    `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${language}`,
-                    fullAudioBuffer,
-                    {
-                        headers: {
-                            'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
-                            'Content-Type': 'audio/webm'
-                        },
-                        timeout: 30000
+                    if (!connection.authenticated) {
+                        return;
                     }
-                );
-                
-                let transcript = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-                
-                ws.send(JSON.stringify({
-                    type: 'transcriptionResult',
-                    transcript: transcript.trim(),
-                    isFinal: true,
-                    source: 'deepgram'
-                }));
-            } catch (error) {
-                console.error(`❌ Deepgram error: ${error.message}`);
-            }
-        }
-    }
-    
-    ws.send(JSON.stringify({
-        type: 'transcriptionStopped',
-        clientType: connection.clientType
-    }));
-    break;
+                    
+                    if (connection.audioChunks && connection.audioChunks.length > 0) {
+                        const fullAudioBuffer = Buffer.concat(connection.audioChunks);
+                        connection.audioChunks = [];
+                        
+                        if (fullAudioBuffer.length > 100 && process.env.DEEPGRAM_API_KEY) {
+                            const language = mapLanguageForDeepgram(connection.language);
+                            
+                            try {
+                                const response = await axios.post(
+                                    `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${language}`,
+                                    fullAudioBuffer,
+                                    {
+                                        headers: {
+                                            'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+                                            'Content-Type': 'audio/webm'
+                                        },
+                                        timeout: 30000
+                                    }
+                                );
+                                
+                                let transcript = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+                                
+                                ws.send(JSON.stringify({
+                                    type: 'transcriptionResult',
+                                    transcript: transcript.trim(),
+                                    isFinal: true,
+                                    source: 'deepgram'
+                                }));
+                            } catch (error) {
+                                logger.error('Deepgram error:', error.message);
+                            }
+                        }
+                    }
+                    
+                    ws.send(JSON.stringify({
+                        type: 'transcriptionStopped',
+                        clientType: connection.clientType
+                    }));
+                    break;
                     
                 case 'ping':
                     ws.send(JSON.stringify({ type: 'pong' }));
                     break;
                     
                 default:
-                    console.log(`❓ Unknown message type: ${data.type}`);
+                    logger.warn(`Unknown message type: ${data.type}`);
             }
             
         } catch (error) {
-            console.error(`❌ WebSocket message error: ${error.message}`);
+            logger.error('WebSocket message error:', error.message);
             ws.send(JSON.stringify({
                 type: 'error',
                 message: 'Server processing error'
@@ -2709,243 +2067,30 @@ case 'audioComplete':
     });
     
     ws.on('close', () => {
-        console.log(`👋 WebSocket disconnected: ${connectionId}`);
-        const connection = activeConnections.get(connectionId);
-        if (connection) {
-            console.log(`Disconnected: ${connection.email || 'unknown'} (${connection.clientType})`);
-        }
+        logger.info(`WebSocket disconnected: ${connectionId}`);
         activeConnections.delete(connectionId);
     });
     
     ws.on('error', (error) => {
-        console.error(`❌ WebSocket error for ${connectionId}: ${error.message}`);
+        logger.error(`WebSocket error for ${connectionId}: ${error.message}`);
         activeConnections.delete(connectionId);
     });
 });
 
-// Log Deepgram API key status on startup
-console.log('🎤 Deepgram API Key configured:', !!process.env.DEEPGRAM_API_KEY);
-console.log('🌐 WebSocket server ready for both web and desktop clients');
-
-// Deepgram Debug and Testing Tools
-// Add these to your server.js for debugging Deepgram integration
-
-// 1. Add this environment variable checker at server startup
-console.log('🔍 Deepgram Configuration Check:');
-console.log('  - API Key:', process.env.DEEPGRAM_API_KEY ? '✅ Configured' : '❌ Missing');
-console.log('  - Key length:', process.env.DEEPGRAM_API_KEY?.length || 0);
-console.log('  - Key starts with:', process.env.DEEPGRAM_API_KEY?.substring(0, 10) + '...' || 'N/A');
-
-// 2. Audio format validation function
-function validateAudioFormat(buffer, mimeType) {
-    console.log('🔍 Audio Format Validation:');
-    console.log(`  - Buffer size: ${buffer.length} bytes`);
-    console.log(`  - MIME type: ${mimeType}`);
-    
-    // Check for common audio headers
-    const firstBytes = buffer.slice(0, 12);
-    const headerHex = Array.from(firstBytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
-    console.log(`  - First 12 bytes: ${headerHex}`);
-    
-    // Check for specific format signatures
-    const headerString = firstBytes.toString('ascii');
-    if (headerString.includes('RIFF')) {
-        console.log('  - Format: WAV detected');
-        return 'wav';
-    } else if (firstBytes[0] === 0x1A && firstBytes[1] === 0x45) {
-        console.log('  - Format: WebM detected');
-        return 'webm';
-    } else if (firstBytes[0] === 0xFF && (firstBytes[1] & 0xF0) === 0xF0) {
-        console.log('  - Format: MP3 detected');
-        return 'mp3';
-    } else {
-        console.log('  - Format: Unknown/Raw PCM data');
-        return 'unknown';
-    }
-}
-
-// 3. Test Deepgram connection function
-async function testDeepgramConnection() {
-    console.log('🧪 Testing Deepgram API connection...');
-    
-    if (!process.env.DEEPGRAM_API_KEY) {
-        console.log('❌ No Deepgram API key configured');
-        return false;
-    }
-    
-    try {
-        // Test with a simple API call
-        const response = await axios.get('https://api.deepgram.com/v1/projects', {
-            headers: {
-                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`
-            },
-            timeout: 10000
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    logger.info('SIGTERM received, closing server...');
+    wss.close(() => {
+        logger.info('WebSocket server closed');
+        server.close(() => {
+            logger.info('HTTP server closed');
+            mongoose.connection.close(false, () => {
+                logger.info('MongoDB connection closed');
+                process.exit(0);
+            });
         });
-        
-        console.log('✅ Deepgram API connection successful');
-        console.log(`📊 Status: ${response.status}`);
-        console.log(`📋 Projects: ${response.data?.projects?.length || 0}`);
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Deepgram API connection failed:', error.response?.status, error.response?.data || error.message);
-        return false;
-    }
-}
-
-// 4. Create test audio buffer for Deepgram testing
-function createTestAudioBuffer() {
-    // Create a simple sine wave audio buffer (WAV format)
-    const sampleRate = 16000;
-    const duration = 2; // 2 seconds
-    const numSamples = sampleRate * duration;
-    const frequency = 440; // A4 note
-    
-    // WAV header (44 bytes)
-    const wavHeader = Buffer.alloc(44);
-    wavHeader.write('RIFF', 0);
-    wavHeader.writeUInt32LE(36 + numSamples * 2, 4);
-    wavHeader.write('WAVE', 8);
-    wavHeader.write('fmt ', 12);
-    wavHeader.writeUInt32LE(16, 16);
-    wavHeader.writeUInt16LE(1, 20); // PCM
-    wavHeader.writeUInt16LE(1, 22); // Mono
-    wavHeader.writeUInt32LE(sampleRate, 24);
-    wavHeader.writeUInt32LE(sampleRate * 2, 28);
-    wavHeader.writeUInt16LE(2, 32);
-    wavHeader.writeUInt16LE(16, 34);
-    wavHeader.write('data', 36);
-    wavHeader.writeUInt32LE(numSamples * 2, 40);
-    
-    // Audio data
-    const audioData = Buffer.alloc(numSamples * 2);
-    for (let i = 0; i < numSamples; i++) {
-        const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate);
-        const value = Math.round(sample * 32767);
-        audioData.writeInt16LE(value, i * 2);
-    }
-    
-    return Buffer.concat([wavHeader, audioData]);
-}
-
-// 5. Test Deepgram with sample audio
-async function testDeepgramWithSampleAudio() {
-    console.log('🧪 Testing Deepgram with sample audio...');
-    
-    if (!process.env.DEEPGRAM_API_KEY) {
-        console.log('❌ No Deepgram API key configured');
-        return;
-    }
-    
-    try {
-        const testAudio = createTestAudioBuffer();
-        console.log(`📦 Created test audio: ${testAudio.length} bytes`);
-        
-        const response = await axios.post(
-            'https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=en',
-            testAudio,
-            {
-                headers: {
-                    'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
-                    'Content-Type': 'audio/wav'
-                },
-                timeout: 30000
-            }
-        );
-        
-        console.log('✅ Deepgram test successful');
-        console.log('📋 Response:', JSON.stringify(response.data, null, 2));
-        
-        const transcript = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript;
-        console.log(`📝 Transcript: "${transcript}"`);
-        
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Deepgram test failed:', error.response?.status, error.response?.data || error.message);
-        return false;
-    }
-}
-
-// 6. Enhanced error handling for Deepgram
-function handleDeepgramError(error) {
-    console.error('❌ Deepgram Error Details:');
-    
-    if (error.response) {
-        console.error(`  - Status: ${error.response.status}`);
-        console.error(`  - Status Text: ${error.response.statusText}`);
-        console.error(`  - Headers:`, error.response.headers);
-        console.error(`  - Data:`, error.response.data);
-        
-        // Specific error handling
-        switch (error.response.status) {
-            case 400:
-                return 'Invalid audio format or request parameters';
-            case 401:
-                return 'Invalid or missing Deepgram API key';
-            case 413:
-                return 'Audio file too large';
-            case 429:
-                return 'Rate limit exceeded';
-            case 500:
-                return 'Deepgram server error';
-            default:
-                return `Deepgram API error: ${error.response.status}`;
-        }
-    } else if (error.request) {
-        console.error('  - Request made but no response received');
-        console.error('  - Request:', error.request);
-        return 'Network error connecting to Deepgram';
-    } else {
-        console.error('  - Error:', error.message);
-        return `Request setup error: ${error.message}`;
-    }
-}
-
-// 7. Audio format converter for Deepgram compatibility
-function convertAudioForDeepgram(buffer, originalMimeType) {
-    console.log(`🔄 Converting audio for Deepgram: ${originalMimeType}`);
-    
-    // For now, just return the buffer as-is
-    // In a production environment, you might want to use ffmpeg or similar
-    // to convert between formats
-    
-    return {
-        buffer: buffer,
-        contentType: originalMimeType.includes('wav') ? 'audio/wav' : 'audio/webm'
-    };
-}
-
-// 8. Add these test endpoints to your server (optional)
-// Add after your existing routes
-
-app.get('/test-deepgram', async (req, res) => {
-    console.log('🧪 Manual Deepgram test requested');
-    
-    try {
-        const connectionTest = await testDeepgramConnection();
-        const audioTest = await testDeepgramWithSampleAudio();
-        
-        res.json({
-            success: true,
-            connection: connectionTest,
-            audioTest: audioTest,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
+    });
 });
 
-
-console.log('🧪 Running Deepgram startup tests...');
-setTimeout(async () => {
-    await testDeepgramConnection();
-    // Uncomment to test with sample audio on startup:
-    // await testDeepgramWithSampleAudio();
-}, 2000);
-
+// Export for testing
+module.exports = app;

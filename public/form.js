@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const plan = urlParams.get('plan') || 'free';
+    const downloadIntent = urlParams.get('intent') === 'download'; // NEW: Check for download intent
     
     // Use shared language detection module
     let lang;
@@ -35,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     console.log('Form page - using language:', lang);
+    console.log('Download intent:', downloadIntent); // NEW: Log download intent
 
     // Get DOM elements
     const form = document.getElementById('registrationForm');
@@ -54,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitButton.disabled = false;
     }
 
-    // Initialize Stripe
+    // Initialize Stripe (existing code remains the same)
     let stripe;
     let elements;
     let cardElement;
@@ -66,21 +68,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             );
             console.log('Stripe initialized successfully');
             
-            // Initialize elements if this is the paid plan
             if (plan === 'paid') {
                 elements = stripe.elements();
                 
-                // Check if payment-element exists
                 const paymentElement = document.getElementById('payment-element');
                 if (paymentElement) {
-                    // Make sure the container is visible
                     const container = document.getElementById('payment-element-container');
                     if (container) {
                         container.style.display = 'block';
                         container.classList.remove('hidden');
                     }
                     
-                    // Create and mount the card element with enhanced styling
                     cardElement = elements.create('card', {
                         style: {
                             base: {
@@ -102,7 +100,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     cardElement.mount('#payment-element');
                     
-                    // Add event listener for card errors
                     cardElement.addEventListener('change', function(event) {
                         const displayError = document.getElementById('card-errors');
                         if (displayError) {
@@ -125,13 +122,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // FIXED: Updated translations with proper currency symbols
+    // UPDATED translations with download intent messages
     const translations = {
         fr: {
             pageTitle: 'SyncVoice Medical - Formulaire',
             titles: {
                 free: 'Veuillez remplir les champs ci-dessous pour obtenir votre code d\'activation.',
-                paid: 'Veuillez remplir les champs ci-dessous pour obtenir votre compte et votre facture.'
+                paid: 'Veuillez remplir les champs ci-dessous pour obtenir votre compte et votre facture.',
+                // NEW: Download intent titles
+                downloadFree: 'Inscrivez-vous pour télécharger l\'application desktop et obtenir votre code d\'activation.',
+                downloadPaid: 'Inscrivez-vous pour télécharger l\'application desktop et obtenir votre accès premium.'
             },
             labels: {
                 nom: 'Nom:',
@@ -153,7 +153,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             submitButtons: {
                 free: 'Veuillez envoyer mon code d\'activation pour 7 jours à l\'adresse email ci-dessus.',
                 paid: 'Procéder au paiement de 25 € TTC pour un mois (Carte Blue, Visa, Mastercard).',
-                paidUK: 'Procéder au paiement de £25 VAT Inc. pour un mois (Visa, Mastercard).'
+                paidUK: 'Procéder au paiement de £25 VAT Inc. pour un mois (Visa, Mastercard).',
+                // NEW: Download intent submit buttons
+                downloadFree: 'S\'inscrire et télécharger l\'application desktop (7 jours gratuits)',
+                downloadPaid: 'S\'inscrire et télécharger l\'application desktop (25 € TTC/mois)'
             },
             loading: 'Envoi en cours...',
             activationCodeMessage: 'Veuillez vérifier votre email pour le code d\'activation.',
@@ -164,13 +167,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentTitle: 'Paiement Sécurisé',
             paymentSubtitle: 'Vos informations de paiement sont sécurisées',
             subscription: 'Abonnement mensuel',
-            total: 'Total'
+            total: 'Total',
+            // NEW: Download intent notification
+            downloadNotification: '📥 Après inscription, vous pourrez télécharger l\'application desktop depuis la page de succès.'
         },
         en: {
             pageTitle: 'SyncVoice Medical - Form',
             titles: {
                 free: 'Please fill in the fields below to get your activation code.',
-                paid: 'Please fill in the fields below to get your account and invoice.'
+                paid: 'Please fill in the fields below to get your account and invoice.',
+                // NEW: Download intent titles
+                downloadFree: 'Register to download the desktop application and get your activation code.',
+                downloadPaid: 'Register to download the desktop application and get your premium access.'
             },
             labels: {
                 nom: 'Last Name:',
@@ -192,7 +200,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             submitButtons: {
                 free: 'Please send my 7-day activation code to the email address above.',
                 paid: 'Proceed to payment of €25 VAT Inc. for one month (Visa, Mastercard).',
-                paidUK: 'Proceed to payment of £25 VAT Inc. for one month (Visa, Mastercard).'
+                paidUK: 'Proceed to payment of £25 VAT Inc. for one month (Visa, Mastercard).',
+                // NEW: Download intent submit buttons
+                downloadFree: 'Register and download desktop app (7 days free)',
+                downloadPaid: 'Register and download desktop app (€25 VAT Inc./month)'
             },
             loading: 'Sending...',
             activationCodeMessage: 'Please check your email for the activation code.',
@@ -203,13 +214,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentTitle: 'Secure Payment',
             paymentSubtitle: 'Your payment information is secure',
             subscription: 'Monthly subscription',
-            total: 'Total'
+            total: 'Total',
+            // NEW: Download intent notification
+            downloadNotification: '📥 After registration, you will be able to download the desktop application from the success page.'
         },
         de: {
             pageTitle: 'SyncVoice Medical - Formular',
             titles: {
                 free: 'Bitte füllen Sie die untenstehenden Felder aus, um Ihren Aktivierungscode zu erhalten.',
-                paid: 'Bitte füllen Sie die untenstehenden Felder aus, um Ihr Konto und Ihre Rechnung zu erhalten.'
+                paid: 'Bitte füllen Sie die untenstehenden Felder aus, um Ihr Konto und Ihre Rechnung zu erhalten.',
+                // NEW: Download intent titles
+                downloadFree: 'Registrieren Sie sich, um die Desktop-Anwendung herunterzuladen und Ihren Aktivierungscode zu erhalten.',
+                downloadPaid: 'Registrieren Sie sich, um die Desktop-Anwendung herunterzuladen und Ihren Premium-Zugang zu erhalten.'
             },
             labels: {
                 nom: 'Nachname:',
@@ -231,7 +247,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             submitButtons: {
                 free: 'Bitte senden Sie meinen 7-Tage-Aktivierungscode an die oben angegebene E-Mail-Adresse.',
                 paid: 'Weiter zur Zahlung von 25 € inkl. MwSt. für einen Monat (Visa, Mastercard).',
-                paidUK: 'Weiter zur Zahlung von £25 inkl. MwSt. für einen Monat (Visa, Mastercard).'
+                paidUK: 'Weiter zur Zahlung von £25 inkl. MwSt. für einen Monat (Visa, Mastercard).',
+                // NEW: Download intent submit buttons
+                downloadFree: 'Registrieren und Desktop-App herunterladen (7 Tage kostenlos)',
+                downloadPaid: 'Registrieren und Desktop-App herunterladen (25 € inkl. MwSt./Monat)'
             },
             loading: 'Senden...',
             activationCodeMessage: 'Bitte überprüfen Sie Ihre E-Mail für den Aktivierungscode.',
@@ -242,13 +261,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentTitle: 'Sichere Zahlung',
             paymentSubtitle: 'Ihre Zahlungsinformationen sind sicher',
             subscription: 'Monatliches Abonnement',
-            total: 'Gesamt'
+            total: 'Gesamt',
+            // NEW: Download intent notification
+            downloadNotification: '📥 Nach der Registrierung können Sie die Desktop-Anwendung von der Erfolgsseite herunterladen.'
         },
         es: {
             pageTitle: 'SyncVoice Medical - Formulario',
             titles: {
                 free: 'Por favor, complete los campos siguientes para obtener su código de activación.',
-                paid: 'Por favor, complete los campos siguientes para obtener su cuenta y factura.'
+                paid: 'Por favor, complete los campos siguientes para obtener su cuenta y factura.',
+                // NEW: Download intent titles
+                downloadFree: 'Regístrese para descargar la aplicación de escritorio y obtener su código de activación.',
+                downloadPaid: 'Regístrese para descargar la aplicación de escritorio y obtener su acceso premium.'
             },
             labels: {
                 nom: 'Apellido:',
@@ -270,7 +294,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             submitButtons: {
                 free: 'Por favor, envíe mi código de activación de 7 días a la dirección de correo electrónico anterior.',
                 paid: 'Proceder al pago de 25 € IVA inc. por un mes (Visa, Mastercard).',
-                paidUK: 'Proceder al pago de £25 IVA inc. por un mes (Visa, Mastercard).'
+                paidUK: 'Proceder al pago de £25 IVA inc. por un mes (Visa, Mastercard).',
+                // NEW: Download intent submit buttons
+                downloadFree: 'Registrarse y descargar aplicación de escritorio (7 días gratis)',
+                downloadPaid: 'Registrarse y descargar aplicación de escritorio (25 € IVA inc./mes)'
             },
             loading: 'Enviando...',
             activationCodeMessage: 'Por favor, revise su correo electrónico para el código de activación.',
@@ -281,13 +308,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentTitle: 'Pago Seguro',
             paymentSubtitle: 'Su información de pago está segura',
             subscription: 'Suscripción mensual',
-            total: 'Total'
+            total: 'Total',
+            // NEW: Download intent notification
+            downloadNotification: '📥 Después del registro, podrá descargar la aplicación de escritorio desde la página de éxito.'
         },
         it: {
             pageTitle: 'SyncVoice Medical - Modulo',
             titles: {
                 free: 'Compila i campi sottostanti per ottenere il tuo codice di attivazione.',
-                paid: 'Compila i campi sottostanti per ottenere il tuo account e la fattura.'
+                paid: 'Compila i campi sottostanti per ottenere il tuo account e la fattura.',
+                // NEW: Download intent titles
+                downloadFree: 'Registrati per scaricare l\'applicazione desktop e ottenere il tuo codice di attivazione.',
+                downloadPaid: 'Registrati per scaricare l\'applicazione desktop e ottenere il tuo accesso premium.'
             },
             labels: {
                 nom: 'Cognome:',
@@ -309,7 +341,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             submitButtons: {
                 free: 'Invia il mio codice di attivazione di 7 giorni all\'indirizzo email sopra indicato.',
                 paid: 'Procedi al pagamento di 25 € IVA inc. per un mese (Visa, Mastercard).',
-                paidUK: 'Procedi al pagamento di £25 IVA inc. per un mese (Visa, Mastercard).'
+                paidUK: 'Procedi al pagamento di £25 IVA inc. per un mese (Visa, Mastercard).',
+                // NEW: Download intent submit buttons
+                downloadFree: 'Registrati e scarica l\'app desktop (7 giorni gratis)',
+                downloadPaid: 'Registrati e scarica l\'app desktop (25 € IVA inc./mese)'
             },
             loading: 'Invio in corso...',
             activationCodeMessage: 'Controlla la tua email per il codice di attivazione.',
@@ -320,13 +355,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentTitle: 'Pagamento Sicuro',
             paymentSubtitle: 'Le tue informazioni di pagamento sono sicure',
             subscription: 'Abbonamento mensile',
-            total: 'Totale'
+            total: 'Totale',
+            // NEW: Download intent notification
+            downloadNotification: '📥 Dopo la registrazione, potrai scaricare l\'applicazione desktop dalla pagina di successo.'
         },
         pt: {
             pageTitle: 'SyncVoice Medical - Formulário',
             titles: {
                 free: 'Por favor, preencha os campos abaixo para obter seu código de ativação.',
-                paid: 'Por favor, preencha os campos abaixo para obter sua conta e fatura.'
+                paid: 'Por favor, preencha os campos abaixo para obter sua conta e fatura.',
+                // NEW: Download intent titles
+                downloadFree: 'Registre-se para baixar a aplicação desktop e obter seu código de ativação.',
+                downloadPaid: 'Registre-se para baixar a aplicação desktop e obter seu acesso premium.'
             },
             labels: {
                 nom: 'Sobrenome:',
@@ -348,7 +388,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             submitButtons: {
                 free: 'Por favor, envie meu código de ativação de 7 dias para o endereço de email acima.',
                 paid: 'Prosseguir para o pagamento de 25 € IVA inc. por um mês (Visa, Mastercard).',
-                paidUK: 'Prosseguir para o pagamento de £25 IVA inc. por um mês (Visa, Mastercard).'
+                paidUK: 'Prosseguir para o pagamento de £25 IVA inc. por um mês (Visa, Mastercard).',
+                // NEW: Download intent submit buttons
+                downloadFree: 'Registrar e baixar app desktop (7 dias grátis)',
+                downloadPaid: 'Registrar e baixar app desktop (25 € IVA inc./mês)'
             },
             loading: 'Enviando...',
             activationCodeMessage: 'Por favor, verifique seu email para o código de ativação.',
@@ -359,66 +402,68 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentTitle: 'Pagamento Seguro',
             paymentSubtitle: 'Suas informações de pagamento estão seguras',
             subscription: 'Assinatura mensal',
-            total: 'Total'
+            total: 'Total',
+            // NEW: Download intent notification
+            downloadNotification: '📥 Após o registro, você poderá baixar a aplicação desktop da página de sucesso.'
         }
     };
 
-    // Password translations - ADD THIS SECTION
-const passwordTranslations = {
-    fr: {
-        passwordLabel: 'Mot de passe :',
-        confirmPasswordLabel: 'Confirmer le mot de passe :',
-        passwordHelp: 'Au moins 8 caractères'
-    },
-    en: {
-        passwordLabel: 'Password:',
-        confirmPasswordLabel: 'Confirm Password:',
-        passwordHelp: 'At least 8 characters'
-    },
-    de: {
-        passwordLabel: 'Passwort:',
-        confirmPasswordLabel: 'Passwort bestätigen:',
-        passwordHelp: 'Mindestens 8 Zeichen'
-    },
-    es: {
-        passwordLabel: 'Contraseña:',
-        confirmPasswordLabel: 'Confirmar Contraseña:',
-        passwordHelp: 'Al menos 8 caracteres'
-    },
-    it: {
-        passwordLabel: 'Password:',
-        confirmPasswordLabel: 'Conferma Password:',
-        passwordHelp: 'Almeno 8 caratteri'
-    },
-    pt: {
-        passwordLabel: 'Senha:',
-        confirmPasswordLabel: 'Confirmar Senha:',
-        passwordHelp: 'Pelo menos 8 caracteres'
-    }
-};
+    // Password translations
+    const passwordTranslations = {
+        fr: {
+            passwordLabel: 'Mot de passe :',
+            confirmPasswordLabel: 'Confirmer le mot de passe :',
+            passwordHelp: 'Au moins 8 caractères'
+        },
+        en: {
+            passwordLabel: 'Password:',
+            confirmPasswordLabel: 'Confirm Password:',
+            passwordHelp: 'At least 8 characters'
+        },
+        de: {
+            passwordLabel: 'Passwort:',
+            confirmPasswordLabel: 'Passwort bestätigen:',
+            passwordHelp: 'Mindestens 8 Zeichen'
+        },
+        es: {
+            passwordLabel: 'Contraseña:',
+            confirmPasswordLabel: 'Confirmar Contraseña:',
+            passwordHelp: 'Al menos 8 caracteres'
+        },
+        it: {
+            passwordLabel: 'Password:',
+            confirmPasswordLabel: 'Conferma Password:',
+            passwordHelp: 'Almeno 8 caratteri'
+        },
+        pt: {
+            passwordLabel: 'Senha:',
+            confirmPasswordLabel: 'Confirmar Senha:',
+            passwordHelp: 'Pelo menos 8 caracteres'
+        }
+    };
 
     // Function to determine API base URL based on environment
     function getApiBaseUrl() {
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-    const port = window.location.port;
-    
-    console.log('Current location:', { protocol, hostname, port });
-    
-    // For local development - FIXED to use port 8080
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        const devPort = port || '8080';  // Changed from 3000 to 8080
-        return `${protocol}//${hostname}:${devPort}`;
+        const protocol = window.location.protocol;
+        const hostname = window.location.hostname;
+        const port = window.location.port;
+        
+        console.log('Current location:', { protocol, hostname, port });
+        
+        // For local development - FIXED to use port 8080
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            const devPort = port || '8080';
+            return `${protocol}//${hostname}:${devPort}`;
+        }
+        
+        // For file:// protocol (local testing) - FIXED to use port 8080
+        if (protocol === 'file:') {
+            return 'http://localhost:8080';
+        }
+        
+        // For production - use the same origin
+        return `${protocol}//${hostname}${port ? ':' + port : ''}`;
     }
-    
-    // For file:// protocol (local testing) - FIXED to use port 8080
-    if (protocol === 'file:') {
-        return 'http://localhost:8080';  // Changed from 3000 to 8080
-    }
-    
-    // For production - use the same origin
-    return `${protocol}//${hostname}${port ? ':' + port : ''}`;
-}
 
     // Function to check if country is UK
     function isUKCountry(country) {
@@ -429,7 +474,6 @@ const passwordTranslations = {
 
     // Add this function to update payment UI based on language and country
     function updatePaymentUI(language, country) {
-        // Get the payment section elements
         const paymentTitle = document.getElementById('paymentTitle');
         const paymentSubtitle = document.getElementById('paymentSubtitle');
         const subscriptionLabel = document.getElementById('subscriptionLabel');
@@ -447,7 +491,11 @@ const passwordTranslations = {
         
         // Update submit button for paid plan
         if (plan === 'paid' && submitButton && t.submitButtons) {
-            submitButton.textContent = isUK ? t.submitButtons.paidUK : t.submitButtons.paid;
+            if (downloadIntent) {
+                submitButton.textContent = t.submitButtons.downloadPaid;
+            } else {
+                submitButton.textContent = isUK ? t.submitButtons.paidUK : t.submitButtons.paid;
+            }
         }
         
         // Update price display
@@ -459,9 +507,37 @@ const passwordTranslations = {
         });
     }
 
+    // NEW: Function to show download intent notification
+    function showDownloadNotification(language) {
+        if (!downloadIntent) return;
+        
+        const t = translations[language] || translations.fr;
+        
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'download-notification';
+        notification.style.cssText = `
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border: 1px solid #2196F3;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #1565C0;
+            font-weight: 500;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+        `;
+        notification.textContent = t.downloadNotification;
+        
+        // Insert after form title
+        if (formTitle && formTitle.parentNode) {
+            formTitle.parentNode.insertBefore(notification, formTitle.nextSibling);
+        }
+    }
+
     // Function to update content based on language
     function updateContent(language) {
-        console.log('Updating content for language:', language, 'Plan:', plan);
+        console.log('Updating content for language:', language, 'Plan:', plan, 'Download intent:', downloadIntent);
         const t = translations[language] || translations.fr;
 
         if (htmlElement) {
@@ -469,16 +545,30 @@ const passwordTranslations = {
         }
 
         if (pageTitle) pageTitle.textContent = t.pageTitle;
+        
+        // NEW: Update form title based on download intent
         if (formTitle && t.titles) {
-            formTitle.textContent = t.titles[plan] || t.titles.free;
+            if (downloadIntent) {
+                formTitle.textContent = plan === 'paid' ? t.titles.downloadPaid : t.titles.downloadFree;
+            } else {
+                formTitle.textContent = t.titles[plan] || t.titles.free;
+            }
         }
 
+        // NEW: Update submit button based on download intent
         if (submitButton && t.submitButtons) {
             if (plan === 'paid') {
-                // Will be updated based on country selection
-                submitButton.textContent = t.submitButtons.paid;
+                if (downloadIntent) {
+                    submitButton.textContent = t.submitButtons.downloadPaid;
+                } else {
+                    submitButton.textContent = t.submitButtons.paid;
+                }
             } else {
-                submitButton.textContent = t.submitButtons[plan] || t.submitButtons.free;
+                if (downloadIntent) {
+                    submitButton.textContent = t.submitButtons.downloadFree;
+                } else {
+                    submitButton.textContent = t.submitButtons[plan] || t.submitButtons.free;
+                }
             }
         }
 
@@ -489,15 +579,14 @@ const passwordTranslations = {
             }
         });
 
-
         const passwordT = passwordTranslations[language] || passwordTranslations.fr;
-    const passwordLabel = document.getElementById('passwordLabel');
-    const confirmPasswordLabel = document.getElementById('confirmPasswordLabel');
-    const passwordHelp = document.getElementById('passwordHelp');
-    
-    if (passwordLabel) passwordLabel.textContent = passwordT.passwordLabel;
-    if (confirmPasswordLabel) confirmPasswordLabel.textContent = passwordT.confirmPasswordLabel;
-    if (passwordHelp) passwordHelp.textContent = passwordT.passwordHelp;
+        const passwordLabel = document.getElementById('passwordLabel');
+        const confirmPasswordLabel = document.getElementById('confirmPasswordLabel');
+        const passwordHelp = document.getElementById('passwordHelp');
+        
+        if (passwordLabel) passwordLabel.textContent = passwordT.passwordLabel;
+        if (confirmPasswordLabel) confirmPasswordLabel.textContent = passwordT.confirmPasswordLabel;
+        if (passwordHelp) passwordHelp.textContent = passwordT.passwordHelp;
 
         const termsLink = document.getElementById('termsLink');
         const termsAcceptLabel = document.getElementById('termsAcceptLabel');
@@ -509,7 +598,6 @@ const passwordTranslations = {
         }
 
         termsLink.replaceWith(termsLink.cloneNode(true));
-        // Get the new element reference again
         const newTermsLink = document.getElementById('termsLink');
         if (newTermsLink) {
             newTermsLink.addEventListener('click', (e) => {
@@ -518,7 +606,6 @@ const passwordTranslations = {
                 const currentPlan = plan || 'free';
                 const termsType = currentPlan === 'paid' ? 'cgv' : 'cge';
                 
-                // Use absolute path with origin
                 const origin = window.location.origin;
                 const termsPath = `${origin}/terms/${currentLang}/${termsType}.html`;
                 
@@ -543,6 +630,9 @@ const passwordTranslations = {
 
         // Call the payment UI update function
         updatePaymentUI(language, '');
+        
+        // NEW: Show download notification if applicable
+        showDownloadNotification(language);
     }
 
     function togglePaidFields() {
@@ -560,14 +650,11 @@ const passwordTranslations = {
     
     // Function to convert country names to ISO country codes
     function getCountryCode(countryName) {
-        if (!countryName) return 'FR'; // Default to France if empty
+        if (!countryName) return 'FR';
         
-        // Convert to lowercase for case-insensitive matching
         const country = countryName.toLowerCase().trim();
         
-        // Map of common country names to their ISO codes
         const countryMap = {
-            // French country names
             'france': 'FR',
             'etats-unis': 'US',
             'états-unis': 'US',
@@ -599,8 +686,6 @@ const passwordTranslations = {
             'grèce': 'GR',
             'pologne': 'PL',
             'luxembourg': 'LU',
-            
-            // English country names
             'united states': 'US',
             'usa': 'US',
             'germany': 'DE',
@@ -622,12 +707,10 @@ const passwordTranslations = {
             'luxembourg': 'LU'
         };
         
-        // Check if the country is already a 2-letter code
         if (/^[A-Za-z]{2}$/.test(country)) {
             return country.toUpperCase();
         }
         
-        // Return the mapped code or default to FR
         return countryMap[country] || 'FR';
     }
 
@@ -650,351 +733,340 @@ const passwordTranslations = {
         proceedMessage.style.display = 'none';
     }
 
-    // ENHANCED: Form submission handler with better error handling and redirect
+    // ENHANCED: Form submission handler with download intent handling
     if (form) {
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        console.log('Form submitted');
-        console.log('Current plan:', plan);
-        console.log('Current language:', lang);
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Form submitted');
+            console.log('Current plan:', plan);
+            console.log('Current language:', lang);
+            console.log('Download intent:', downloadIntent); // NEW: Log download intent
 
-        const t = translations[lang] || translations.fr;
-        const originalButtonText = submitButton.textContent;
+            const t = translations[lang] || translations.fr;
+            const originalButtonText = submitButton.textContent;
 
-        try {
-            submitButton.disabled = true;
-            submitButton.textContent = t.loading;
+            try {
+                submitButton.disabled = true;
+                submitButton.textContent = t.loading;
 
-            const formData = new FormData(form);
-            
-            // Log form data for debugging
-            console.log('Form data collected:', {
-                firstName: formData.get('prenom'),
-                lastName: formData.get('nom'),
-                email: formData.get('email'),
-                version: plan,
-                language: lang
-            });
-
-            // Validate required fields
-            const email = formData.get('email');
-            const firstName = formData.get('prenom');
-            const lastName = formData.get('nom');
-            const password = formData.get('password');           // ← ADDED
-            const confirmPassword = formData.get('confirmPassword'); // ← ADDED
-            
-            if (!email || !firstName || !lastName) {
-                alert('Please fill in all required fields');
-                submitButton.disabled = false;
-                submitButton.textContent = originalButtonText;
-                return;
-            }
-
-            // Password validation                                  // ← ADDED SECTION
-            if (!password || password.length < 8) {
-                const passwordErrors = {
-                    fr: 'Le mot de passe doit contenir au moins 8 caractères',
-                    en: 'Password must be at least 8 characters long',
-                    de: 'Das Passwort muss mindestens 8 Zeichen lang sein',
-                    es: 'La contraseña debe tener al menos 8 caracteres',
-                    it: 'La password deve avere almeno 8 caratteri',
-                    pt: 'A senha deve ter pelo menos 8 caracteres'
-                };
-                alert(passwordErrors[lang] || passwordErrors['fr']);
-                submitButton.disabled = false;
-                submitButton.textContent = originalButtonText;
-                return;
-            }
-
-            if (password !== confirmPassword) {
-                const matchErrors = {
-                    fr: 'Les mots de passe ne correspondent pas',
-                    en: 'Passwords do not match',
-                    de: 'Passwörter stimmen nicht überein',
-                    es: 'Las contraseñas no coinciden',
-                    it: 'Le password non corrispondono',
-                    pt: 'As senhas não coincidem'
-                };
-                alert(matchErrors[lang] || matchErrors['fr']);
-                submitButton.disabled = false;
-                submitButton.textContent = originalButtonText;
-                return;
-            }
-            // END Password validation                             // ← END ADDED SECTION
-
-            // Check if terms are accepted
-            if (!termsAcceptCheckbox.checked) {
-                alert('Please accept the terms and conditions');
-                submitButton.disabled = false;
-                submitButton.textContent = originalButtonText;
-                return;
-            }
-
-            // For free plan, first check if email is within trial period
-            if (plan === 'free') {
-                const apiBaseUrl = getApiBaseUrl();
-                const checkEmailUrl = `${apiBaseUrl}/api/check-email`;
+                const formData = new FormData(form);
                 
-                try {
-                    const checkResponse = await fetch(checkEmailUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ email })
-                    });
+                // Log form data for debugging
+                console.log('Form data collected:', {
+                    firstName: formData.get('prenom'),
+                    lastName: formData.get('nom'),
+                    email: formData.get('email'),
+                    version: plan,
+                    language: lang,
+                    downloadIntent: downloadIntent // NEW: Log download intent
+                });
 
-                    const checkResult = await checkResponse.json();
-                    console.log('Email check result:', checkResult);
+                // Validate required fields
+                const email = formData.get('email');
+                const firstName = formData.get('prenom');
+                const lastName = formData.get('nom');
+                const password = formData.get('password');
+                const confirmPassword = formData.get('confirmPassword');
+                
+                if (!email || !firstName || !lastName) {
+                    alert('Please fill in all required fields');
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonText;
+                    return;
+                }
 
-                    if (!checkResponse.ok && !checkResult.withinTrial) {
-                        // Show appropriate error message
-                        const errorMessages = {
-                            fr: checkResult.message || 'Cet email a déjà été utilisé pour un essai',
-                            en: checkResult.message || 'This email has already been used for a trial',
-                            de: checkResult.message || 'Diese E-Mail wurde bereits für eine Testversion verwendet',
-                            es: checkResult.message || 'Este correo electrónico ya ha sido utilizado para una prueba',
-                            it: checkResult.message || 'Questa email è già stata utilizzata per una prova',
-                            pt: checkResult.message || 'Este email já foi usado para um teste'
-                        };
-                        
-                        alert(errorMessages[lang] || errorMessages['fr']);
-                        submitButton.disabled = false;
-                        submitButton.textContent = originalButtonText;
-                        return;
-                    }
+                // Password validation
+                if (!password || password.length < 8) {
+                    const passwordErrors = {
+                        fr: 'Le mot de passe doit contenir au moins 8 caractères',
+                        en: 'Password must be at least 8 characters long',
+                        de: 'Das Passwort muss mindestens 8 Zeichen lang sein',
+                        es: 'La contraseña debe tener al menos 8 caracteres',
+                        it: 'La password deve avere almeno 8 caratteri',
+                        pt: 'A senha deve ter pelo menos 8 caracteres'
+                    };
+                    alert(passwordErrors[lang] || passwordErrors['fr']);
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonText;
+                    return;
+                }
 
-                    // If within trial, show remaining days
-                    if (checkResult.withinTrial && checkResult.daysRemaining !== undefined) {
-                        const confirmMessages = {
-                            fr: `Vous avez encore ${checkResult.daysRemaining} jours dans votre période d'essai. Voulez-vous recevoir un nouveau code d'activation ?`,
-                            en: `You have ${checkResult.daysRemaining} days remaining in your trial. Would you like to receive a new activation code?`,
-                            de: `Sie haben noch ${checkResult.daysRemaining} Tage in Ihrer Testphase. Möchten Sie einen neuen Aktivierungscode erhalten?`,
-                            es: `Tiene ${checkResult.daysRemaining} días restantes en su prueba. ¿Desea recibir un nuevo código de activación?`,
-                            it: `Hai ancora ${checkResult.daysRemaining} giorni nel tuo periodo di prova. Vuoi ricevere un nuovo codice di attivazione?`,
-                            pt: `Você tem ${checkResult.daysRemaining} dias restantes em seu teste. Gostaria de receber um novo código de ativação?`
-                        };
-                        
-                        if (!confirm(confirmMessages[lang] || confirmMessages['fr'])) {
+                if (password !== confirmPassword) {
+                    const matchErrors = {
+                        fr: 'Les mots de passe ne correspondent pas',
+                        en: 'Passwords do not match',
+                        de: 'Passwörter stimmen nicht überein',
+                        es: 'Las contraseñas no coinciden',
+                        it: 'Le password non corrispondono',
+                        pt: 'As senhas não coincidem'
+                    };
+                    alert(matchErrors[lang] || matchErrors['fr']);
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonText;
+                    return;
+                }
+
+                // Check if terms are accepted
+                if (!termsAcceptCheckbox.checked) {
+                    alert('Please accept the terms and conditions');
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonText;
+                    return;
+                }
+
+                // For free plan, first check if email is within trial period
+                if (plan === 'free') {
+                    const apiBaseUrl = getApiBaseUrl();
+                    const checkEmailUrl = `${apiBaseUrl}/api/check-email`;
+                    
+                    try {
+                        const checkResponse = await fetch(checkEmailUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ email })
+                        });
+
+                        const checkResult = await checkResponse.json();
+                        console.log('Email check result:', checkResult);
+
+                        if (!checkResponse.ok && !checkResult.withinTrial) {
+                            const errorMessages = {
+                                fr: checkResult.message || 'Cet email a déjà été utilisé pour un essai',
+                                en: checkResult.message || 'This email has already been used for a trial',
+                                de: checkResult.message || 'Diese E-Mail wurde bereits für eine Testversion verwendet',
+                                es: checkResult.message || 'Este correo electrónico ya ha sido utilizado para una prueba',
+                                it: checkResult.message || 'Questa email è già stata utilizzata per una prova',
+                                pt: checkResult.message || 'Este email já foi usado para um teste'
+                            };
+                            
+                            alert(errorMessages[lang] || errorMessages['fr']);
                             submitButton.disabled = false;
                             submitButton.textContent = originalButtonText;
                             return;
                         }
+
+                        if (checkResult.withinTrial && checkResult.daysRemaining !== undefined) {
+                            const confirmMessages = {
+                                fr: `Vous avez encore ${checkResult.daysRemaining} jours dans votre période d'essai. Voulez-vous recevoir un nouveau code d'activation ?`,
+                                en: `You have ${checkResult.daysRemaining} days remaining in your trial. Would you like to receive a new activation code?`,
+                                de: `Sie haben noch ${checkResult.daysRemaining} Tage in Ihrer Testphase. Möchten Sie einen neuen Aktivierungscode erhalten?`,
+                                es: `Tiene ${checkResult.daysRemaining} días restantes en su prueba. ¿Desea recibir un nuevo código de activación?`,
+                                it: `Hai ancora ${checkResult.daysRemaining} giorni nel tuo periodo di prova. Vuoi ricevere un nuovo codice di attivazione?`,
+                                pt: `Você tem ${checkResult.daysRemaining} dias restantes em seu teste. Gostaria de receber um novo código de ativação?`
+                            };
+                            
+                            if (!confirm(confirmMessages[lang] || confirmMessages['fr'])) {
+                                submitButton.disabled = false;
+                                submitButton.textContent = originalButtonText;
+                                return;
+                            }
+                        }
+                    } catch (checkError) {
+                        console.error('Error checking email:', checkError);
                     }
-                } catch (checkError) {
-                    console.error('Error checking email:', checkError);
-                    // Continue with the submission even if check fails
                 }
-            }
 
-            // Prepare base request data
-            const requestData = {
-    firstName: firstName,
-    lastName: lastName,
-    email: email,
-    password: password,  // ← THIS LINE IS ALREADY THERE (line 880)
-    version: plan,
-    language: lang,
-    termsAccepted: true
-};
+                // Prepare base request data
+                const requestData = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    password: password,
+                    version: plan,
+                    language: lang,
+                    termsAccepted: true,
+                    downloadIntent: downloadIntent // NEW: Include download intent
+                };
 
-            // Add currency and amount based on country
-            if (plan === 'paid') {
-                const countryInput = formData.get('pays') || '';
-                const countryCode = getCountryCode(countryInput);
-                
-                // Determine currency based on country
-                let currency = 'EUR';
-                let amount = 2500;
-                
-                if (countryCode === 'GB' || countryCode === 'UK') {
-                    currency = 'GBP';
-                    amount = 2500; // £25.00
-                } else {
-                    currency = 'EUR';
-                    amount = 2500; // €25.00
-                }
-                
-                requestData.company = formData.get('societe') || '';
-                requestData.address = formData.get('adresse') || '';
-                requestData.addressContinued = formData.get('adresseSuite') || '';
-                requestData.postalCode = formData.get('codePostal') || '';
-                requestData.city = formData.get('ville') || '';
-                requestData.country = formData.get('pays') || '';
-                requestData.autoRenewal = document.getElementById('autoRenewal')?.checked || false;
-                
-                // Include payment information with country-based currency
-                requestData.currency = currency;
-                requestData.amount = amount;
-            }
-
-            console.log('Sending request data:', requestData);
-
-            // Determine API endpoint
-            const apiBaseUrl = getApiBaseUrl();
-            const apiUrl = `${apiBaseUrl}/api/send-activation`;
-
-            // Send activation request
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-
-            // Check if response is JSON before parsing
-            const contentType = response.headers.get('content-type');
-            let result;
-
-            if (contentType && contentType.includes('application/json')) {
-                result = await response.json();
-            } else {
-                // If not JSON, get text to see what we received
-                const text = await response.text();
-                console.error('Non-JSON response received:', text);
-                throw new Error(`Server returned non-JSON response. Status: ${response.status}. Content: ${text.substring(0, 200)}...`);
-            }
-
-            console.log('API response:', result);
-
-            if (!response.ok) {
-                throw new Error(result.message || `Server error: ${response.status}`);
-            }
-
-            if (result.success) {
-                // Handle successful API response
-                if (result.requiresPayment && plan === 'paid') {
-                    // For paid plan, handle payment
-                    if (!stripe) {
-                        throw new Error('Stripe is not initialized');
-                    }
-
-                    submitButton.textContent = t.processingPayment;
-                    
-                    // Get country code from the country input
+                // Add currency and amount based on country
+                if (plan === 'paid') {
                     const countryInput = formData.get('pays') || '';
                     const countryCode = getCountryCode(countryInput);
-                    console.log('Country input:', countryInput, '→ Country code:', countryCode);
                     
-                    // Process the payment with Stripe
-                    try {
-                        console.log('Confirming card payment with client secret:', result.clientSecret);
+                    let currency = 'EUR';
+                    let amount = 2500;
+                    
+                    if (countryCode === 'GB' || countryCode === 'UK') {
+                        currency = 'GBP';
+                        amount = 2500;
+                    } else {
+                        currency = 'EUR';
+                        amount = 2500;
+                    }
+                    
+                    requestData.company = formData.get('societe') || '';
+                    requestData.address = formData.get('adresse') || '';
+                    requestData.addressContinued = formData.get('adresseSuite') || '';
+                    requestData.postalCode = formData.get('codePostal') || '';
+                    requestData.city = formData.get('ville') || '';
+                    requestData.country = formData.get('pays') || '';
+                    requestData.autoRenewal = document.getElementById('autoRenewal')?.checked || false;
+                    requestData.currency = currency;
+                    requestData.amount = amount;
+                }
+
+                console.log('Sending request data:', requestData);
+
+                const apiBaseUrl = getApiBaseUrl();
+                const apiUrl = `${apiBaseUrl}/api/send-activation`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                const contentType = response.headers.get('content-type');
+                let result;
+
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Non-JSON response received:', text);
+                    throw new Error(`Server returned non-JSON response. Status: ${response.status}. Content: ${text.substring(0, 200)}...`);
+                }
+
+                console.log('API response:', result);
+
+                if (!response.ok) {
+                    throw new Error(result.message || `Server error: ${response.status}`);
+                }
+
+                if (result.success) {
+                    if (result.requiresPayment && plan === 'paid') {
+                        if (!stripe) {
+                            throw new Error('Stripe is not initialized');
+                        }
+
+                        submitButton.textContent = t.processingPayment;
                         
-                        const { error, paymentIntent } = await stripe.confirmCardPayment(
-                            result.clientSecret,
-                            {
-                                payment_method: {
-                                    card: cardElement,
-                                    billing_details: {
-                                        name: `${firstName} ${lastName}`,
-                                        email: email,
-                                        address: {
-                                            line1: requestData.address,
-                                            line2: requestData.addressContinued,
-                                            city: requestData.city,
-                                            postal_code: requestData.postalCode,
-                                            country: countryCode // Use the converted country code
+                        const countryInput = formData.get('pays') || '';
+                        const countryCode = getCountryCode(countryInput);
+                        console.log('Country input:', countryInput, '→ Country code:', countryCode);
+                        
+                        try {
+                            console.log('Confirming card payment with client secret:', result.clientSecret);
+                            
+                            const { error, paymentIntent } = await stripe.confirmCardPayment(
+                                result.clientSecret,
+                                {
+                                    payment_method: {
+                                        card: cardElement,
+                                        billing_details: {
+                                            name: `${firstName} ${lastName}`,
+                                            email: email,
+                                            address: {
+                                                line1: requestData.address,
+                                                line2: requestData.addressContinued,
+                                                city: requestData.city,
+                                                postal_code: requestData.postalCode,
+                                                country: countryCode
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        );
+                            );
 
-                        if (error) {
-                            console.error('Payment error:', error);
-                            throw new Error(t.paymentError + error.message);
-                        } else {
-                            // Payment succeeded
-                            console.log('Payment successful:', paymentIntent);
-                            alert(t.paymentSuccess);
-                            
-                            // Preserve the 'paid' parameter in the success URL
-                            window.location.href = `success.html?lang=${lang}&paid=true`;
+                            if (error) {
+                                console.error('Payment error:', error);
+                                throw new Error(t.paymentError + error.message);
+                            } else {
+                                console.log('Payment successful:', paymentIntent);
+                                alert(t.paymentSuccess);
+                                
+                                // NEW: Preserve download intent in success URL
+                                const successUrl = downloadIntent 
+                                    ? `success.html?lang=${lang}&paid=true&download=true`
+                                    : `success.html?lang=${lang}&paid=true`;
+                                window.location.href = successUrl;
+                            }
+                        } catch (paymentError) {
+                            console.error('Stripe payment error:', paymentError);
+                            throw new Error(t.paymentError + paymentError.message);
                         }
-                    } catch (paymentError) {
-                        console.error('Stripe payment error:', paymentError);
-                        throw new Error(t.paymentError + paymentError.message);
+                    } else {
+                        console.log('Free plan activation successful, preparing redirect...');
+                        
+                        let successMessage = t.activationCodeMessage;
+                        
+                        if (result.daysRemaining !== undefined) {
+                            const daysMessages = {
+                                fr: `\n\nVous avez ${result.daysRemaining} jours restants dans votre période d'essai.`,
+                                en: `\n\nYou have ${result.daysRemaining} days remaining in your trial period.`,
+                                de: `\n\nSie haben noch ${result.daysRemaining} Tage in Ihrer Testphase.`,
+                                es: `\n\nTiene ${result.daysRemaining} días restantes en su período de prueba.`,
+                                it: `\n\nHai ${result.daysRemaining} giorni rimanenti nel tuo periodo di prova.`,
+                                pt: `\n\nVocê tem ${result.daysRemaining} dias restantes em seu período de teste.`
+                            };
+                            successMessage += daysMessages[lang] || daysMessages['fr'];
+                        }
+                        
+                        alert(successMessage);
+                        
+                        console.log('Redirecting to success page...');
+                        // NEW: Preserve download intent in success URL
+                        const successUrl = downloadIntent 
+                            ? `success.html?lang=${lang}&download=true`
+                            : `success.html?lang=${lang}`;
+                        console.log('Success URL:', successUrl);
+                        
+                        try {
+                            window.location.replace(successUrl);
+                        } catch (redirectError) {
+                            console.error('Redirect error:', redirectError);
+                            window.location.href = successUrl;
+                        }
+                        
+                        setTimeout(() => {
+                            if (window.location.pathname.includes('form.html')) {
+                                console.warn('Redirect failed, trying alternative...');
+                                document.body.innerHTML = `
+                                    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+                                        <h1 style="color: #69B578;">✓ ${lang === 'fr' ? 'Succès!' : 'Success!'}</h1>
+                                        <p style="font-size: 18px; margin: 20px 0;">
+                                            ${t.activationCodeMessage}
+                                        </p>
+                                        ${downloadIntent ? `
+                                        <a href="/api/download-desktop?lang=${lang}" style="display: inline-block; margin: 20px 10px; padding: 15px 30px; background: #296396; color: white; text-decoration: none; border-radius: 5px;">
+                                            ${lang === 'fr' ? 'Télécharger l\'application' : 'Download Application'}
+                                        </a>
+                                        ` : ''}
+                                        <a href="index.html?lang=${lang}" style="display: inline-block; margin-top: 30px; padding: 15px 30px; background: #69B578; color: white; text-decoration: none; border-radius: 5px;">
+                                            ${lang === 'fr' ? 'Retour à l\'accueil' : 'Back to Home'}
+                                        </a>
+                                    </div>
+                                `;
+                            }
+                        }, 2000);
                     }
                 } else {
-                    // ENHANCED: For free plan, show success message and redirect properly
-                    console.log('Free plan activation successful, preparing redirect...');
-                    
-                    let successMessage = t.activationCodeMessage;
-                    
-                    // Add remaining days info if available
-                    if (result.daysRemaining !== undefined) {
-                        const daysMessages = {
-                            fr: `\n\nVous avez ${result.daysRemaining} jours restants dans votre période d'essai.`,
-                            en: `\n\nYou have ${result.daysRemaining} days remaining in your trial period.`,
-                            de: `\n\nSie haben noch ${result.daysRemaining} Tage in Ihrer Testphase.`,
-                            es: `\n\nTiene ${result.daysRemaining} días restantes en su período de prueba.`,
-                            it: `\n\nHai ${result.daysRemaining} giorni rimanenti nel tuo periodo di prova.`,
-                            pt: `\n\nVocê tem ${result.daysRemaining} dias restantes em seu período de teste.`
-                        };
-                        successMessage += daysMessages[lang] || daysMessages['fr'];
-                    }
-                    
-                    alert(successMessage);
-                    
-                    // ENHANCED: Ensure redirect happens with better error handling
-                    console.log('Redirecting to success page...');
-                    const successUrl = `success.html?lang=${lang}`;
-                    console.log('Success URL:', successUrl);
-                    
-                    // Check if success.html exists by trying to navigate
-                    try {
-                        // Force immediate redirect
-                        window.location.replace(successUrl);
-                    } catch (redirectError) {
-                        console.error('Redirect error:', redirectError);
-                        // Fallback: try alternative redirect method
-                        window.location.href = successUrl;
-                    }
-                    
-                    // Additional fallback if redirect still doesn't work
-                    setTimeout(() => {
-                        if (window.location.pathname.includes('form.html')) {
-                            console.warn('Redirect failed, trying alternative...');
-                            // Create a success message in the current page
-                            document.body.innerHTML = `
-                                <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-                                    <h1 style="color: #69B578;">✓ ${lang === 'fr' ? 'Succès!' : 'Success!'}</h1>
-                                    <p style="font-size: 18px; margin: 20px 0;">
-                                        ${t.activationCodeMessage}
-                                    </p>
-                                    <a href="index.html?lang=${lang}" style="display: inline-block; margin-top: 30px; padding: 15px 30px; background: #69B578; color: white; text-decoration: none; border-radius: 5px;">
-                                        ${lang === 'fr' ? 'Retour à l\'accueil' : 'Back to Home'}
-                                    </a>
-                                </div>
-                            `;
-                        }
-                    }, 2000);
+                    throw new Error(result.message || 'Unknown error occurred');
                 }
-            } else {
-                throw new Error(result.message || 'Unknown error occurred');
+            } catch (error) {
+                console.error('Form Submission Error:', error);
+                
+                const errorMessages = {
+                    fr: error.message || 'Une erreur est survenue',
+                    en: error.message || 'An error occurred',
+                    de: error.message || 'Ein Fehler ist aufgetreten',
+                    es: error.message || 'Ocurrió un error',
+                    it: error.message || 'Si è verificato un errore',
+                    pt: error.message || 'Ocorreu um erro'
+                };
+                
+                alert(errorMessages[lang] || errorMessages['fr']);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
             }
-        } catch (error) {
-            console.error('Form Submission Error:', error);
-            
-            // Show user-friendly error messages
-            const errorMessages = {
-                fr: error.message || 'Une erreur est survenue',
-                en: error.message || 'An error occurred',
-                de: error.message || 'Ein Fehler ist aufgetreten',
-                es: error.message || 'Ocurrió un error',
-                it: error.message || 'Si è verificato un errore',
-                pt: error.message || 'Ocorreu um erro'
-            };
-            
-            alert(errorMessages[lang] || errorMessages['fr']);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = originalButtonText;
-        }
-    });
-}
+        });
+    }
 });

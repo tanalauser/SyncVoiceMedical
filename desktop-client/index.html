@@ -393,6 +393,214 @@
         #settingsToggle:hover {
             border-color: rgba(255,255,255,0.6) !important;
         }
+
+
+
+        .desktop-client-section {
+    margin: 4rem 0;
+    padding: 0 1rem;
+}
+
+.desktop-client-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.desktop-client-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #296396, #69B578);
+}
+
+.desktop-client-card h2 {
+    color: #296396;
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.desktop-client-card > p {
+    color: #666;
+    font-size: 1.1rem;
+    margin-bottom: 2.5rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.desktop-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin: 2.5rem 0;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.feature {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.feature h3 {
+    color: #296396;
+    font-size: 1.2rem;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+}
+
+.feature p {
+    color: #666;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.desktop-download-btn {
+    background: linear-gradient(135deg, #296396, #1e4d73);
+    color: white;
+    border: none;
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 2rem 0 1rem;
+    box-shadow: 0 4px 12px rgba(41, 99, 150, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.desktop-download-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.desktop-download-btn:hover::before {
+    left: 100%;
+}
+
+.desktop-download-btn:hover {
+    background: linear-gradient(135deg, #1e4d73, #296396);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(41, 99, 150, 0.4);
+}
+
+.desktop-download-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(41, 99, 150, 0.3);
+}
+
+.system-requirements {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    font-style: italic;
+}
+
+.system-requirements small {
+    color: #777;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .desktop-client-card {
+        padding: 2rem 1.5rem;
+        margin: 0 1rem;
+    }
+    
+    .desktop-client-card h2 {
+        font-size: 1.8rem;
+    }
+    
+    .desktop-features {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .feature {
+        padding: 1.25rem;
+    }
+    
+    .desktop-download-btn {
+        padding: 0.9rem 2rem;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .desktop-client-section {
+        margin: 2rem 0;
+    }
+    
+    .desktop-client-card {
+        padding: 1.5rem 1rem;
+        margin: 0 0.5rem;
+    }
+    
+    .desktop-client-card h2 {
+        font-size: 1.6rem;
+    }
+    
+    .desktop-download-btn {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.95rem;
+        width: 100%;
+        max-width: 280px;
+    }
+}
+
+/* Animation for loading state */
+.desktop-download-btn.loading {
+    background: #6c757d;
+    cursor: not-allowed;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
     </style>
 </head>
 <body>
