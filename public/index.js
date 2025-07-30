@@ -384,37 +384,40 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     async function handleDesktopDownload(currentLang) {
-        const content = translations[currentLang] || translations['fr'];
+    const content = translations[currentLang] || translations['fr'];
+    
+    // Check if user is registered
+    const userEmail = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail');
+    const activationCode = sessionStorage.getItem('activationCode') || localStorage.getItem('activationCode');
+    
+    if (userEmail && activationCode) {
+        // User is registered, proceed with download
+        console.log('User is registered, proceeding with download');
         
-        // Check if user is registered
-        if (checkUserRegistration()) {
-            // User is registered, proceed with download
-            console.log('User is registered, proceeding with download');
+        // Update button text to show downloading
+        if (elements.downloadBtnText) {
+            const originalText = elements.downloadBtnText.textContent;
+            elements.downloadBtnText.textContent = content.downloadingText;
             
-            // Update button text to show downloading
-            if (elements.downloadBtnText) {
-                const originalText = elements.downloadBtnText.textContent;
-                elements.downloadBtnText.textContent = content.downloadingText;
-                
-                // Reset after 3 seconds
-                setTimeout(() => {
-                    elements.downloadBtnText.textContent = originalText;
-                }, 3000);
-            }
-            
-            // Redirect to protected download endpoint
-            window.location.href = `/api/download-desktop?lang=${currentLang}`;
-            
-        } else {
-            // User is not registered, show message and redirect to registration
-            alert(content.downloadRequiresRegistration);
-            
-            if (confirm(content.downloadConfirm)) {
-                // Redirect to form with download intent
-                window.location.href = `form.html?intent=download&lang=${currentLang}`;
-            }
+            // Reset after 3 seconds
+            setTimeout(() => {
+                elements.downloadBtnText.textContent = originalText;
+            }, 3000);
+        }
+        
+        // Redirect to protected download endpoint with credentials
+        window.location.href = `/api/download-desktop?lang=${currentLang}&email=${encodeURIComponent(userEmail)}&code=${activationCode}`;
+        
+    } else {
+        // User is not registered, show message and redirect to registration
+        alert(content.downloadRequiresRegistration);
+        
+        if (confirm(content.downloadConfirm)) {
+            // Redirect to form with download intent
+            window.location.href = `form.html?plan=free&intent=download&lang=${currentLang}`;
         }
     }
+}
 
     // Language detection functions (previous code remains the same)
     async function detectCountryLanguage() {
@@ -749,13 +752,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // DESKTOP DOWNLOAD BUTTON FUNCTIONALITY
-    if (elements.desktopDownloadBtn) {
-        elements.desktopDownloadBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const currentLang = elements.languageSelect.value || detectedLanguage;
-            handleDesktopDownload(currentLang);
-        });
-    }
+    const downloadBtn = document.getElementById('downloadBtn');
+if (downloadBtn) {
+    downloadBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const currentLang = elements.languageSelect.value || detectedLanguage;
+        handleDesktopDownload(currentLang);
+    });
+}
 
     console.log('✅ SyncVoice Medical page initialization complete');
 });
