@@ -64,22 +64,7 @@ if (error) {
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // MongoDB connection function
-const connectDB = async () => {
-    try {
-        const uri = `mongodb+srv://${process.env.APP_DB_USER}:${process.env.APP_DB_PASS}@${process.env.APP_DB_INSTANCE}.mongodb.net/?retryWrites=true&w=majority`;
-        
-        await mongoose.connect(uri, {
-            maxPoolSize: 10,
-            minPoolSize: 2,
-            socketTimeoutMS: 45000,
-            serverSelectionTimeoutMS: 5000,
-        });
-        logger.info('MongoDB connected with pooling');
-    } catch (error) {
-        logger.error('MongoDB connection error:', error);
-        process.exit(1);
-    }
-};
+const connectDB = require('./config/db');
 
 // Import models and routes
 const User = require('./models/User');
