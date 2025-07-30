@@ -117,17 +117,34 @@ console.log('Crypto module loaded:', typeof crypto);
 // Create Express app instance
 const app = express();
 
+
+
+// CORS middleware
+app.use(cors({
+    origin: '*', // Be cautious with this in production
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
 app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
 
-    // Debug logging
+    // Enhanced debug logging
     console.log('🔍 Webhook Debug:');
+    console.log('  - Request URL:', req.url);
+    console.log('  - Request method:', req.method);
     console.log('  - Signature header:', sig ? 'present' : 'missing');
     console.log('  - Body type:', typeof req.body);
     console.log('  - Body length:', req.body ? req.body.length : 0);
+    console.log('  - Secret configured:', !!process.env.STRIPE_WEBHOOK_SECRET);
     console.log('  - Secret length:', process.env.STRIPE_WEBHOOK_SECRET?.length);
-    console.log('  - Secret prefix:', process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 6));
+    
+    // Also log the raw body for debugging (first 100 chars)
+    if (req.body) {
+        console.log('  - Body preview:', req.body.toString().substring(0, 100));
+    }
 
     try {
         if (!sig) {
@@ -176,6 +193,33 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
     }
 });
 
+app.post('/webhook-manual-test', express.json(), async (req, res) => {
+    try {
+        console.log('Manual webhook test received');
+        console.log('Headers:', req.headers);
+        console.log('Body:', req.body);
+        
+        // Test that the webhook secret is configured
+        if (!process.env.STRIPE_WEBHOOK_SECRET) {
+            return res.status(500).json({ 
+                error: 'STRIPE_WEBHOOK_SECRET not configured' 
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Webhook endpoint is reachable',
+            secretConfigured: true,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 app.get('/webhook-test', async (req, res) => {
     try {
         // Test webhook secret is configured
@@ -204,13 +248,8 @@ app.get('/webhook-test', async (req, res) => {
     }
 });
 
-// CORS middleware
-app.use(cors({
-    origin: '*', // Be cautious with this in production
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const publicDir = path.join(__dirname, 'public');
 console.log('Serving static files from:', publicDir);
@@ -314,12 +353,6 @@ app.use((req, res, next) => {
     console.log('MongoDB state:', dbState);
     next();
 });
-
-
-
-// Body parser middleware - MUST come before routes
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 
 // Define base directory for your application
