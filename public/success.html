@@ -232,7 +232,24 @@
 
         // NEW: Handle desktop app download
         function handleDownload() {
-            const downloadBtn = document.getElementById('downloadBtn');
+            const downloadBtn = document.getElementById('desktopDownloadBtn');
+if (downloadBtn) {
+    downloadBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Get user credentials from URL parameters or storage
+        const urlParams = new URLSearchParams(window.location.search);
+        const email = urlParams.get('email') || localStorage.getItem('userEmail');
+        const code = urlParams.get('code') || localStorage.getItem('activationCode');
+        const lang = urlParams.get('lang') || 'en';
+        
+        if (email && code) {
+            window.location.href = `/api/download-desktop?lang=${lang}&email=${encodeURIComponent(email)}&code=${code}&source=success`;
+        } else {
+            alert('Missing credentials. Please contact support.');
+        }
+    });
+}
             const downloadBtnText = document.getElementById('downloadBtnText');
             const originalText = downloadBtnText.textContent;
             

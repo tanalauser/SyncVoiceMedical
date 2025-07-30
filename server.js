@@ -1642,8 +1642,34 @@ app.get('/api/download-desktop', async (req, res) => {
             }
         }
         
-        const downloadUrl = 'https://github.com/syncvoicemedical/desktop-client/releases/latest/download/SyncVoiceMedical-Setup.exe';
-        res.redirect(downloadUrl);
+        // Serve the file directly from your server
+        const filePath = path.join(__dirname, 'public', 'downloads', 'SyncVoiceMedical-Setup.exe');
+        
+        // Check if file exists
+        if (!fs.existsSync(filePath)) {
+            logger.error('Desktop installer file not found at:', filePath);
+            return res.status(404).json({
+                success: false,
+                message: 'Desktop application file not found. Please contact support.'
+            });
+        }
+        
+        // Set appropriate headers for download
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', 'attachment; filename="SyncVoiceMedical-Setup.exe"');
+        
+        // Send the file
+        res.download(filePath, 'SyncVoiceMedical-Setup.exe', (err) => {
+            if (err) {
+                logger.error('Error sending file:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        success: false,
+                        message: 'Error downloading file. Please try again.'
+                    });
+                }
+            }
+        });
         
     } catch (error) {
         logger.error('Desktop download error:', error);
