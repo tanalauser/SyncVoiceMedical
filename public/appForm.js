@@ -1171,6 +1171,35 @@ function ensureCleanStart() {
         }
     }
 
+
+    // Enhanced error handling for network issues
+recognitionInstance.onerror = function(event) {
+    console.error('=== SPEECH RECOGNITION ERROR ===');
+    console.error('Error type:', event.error);
+    
+    // Special handling for network errors
+    if (event.error === 'network') {
+        // Try to restart recognition after a delay
+        if (isRecording && !isStarting) {
+            console.log('Network error detected, attempting to recover...');
+            setTimeout(() => {
+                if (isRecording && recognition) {
+                    try {
+                        recognition.start();
+                        console.log('Recognition restarted after network error');
+                    } catch (e) {
+                        console.error('Failed to restart after network error:', e);
+                        resetButtons();
+                    }
+                }
+            }, 1000);
+        }
+        return; // Don't show error message for transient network issues
+    }
+    
+    // ... rest of the existing error handling
+};
+
     // Function to show countdown before starting recognition
     function startWithCountdown() {
         console.log('=== PRODUCTION DEBUG START ===');
