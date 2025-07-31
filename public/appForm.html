@@ -41,6 +41,7 @@
             align-items: center;
             text-decoration: none;
             color: white;
+            cursor: pointer;
         }
         
         .navbar-brand img {
@@ -378,11 +379,498 @@
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="navbar-content">
-            <a href="index.html" class="navbar-brand">
+            <div class="navbar-brand" id="logoLink">
                 <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical">
                 <h1>SyncVoice Medical</h1>
-            </a>
+            </div>
             <div class="navbar-menu">
                 <a href="account.html" id="myAccountLink">Mon Compte</a>
                 <a href="form.html?plan=paid" id="upgradeLink" class="upgrade-btn" style="display: none;">Passer à Premium</a>
-                <a href="#" id="logoutLink" class="logout-bt
+                <a href="#" id="logoutLink" class="logout-btn">Se déconnecter</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-info">
+                <div class="status-item">
+                    <span class="status-label" id="userLabel">Utilisateur</span>
+                    <span class="status-value" id="userEmail">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label" id="statusLabel">Statut</span>
+                    <span class="status-value">
+                        <span id="accountTypeBadge" class="trial-badge">Essai gratuit</span>
+                    </span>
+                </div>
+                <div class="status-item" id="daysRemainingContainer" style="display: none;">
+                    <span class="status-label" id="daysLabel">Jours restants</span>
+                    <span class="status-value" id="daysRemaining">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Form -->
+        <div class="app-container">
+            <div class="app-header">
+                <h1 class="app-title" id="appTitle">Transcription Vocale</h1>
+                <p class="app-subtitle" id="appSubtitle">Commencez à dicter pour transcrire votre texte</p>
+            </div>
+
+            <form class="voice-form" id="voiceForm">
+                <div class="form-group">
+                    <label for="subjectInput" class="form-label" id="subjectLabel">Sujet / Référence:</label>
+                    <input type="text" id="subjectInput" class="form-input" placeholder="Ex: Consultation du 31/07/2025">
+                </div>
+
+                <div class="form-group">
+                    <label for="transcriptionOutput" class="form-label" id="transcriptionLabel">Transcription:</label>
+                    <textarea id="transcriptionOutput" class="form-textarea" placeholder="Le texte transcrit apparaîtra ici..."></textarea>
+                </div>
+
+                <div class="controls">
+                    <button type="button" id="startBtn" class="control-btn start-btn">
+                        <span>🎤</span>
+                        <span id="startBtnText">Commencer</span>
+                    </button>
+                    <button type="button" id="stopBtn" class="control-btn stop-btn" disabled>
+                        <span>⏹️</span>
+                        <span id="stopBtnText">Arrêter</span>
+                    </button>
+                    <button type="button" id="copyBtn" class="control-btn copy-btn">
+                        <span>📋</span>
+                        <span id="copyBtnText">Copier</span>
+                    </button>
+                </div>
+
+                <div class="recording-indicator" id="recordingIndicator">
+                    <div class="recording-dot"></div>
+                    <span id="recordingText">Enregistrement en cours...</span>
+                </div>
+
+                <div id="statusMessage" class="status-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 SyncVoice Medical. <span id="footerText">Tous droits réservés.</span></p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is logged in
+            const userEmail = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail');
+            if (!userEmail) {
+                console.log('No user email found, redirecting to login');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang') || 'fr';
+
+            // Display user email
+            document.getElementById('userEmail').textContent = userEmail;
+            console.log('User email displayed:', userEmail);
+
+            // Make logo clickable but stay on app when logged in
+            const logoLink = document.getElementById('logoLink');
+            logoLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Stay on the app or go to account page
+                window.location.href = `account.html?lang=${lang}`;
+            });
+
+            // Translations
+            const translations = {
+                fr: {
+                    myAccount: 'Mon Compte',
+                    upgrade: 'Passer à Premium',
+                    logout: 'Se déconnecter',
+                    userLabel: 'Utilisateur',
+                    statusLabel: 'Statut',
+                    daysLabel: 'Jours restants',
+                    trialBadge: 'Essai gratuit',
+                    premiumBadge: 'Premium',
+                    appTitle: 'Transcription Vocale',
+                    appSubtitle: 'Commencez à dicter pour transcrire votre texte',
+                    subjectLabel: 'Sujet / Référence:',
+                    subjectPlaceholder: 'Ex: Consultation du 31/07/2025',
+                    transcriptionLabel: 'Transcription:',
+                    transcriptionPlaceholder: 'Le texte transcrit apparaîtra ici...',
+                    startBtnText: 'Commencer',
+                    stopBtnText: 'Arrêter',
+                    copyBtnText: 'Copier',
+                    recordingText: 'Enregistrement en cours...',
+                    footerText: 'Tous droits réservés.',
+                    copySuccess: 'Texte copié dans le presse-papiers!',
+                    copyError: 'Erreur lors de la copie',
+                    noTextToCopy: 'Aucun texte à copier',
+                    microphoneError: 'Erreur: Impossible d\'accéder au microphone',
+                    browserNotSupported: 'Votre navigateur ne supporte pas la reconnaissance vocale',
+                    recognitionError: 'Erreur de reconnaissance vocale'
+                },
+                en: {
+                    myAccount: 'My Account',
+                    upgrade: 'Upgrade to Premium',
+                    logout: 'Logout',
+                    userLabel: 'User',
+                    statusLabel: 'Status',
+                    daysLabel: 'Days remaining',
+                    trialBadge: 'Free Trial',
+                    premiumBadge: 'Premium',
+                    appTitle: 'Voice Transcription',
+                    appSubtitle: 'Start dictating to transcribe your text',
+                    subjectLabel: 'Subject / Reference:',
+                    subjectPlaceholder: 'Ex: Consultation on 07/31/2025',
+                    transcriptionLabel: 'Transcription:',
+                    transcriptionPlaceholder: 'Transcribed text will appear here...',
+                    startBtnText: 'Start',
+                    stopBtnText: 'Stop',
+                    copyBtnText: 'Copy',
+                    recordingText: 'Recording...',
+                    footerText: 'All rights reserved.',
+                    copySuccess: 'Text copied to clipboard!',
+                    copyError: 'Error copying text',
+                    noTextToCopy: 'No text to copy',
+                    microphoneError: 'Error: Cannot access microphone',
+                    browserNotSupported: 'Your browser does not support speech recognition',
+                    recognitionError: 'Speech recognition error'
+                },
+                de: {
+                    myAccount: 'Mein Konto',
+                    upgrade: 'Auf Premium upgraden',
+                    logout: 'Abmelden',
+                    userLabel: 'Benutzer',
+                    statusLabel: 'Status',
+                    daysLabel: 'Verbleibende Tage',
+                    trialBadge: 'Kostenlose Testversion',
+                    premiumBadge: 'Premium',
+                    appTitle: 'Sprachtranskription',
+                    appSubtitle: 'Beginnen Sie zu diktieren, um Ihren Text zu transkribieren',
+                    subjectLabel: 'Betreff / Referenz:',
+                    subjectPlaceholder: 'Beispiel: Beratung am 31.07.2025',
+                    transcriptionLabel: 'Transkription:',
+                    transcriptionPlaceholder: 'Der transkribierte Text erscheint hier...',
+                    startBtnText: 'Starten',
+                    stopBtnText: 'Stoppen',
+                    copyBtnText: 'Kopieren',
+                    recordingText: 'Aufnahme läuft...',
+                    footerText: 'Alle Rechte vorbehalten.',
+                    copySuccess: 'Text in die Zwischenablage kopiert!',
+                    copyError: 'Fehler beim Kopieren',
+                    noTextToCopy: 'Kein Text zum Kopieren',
+                    microphoneError: 'Fehler: Kein Zugriff auf Mikrofon',
+                    browserNotSupported: 'Ihr Browser unterstützt keine Spracherkennung',
+                    recognitionError: 'Spracherkennungsfehler'
+                },
+                es: {
+                    myAccount: 'Mi Cuenta',
+                    upgrade: 'Actualizar a Premium',
+                    logout: 'Cerrar sesión',
+                    userLabel: 'Usuario',
+                    statusLabel: 'Estado',
+                    daysLabel: 'Días restantes',
+                    trialBadge: 'Prueba gratuita',
+                    premiumBadge: 'Premium',
+                    appTitle: 'Transcripción de Voz',
+                    appSubtitle: 'Comience a dictar para transcribir su texto',
+                    subjectLabel: 'Asunto / Referencia:',
+                    subjectPlaceholder: 'Ej: Consulta del 31/07/2025',
+                    transcriptionLabel: 'Transcripción:',
+                    transcriptionPlaceholder: 'El texto transcrito aparecerá aquí...',
+                    startBtnText: 'Comenzar',
+                    stopBtnText: 'Detener',
+                    copyBtnText: 'Copiar',
+                    recordingText: 'Grabando...',
+                    footerText: 'Todos los derechos reservados.',
+                    copySuccess: '¡Texto copiado al portapapeles!',
+                    copyError: 'Error al copiar',
+                    noTextToCopy: 'No hay texto para copiar',
+                    microphoneError: 'Error: No se puede acceder al micrófono',
+                    browserNotSupported: 'Su navegador no soporta reconocimiento de voz',
+                    recognitionError: 'Error de reconocimiento de voz'
+                },
+                it: {
+                    myAccount: 'Il mio Account',
+                    upgrade: 'Passa a Premium',
+                    logout: 'Esci',
+                    userLabel: 'Utente',
+                    statusLabel: 'Stato',
+                    daysLabel: 'Giorni rimanenti',
+                    trialBadge: 'Prova gratuita',
+                    premiumBadge: 'Premium',
+                    appTitle: 'Trascrizione Vocale',
+                    appSubtitle: 'Inizia a dettare per trascrivere il tuo testo',
+                    subjectLabel: 'Oggetto / Riferimento:',
+                    subjectPlaceholder: 'Es: Consultazione del 31/07/2025',
+                    transcriptionLabel: 'Trascrizione:',
+                    transcriptionPlaceholder: 'Il testo trascritto apparirà qui...',
+                    startBtnText: 'Inizia',
+                    stopBtnText: 'Ferma',
+                    copyBtnText: 'Copia',
+                    recordingText: 'Registrazione in corso...',
+                    footerText: 'Tutti i diritti riservati.',
+                    copySuccess: 'Testo copiato negli appunti!',
+                    copyError: 'Errore durante la copia',
+                    noTextToCopy: 'Nessun testo da copiare',
+                    microphoneError: 'Errore: Impossibile accedere al microfono',
+                    browserNotSupported: 'Il tuo browser non supporta il riconoscimento vocale',
+                    recognitionError: 'Errore di riconoscimento vocale'
+                },
+                pt: {
+                    myAccount: 'Minha Conta',
+                    upgrade: 'Atualizar para Premium',
+                    logout: 'Sair',
+                    userLabel: 'Usuário',
+                    statusLabel: 'Status',
+                    daysLabel: 'Dias restantes',
+                    trialBadge: 'Teste gratuito',
+                    premiumBadge: 'Premium',
+                    appTitle: 'Transcrição de Voz',
+                    appSubtitle: 'Comece a ditar para transcrever seu texto',
+                    subjectLabel: 'Assunto / Referência:',
+                    subjectPlaceholder: 'Ex: Consulta de 31/07/2025',
+                    transcriptionLabel: 'Transcrição:',
+                    transcriptionPlaceholder: 'O texto transcrito aparecerá aqui...',
+                    startBtnText: 'Começar',
+                    stopBtnText: 'Parar',
+                    copyBtnText: 'Copiar',
+                    recordingText: 'Gravando...',
+                    footerText: 'Todos os direitos reservados.',
+                    copySuccess: 'Texto copiado para a área de transferência!',
+                    copyError: 'Erro ao copiar',
+                    noTextToCopy: 'Nenhum texto para copiar',
+                    microphoneError: 'Erro: Não é possível acessar o microfone',
+                    browserNotSupported: 'Seu navegador não suporta reconhecimento de voz',
+                    recognitionError: 'Erro de reconhecimento de voz'
+                }
+            };
+
+            // Get translations for current language
+            const t = translations[lang] || translations.fr;
+
+            // Update UI with translations
+            document.getElementById('htmlLang').lang = lang;
+            document.getElementById('myAccountLink').textContent = t.myAccount;
+            document.getElementById('myAccountLink').href = `account.html?lang=${lang}`;
+            document.getElementById('upgradeLink').textContent = t.upgrade;
+            document.getElementById('upgradeLink').href = `form.html?plan=paid&lang=${lang}`;
+            document.getElementById('logoutLink').textContent = t.logout;
+            document.getElementById('userLabel').textContent = t.userLabel;
+            document.getElementById('statusLabel').textContent = t.statusLabel;
+            document.getElementById('daysLabel').textContent = t.daysLabel;
+            document.getElementById('appTitle').textContent = t.appTitle;
+            document.getElementById('appSubtitle').textContent = t.appSubtitle;
+            document.getElementById('subjectLabel').textContent = t.subjectLabel;
+            document.getElementById('subjectInput').placeholder = t.subjectPlaceholder;
+            document.getElementById('transcriptionLabel').textContent = t.transcriptionLabel;
+            document.getElementById('transcriptionOutput').placeholder = t.transcriptionPlaceholder;
+            document.getElementById('startBtnText').textContent = t.startBtnText;
+            document.getElementById('stopBtnText').textContent = t.stopBtnText;
+            document.getElementById('copyBtnText').textContent = t.copyBtnText;
+            document.getElementById('recordingText').textContent = t.recordingText;
+            document.getElementById('footerText').textContent = t.footerText;
+
+            // Load user data to check account type
+            try {
+                const response = await fetch(`/api/user-details/${userEmail}`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const user = data.user;
+                    console.log('User data loaded:', user);
+                    
+                    // Update account type badge
+                    const accountTypeBadge = document.getElementById('accountTypeBadge');
+                    if (user.version === 'paid') {
+                        accountTypeBadge.textContent = t.premiumBadge;
+                        accountTypeBadge.className = 'premium-badge';
+                        // Hide upgrade button for premium users
+                        document.getElementById('upgradeLink').style.display = 'none';
+                    } else {
+                        accountTypeBadge.textContent = t.trialBadge;
+                        accountTypeBadge.className = 'trial-badge';
+                        // Show upgrade button for trial users
+                        document.getElementById('upgradeLink').style.display = 'inline-block';
+                        
+                        // Calculate and show days remaining
+                        const endDate = new Date(user.validationEndDate);
+                        const today = new Date();
+                        const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                        
+                        if (daysRemaining > 0) {
+                            document.getElementById('daysRemainingContainer').style.display = 'block';
+                            document.getElementById('daysRemaining').textContent = daysRemaining;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+
+            // Logout functionality
+            document.getElementById('logoutLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                sessionStorage.clear();
+                localStorage.removeItem('activationCode');
+                window.location.href = `index.html?lang=${lang}`;
+            });
+
+            // Speech recognition setup
+            let recognition = null;
+            let isRecording = false;
+
+            // Check browser support
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                showMessage(t.browserNotSupported, 'error');
+                document.getElementById('startBtn').disabled = true;
+                return;
+            }
+
+            // Initialize speech recognition
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = lang + '-' + lang.toUpperCase();
+
+            // Speech recognition event handlers
+            recognition.onstart = () => {
+                isRecording = true;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('recordingIndicator').classList.add('active');
+                showMessage('', ''); // Clear any previous messages
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('recordingIndicator').classList.remove('active');
+            };
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                // Get existing text
+                const existingText = document.getElementById('transcriptionOutput').value;
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Update textarea with new text
+                if (finalTranscript) {
+                    document.getElementById('transcriptionOutput').value = existingText + finalTranscript;
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                let errorMessage = t.recognitionError;
+                
+                if (event.error === 'not-allowed') {
+                    errorMessage = t.microphoneError;
+                }
+                
+                showMessage(errorMessage, 'error');
+                stopRecording();
+            };
+
+            // Button event handlers
+            document.getElementById('startBtn').addEventListener('click', startRecording);
+            document.getElementById('stopBtn').addEventListener('click', stopRecording);
+            document.getElementById('copyBtn').addEventListener('click', copyText);
+
+            function startRecording() {
+                if (recognition && !isRecording) {
+                    recognition.start();
+                }
+            }
+
+            function stopRecording() {
+                if (recognition && isRecording) {
+                    recognition.stop();
+                }
+            }
+
+            function copyText() {
+                const textarea = document.getElementById('transcriptionOutput');
+                const text = textarea.value.trim();
+                
+                if (!text) {
+                    showMessage(t.noTextToCopy, 'info');
+                    return;
+                }
+                
+                textarea.select();
+                textarea.setSelectionRange(0, 99999); // For mobile devices
+                
+                try {
+                    document.execCommand('copy');
+                    showMessage(t.copySuccess, 'success');
+                    
+                    // Deselect text after copying
+                    window.getSelection().removeAllRanges();
+                } catch (err) {
+                    console.error('Copy error:', err);
+                    showMessage(t.copyError, 'error');
+                }
+            }
+
+            function showMessage(message, type) {
+                const messageEl = document.getElementById('statusMessage');
+                messageEl.textContent = message;
+                messageEl.className = 'status-message';
+                
+                if (message) {
+                    messageEl.classList.add(type);
+                }
+            }
+
+            // Save draft periodically
+            setInterval(() => {
+                const subject = document.getElementById('subjectInput').value;
+                const transcription = document.getElementById('transcriptionOutput').value;
+                
+                if (subject || transcription) {
+                    localStorage.setItem('draft_subject', subject);
+                    localStorage.setItem('draft_transcription', transcription);
+                }
+            }, 30000); // Save every 30 seconds
+
+            // Restore draft on load
+            const draftSubject = localStorage.getItem('draft_subject');
+            const draftTranscription = localStorage.getItem('draft_transcription');
+            
+            if (draftSubject) {
+                document.getElementById('subjectInput').value = draftSubject;
+            }
+            if (draftTranscription) {
+                document.getElementById('transcriptionOutput').value = draftTranscription;
+            }
+
+            // Clear draft when logging out
+            document.getElementById('logoutLink').addEventListener('click', () => {
+                localStorage.removeItem('draft_subject');
+                localStorage.removeItem('draft_transcription');
+            });
+        });
+    </script>
+</body>
+</html>
