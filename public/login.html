@@ -342,10 +342,9 @@
                         // Redirect to appropriate page
                         setTimeout(() => {
                             // Check if user has dashboard access, otherwise go to appForm.html
-                            const redirectUrl = result.userInfo && result.userInfo.version === 'paid' 
-                                ? `dashboard.html?lang=${lang}` 
-                                : `appForm.html?lang=${lang}&email=${encodeURIComponent(email)}`;
-                            window.location.href = redirectUrl;
+                            // In login.html, after successful login:
+const redirectUrl = `account.html?lang=${lang}`;
+window.location.href = redirectUrl;
                         }, 1500);
                     } else {
                         errorMessage.textContent = result.message || t.invalidCredentials;

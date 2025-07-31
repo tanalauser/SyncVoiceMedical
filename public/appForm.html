@@ -3,121 +3,386 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SyncVoice Medical - Transcription</title>
-    <link rel="stylesheet" href="appForm.css">
-    <script src="libs/docx-lib.js"></script>
-    <script src="libs/file-saver.min.js"></script>
-    <script src="https://js.stripe.com/v3/"></script>
-    <script src="languageDetection.js"></script>
+    <title>SyncVoice Medical - Application</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f3;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        /* Navigation Bar */
+        .navbar {
+            background-color: #1a5f7a;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .navbar-brand img {
+            height: 40px;
+            margin-right: 1rem;
+        }
+        
+        .navbar-brand h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .navbar-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .navbar-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .upgrade-btn {
+            background-color: #f39c12;
+            padding: 0.5rem 1.5rem !important;
+        }
+        
+        .upgrade-btn:hover {
+            background-color: #e67e22 !important;
+        }
+        
+        .logout-btn {
+            background-color: #dc3545;
+            padding: 0.5rem 1.5rem !important;
+        }
+        
+        .logout-btn:hover {
+            background-color: #c82333 !important;
+        }
+        
+        /* Main Container */
+        .container {
+            flex: 1;
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            width: 100%;
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-info {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .status-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .status-label {
+            font-size: 0.875rem;
+            color: #666;
+        }
+        
+        .status-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .trial-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .premium-badge {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        /* Application Form */
+        .app-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .app-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .app-title {
+            color: #1a5f7a;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .app-subtitle {
+            color: #666;
+            font-size: 1.125rem;
+        }
+        
+        .voice-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+        
+        .form-input,
+        .form-textarea {
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #69B578;
+        }
+        
+        .form-textarea {
+            min-height: 300px;
+            resize: vertical;
+        }
+        
+        /* Control Buttons */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        
+        .control-btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .start-btn {
+            background-color: #69B578;
+            color: white;
+        }
+        
+        .start-btn:hover:not(:disabled) {
+            background-color: #5aa469;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .stop-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .stop-btn:hover:not(:disabled) {
+            background-color: #c82333;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .copy-btn {
+            background-color: #296396;
+            color: white;
+        }
+        
+        .copy-btn:hover:not(:disabled) {
+            background-color: #1e4d73;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .control-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* Recording Indicator */
+        .recording-indicator {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            color: #dc3545;
+            font-weight: 600;
+        }
+        
+        .recording-indicator.active {
+            display: flex;
+        }
+        
+        .recording-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #dc3545;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* Status Messages */
+        .status-message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+        
+        .status-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .status-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .status-message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        
+        /* Footer */
+        .footer {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            text-align: center;
+            color: #666;
+            margin-top: auto;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .navbar-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .navbar-menu {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .status-info {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .controls {
+                flex-wrap: wrap;
+            }
+            
+            .control-btn {
+                flex: 1;
+                min-width: 140px;
+            }
+        }
+    </style>
 </head>
-
 <body>
-    <div class="container">
-        <header class="header">
-            <div class="logo-container">
-                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical" class="logo">
-            </div>
-        </header>
-
-        <main class="main-content">
-            <div class="control-group">
-                <button id="startButton" class="btn control-btn">
-                    <svg class="icon mic-icon" viewBox="0 0 24 24">
-                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                    </svg>
-                    <span class="btn-text">Parlez</span>
-                </button>
-
-                <button id="pauseButton" class="btn control-btn">
-                    <svg class="icon pause-icon" viewBox="0 0 24 24">
-                        <rect x="6" y="4" width="4" height="16"/>
-                        <rect x="14" y="4" width="4" height="16"/>
-                    </svg>
-                    <span class="btn-text">Pause</span>
-                </button>
-
-                <button id="stopButton" class="btn control-btn">
-                    <svg class="icon stop-icon" viewBox="0 0 24 24">
-                        <rect x="6" y="6" width="12" height="12" class="stop-icon-rect"/>
-                    </svg>
-                    <span class="btn-text">Stop</span>
-                </button>
-            </div>
-
-            <div class="transcription-container">
-                <textarea id="transcriptionText" placeholder="Votre transcription apparaîtra ici..."></textarea>
-                <div class="scrollbar"></div>
-                <button id="clearButton">Tout Effacer</button>
-            </div>
-
-            <div class="action-group">
-                <button id="copyButton" class="btn action-btn">
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7l-6-6z"/>
-                    </svg>
-                    <span class="btn-text">Copiez tout dans<br>le press-papier</span>
-                </button>
-
-                <button id="templateButton" class="btn action-btn">
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                        <path d="M8 14h8v2H8zm0 4h8v2H8zm0-8h3v2H8z"/>
-                    </svg>
-                    <span class="btn-text">Utilisez un modèle<br>Word</span>
-                </button>
-
-                <button id="quitButton" class="btn action-btn">
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.1 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
-                    </svg>
-                    <span class="btn-text">Quitter</span>
-                </button>
-            </div>
-
-            <p class="AICanMakeMistakes" id="AICanMakeMistakes_message">"L'IA peut faire des erreurs. Veuillez vérifier la transcription"</p>
-        </main>
-    </div>
-
-
-
-    <div id="templateModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2 id="templateModalTitle">Choisissez un modèle</h2>
-            <div class="template-list">
-                <div class="template-item" data-template="consultation">
-                    <h3>Consultation Médicale</h3>
-                    <p>Modèle standard pour les consultations médicales générales</p>
-                </div>
-                <div class="template-item" data-template="specialist">
-                    <h3>Compte Rendu Spécialiste</h3>
-                    <p>Format détaillé pour les rapports de spécialistes</p>
-                </div>
-                <div class="template-item" data-template="surgery">
-                    <h3>Rapport Chirurgical</h3>
-                    <p>Structure complète pour les comptes rendus opératoires</p>
-                </div>
-                <div class="template-item" data-template="prescription">
-                    <h3>Ordonnance</h3>
-                    <p>Format standard pour les prescriptions médicales</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const lang = urlParams.get('lang') || 'fr';
-            document.getElementById('htmlLang').lang = lang;
-        });
-    </script>
-    
-    <script src="appForm.js"></script>
-</body>
-</html>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="index.html" class="navbar-brand">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical">
+                <h1>SyncVoice Medical</h1>
+            </a>
+            <div class="navbar-menu">
+                <a href="account.html" id="myAccountLink">Mon Compte</a>
+                <a href="form.html?plan=paid" id="upgradeLink" class="upgrade-btn" style="display: none;">Passer à Premium</a>
+                <a href="#" id="logoutLink" class="logout-bt
