@@ -111,6 +111,23 @@
             margin: 5px 0;
             overflow-x: auto;
         }
+        /* Manual code entry styles */
+        #manualCode {
+            padding: 8px 12px;
+            margin-right: 10px;
+            text-transform: uppercase;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .validate-btn {
+            padding: 8px 15px;
+            font-size: 14px;
+            background-color: #69B578;
+        }
+        .validate-btn:hover {
+            background-color: #5a9d68;
+        }
     </style>
 </head>
 <body>
@@ -123,6 +140,14 @@
         <div id="downloadSection" class="download-section" style="display: none;">
             <h3 id="downloadTitle">📥 Votre application desktop est prête!</h3>
             <p id="downloadMessage">Cliquez ci-dessous pour télécharger l'application SyncVoice Medical pour Windows.</p>
+            
+            <!-- Add manual code entry option -->
+            <div id="manualCodeEntry" style="display: none; margin: 15px 0;">
+                <p id="manualCodePrompt" style="margin-bottom: 10px;">Entrez votre code d'activation reçu par email:</p>
+                <input type="text" id="manualCode" placeholder="Exemple: A1B2C3" style="padding: 8px 12px; margin-right: 10px; text-transform: uppercase; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+                <button class="btn validate-btn" onclick="saveManualCode()">Valider</button>
+            </div>
+            
             <button id="downloadBtn" class="btn download-btn" type="button">
                 <span id="downloadBtnText">Télécharger pour Windows</span>
             </button>
@@ -155,16 +180,125 @@
         const hasDownloadIntent = urlParams.get('download') === 'true';
         
         // Get user data from multiple sources (URL, sessionStorage, localStorage)
-        const userEmail = urlParams.get('email') || 
-                         sessionStorage.getItem('userEmail') || 
-                         localStorage.getItem('userEmail');
+        let userEmail = urlParams.get('email') || 
+                       sessionStorage.getItem('userEmail') || 
+                       localStorage.getItem('userEmail');
         
-        const activationCode = sessionStorage.getItem('activationCode') || 
-                              localStorage.getItem('activationCode');
+        let activationCode = sessionStorage.getItem('activationCode') || 
+                            localStorage.getItem('activationCode');
         
         const userId = urlParams.get('userId') || 
                       sessionStorage.getItem('userId') || 
                       localStorage.getItem('userId');
+
+        // Translations (moved to global scope)
+        const translations = {
+            fr: {
+                title: 'Succès!',
+                message: 'Veuillez vérifier votre email pour le code d\'activation.',
+                paidMessage: 'Votre paiement a été effectué avec succès. Vous pouvez maintenant accéder à toutes les fonctionnalités.',
+                homeBtn: 'Retour à l\'accueil',
+                downloadTitle: '📥 Votre application desktop est prête!',
+                downloadMessage: 'Cliquez ci-dessous pour télécharger l\'application SyncVoice Medical pour Windows.',
+                downloadBtnText: 'Télécharger pour Windows',
+                downloadNote: 'Système requis: Windows 10 ou supérieur',
+                downloadingText: 'Téléchargement en cours...',
+                downloadError: 'Erreur de téléchargement. Veuillez réessayer.',
+                missingCredentials: 'Veuillez d\'abord vérifier votre email pour obtenir le code d\'activation.',
+                checkingCredentials: 'Vérification des informations...',
+                manualCodePrompt: 'Entrez votre code d\'activation reçu par email:',
+                validateBtn: 'Valider',
+                invalidCode: 'Veuillez entrer un code valide (6 caractères minimum)'
+            },
+            en: {
+                title: 'Success!',
+                message: 'Please check your email for the activation code.',
+                paidMessage: 'Your payment was successful. You can now access all features.',
+                homeBtn: 'Back to Home',
+                downloadTitle: '📥 Your desktop application is ready!',
+                downloadMessage: 'Click below to download the SyncVoice Medical application for Windows.',
+                downloadBtnText: 'Download for Windows',
+                downloadNote: 'System requirements: Windows 10 or higher',
+                downloadingText: 'Downloading...',
+                downloadError: 'Download error. Please try again.',
+                missingCredentials: 'Please check your email first to get the activation code.',
+                checkingCredentials: 'Checking credentials...',
+                manualCodePrompt: 'Enter your activation code received by email:',
+                validateBtn: 'Validate',
+                invalidCode: 'Please enter a valid code (minimum 6 characters)'
+            },
+            de: {
+                title: 'Erfolg!',
+                message: 'Bitte überprüfen Sie Ihre E-Mail für den Aktivierungscode.',
+                paidMessage: 'Ihre Zahlung war erfolgreich. Sie können jetzt auf alle Funktionen zugreifen.',
+                homeBtn: 'Zurück zur Startseite',
+                downloadTitle: '📥 Ihre Desktop-Anwendung ist bereit!',
+                downloadMessage: 'Klicken Sie unten, um die SyncVoice Medical Anwendung für Windows herunterzuladen.',
+                downloadBtnText: 'Für Windows herunterladen',
+                downloadNote: 'Systemanforderungen: Windows 10 oder höher',
+                downloadingText: 'Wird heruntergeladen...',
+                downloadError: 'Download-Fehler. Bitte versuchen Sie es erneut.',
+                missingCredentials: 'Bitte überprüfen Sie zuerst Ihre E-Mail, um den Aktivierungscode zu erhalten.',
+                checkingCredentials: 'Anmeldeinformationen werden überprüft...',
+                manualCodePrompt: 'Geben Sie Ihren per E-Mail erhaltenen Aktivierungscode ein:',
+                validateBtn: 'Validieren',
+                invalidCode: 'Bitte geben Sie einen gültigen Code ein (mindestens 6 Zeichen)'
+            },
+            es: {
+                title: '¡Éxito!',
+                message: 'Por favor, revise su correo electrónico para el código de activación.',
+                paidMessage: 'Su pago fue exitoso. Ahora puede acceder a todas las funciones.',
+                homeBtn: 'Volver al inicio',
+                downloadTitle: '📥 ¡Su aplicación de escritorio está lista!',
+                downloadMessage: 'Haga clic abajo para descargar la aplicación SyncVoice Medical para Windows.',
+                downloadBtnText: 'Descargar para Windows',
+                downloadNote: 'Requisitos del sistema: Windows 10 o superior',
+                downloadingText: 'Descargando...',
+                downloadError: 'Error de descarga. Por favor, inténtelo de nuevo.',
+                missingCredentials: 'Por favor, revise su correo electrónico primero para obtener el código de activación.',
+                checkingCredentials: 'Verificando credenciales...',
+                manualCodePrompt: 'Ingrese su código de activación recibido por correo electrónico:',
+                validateBtn: 'Validar',
+                invalidCode: 'Por favor ingrese un código válido (mínimo 6 caracteres)'
+            },
+            it: {
+                title: 'Successo!',
+                message: 'Controlla la tua email per il codice di attivazione.',
+                paidMessage: 'Il tuo pagamento è andato a buon fine. Ora puoi accedere a tutte le funzionalità.',
+                homeBtn: 'Torna alla home',
+                downloadTitle: '📥 La tua applicazione desktop è pronta!',
+                downloadMessage: 'Clicca qui sotto per scaricare l\'applicazione SyncVoice Medical per Windows.',
+                downloadBtnText: 'Scarica per Windows',
+                downloadNote: 'Requisiti di sistema: Windows 10 o superiore',
+                downloadingText: 'Scaricando...',
+                downloadError: 'Errore di download. Riprova.',
+                missingCredentials: 'Controlla prima la tua email per ottenere il codice di attivazione.',
+                checkingCredentials: 'Verifica delle credenziali...',
+                manualCodePrompt: 'Inserisci il tuo codice di attivazione ricevuto via email:',
+                validateBtn: 'Valida',
+                invalidCode: 'Inserisci un codice valido (minimo 6 caratteri)'
+            },
+            pt: {
+                title: 'Sucesso!',
+                message: 'Por favor, verifique seu email para o código de ativação.',
+                paidMessage: 'Seu pagamento foi bem-sucedido. Agora você pode acessar todos os recursos.',
+                homeBtn: 'Voltar ao início',
+                downloadTitle: '📥 Sua aplicação desktop está pronta!',
+                downloadMessage: 'Clique abaixo para baixar a aplicação SyncVoice Medical para Windows.',
+                downloadBtnText: 'Baixar para Windows',
+                downloadNote: 'Requisitos do sistema: Windows 10 ou superior',
+                downloadingText: 'Baixando...',
+                downloadError: 'Erro de download. Tente novamente.',
+                missingCredentials: 'Por favor, verifique seu e-mail primeiro para obter o código de ativação.',
+                checkingCredentials: 'Verificando credenciais...',
+                manualCodePrompt: 'Digite seu código de ativação recebido por e-mail:',
+                validateBtn: 'Validar',
+                invalidCode: 'Por favor, digite um código válido (mínimo de 6 caracteres)'
+            }
+        };
+
+        // Get translations for current language
+        const t = translations[lang] || translations.fr;
         
         // Debug logging
         const debugData = {
@@ -200,96 +334,31 @@
             }
         }
 
-        // Translations
-        const translations = {
-            fr: {
-                title: 'Succès!',
-                message: 'Veuillez vérifier votre email pour le code d\'activation.',
-                paidMessage: 'Votre paiement a été effectué avec succès. Vous pouvez maintenant accéder à toutes les fonctionnalités.',
-                homeBtn: 'Retour à l\'accueil',
-                downloadTitle: '📥 Votre application desktop est prête!',
-                downloadMessage: 'Cliquez ci-dessous pour télécharger l\'application SyncVoice Medical pour Windows.',
-                downloadBtnText: 'Télécharger pour Windows',
-                downloadNote: 'Système requis: Windows 10 ou supérieur',
-                downloadingText: 'Téléchargement en cours...',
-                downloadError: 'Erreur de téléchargement. Veuillez réessayer.',
-                missingCredentials: 'Veuillez d\'abord vérifier votre email pour obtenir le code d\'activation.',
-                checkingCredentials: 'Vérification des informations...'
-            },
-            en: {
-                title: 'Success!',
-                message: 'Please check your email for the activation code.',
-                paidMessage: 'Your payment was successful. You can now access all features.',
-                homeBtn: 'Back to Home',
-                downloadTitle: '📥 Your desktop application is ready!',
-                downloadMessage: 'Click below to download the SyncVoice Medical application for Windows.',
-                downloadBtnText: 'Download for Windows',
-                downloadNote: 'System requirements: Windows 10 or higher',
-                downloadingText: 'Downloading...',
-                downloadError: 'Download error. Please try again.',
-                missingCredentials: 'Please check your email first to get the activation code.',
-                checkingCredentials: 'Checking credentials...'
-            },
-            de: {
-                title: 'Erfolg!',
-                message: 'Bitte überprüfen Sie Ihre E-Mail für den Aktivierungscode.',
-                paidMessage: 'Ihre Zahlung war erfolgreich. Sie können jetzt auf alle Funktionen zugreifen.',
-                homeBtn: 'Zurück zur Startseite',
-                downloadTitle: '📥 Ihre Desktop-Anwendung ist bereit!',
-                downloadMessage: 'Klicken Sie unten, um die SyncVoice Medical Anwendung für Windows herunterzuladen.',
-                downloadBtnText: 'Für Windows herunterladen',
-                downloadNote: 'Systemanforderungen: Windows 10 oder höher',
-                downloadingText: 'Wird heruntergeladen...',
-                downloadError: 'Download-Fehler. Bitte versuchen Sie es erneut.',
-                missingCredentials: 'Bitte überprüfen Sie zuerst Ihre E-Mail, um den Aktivierungscode zu erhalten.',
-                checkingCredentials: 'Anmeldeinformationen werden überprüft...'
-            },
-            es: {
-                title: '¡Éxito!',
-                message: 'Por favor, revise su correo electrónico para el código de activación.',
-                paidMessage: 'Su pago fue exitoso. Ahora puede acceder a todas las funciones.',
-                homeBtn: 'Volver al inicio',
-                downloadTitle: '📥 ¡Su aplicación de escritorio está lista!',
-                downloadMessage: 'Haga clic abajo para descargar la aplicación SyncVoice Medical para Windows.',
-                downloadBtnText: 'Descargar para Windows',
-                downloadNote: 'Requisitos del sistema: Windows 10 o superior',
-                downloadingText: 'Descargando...',
-                downloadError: 'Error de descarga. Por favor, inténtelo de nuevo.',
-                missingCredentials: 'Por favor, revise su correo electrónico primero para obtener el código de activación.',
-                checkingCredentials: 'Verificando credenciales...'
-            },
-            it: {
-                title: 'Successo!',
-                message: 'Controlla la tua email per il codice di attivazione.',
-                paidMessage: 'Il tuo pagamento è andato a buon fine. Ora puoi accedere a tutte le funzionalità.',
-                homeBtn: 'Torna alla home',
-                downloadTitle: '📥 La tua applicazione desktop è pronta!',
-                downloadMessage: 'Clicca qui sotto per scaricare l\'applicazione SyncVoice Medical per Windows.',
-                downloadBtnText: 'Scarica per Windows',
-                downloadNote: 'Requisiti di sistema: Windows 10 o superiore',
-                downloadingText: 'Scaricando...',
-                downloadError: 'Errore di download. Riprova.',
-                missingCredentials: 'Controlla prima la tua email per ottenere il codice di attivazione.',
-                checkingCredentials: 'Verifica delle credenziali...'
-            },
-            pt: {
-                title: 'Sucesso!',
-                message: 'Por favor, verifique seu email para o código de ativação.',
-                paidMessage: 'Seu pagamento foi bem-sucedido. Agora você pode acessar todos os recursos.',
-                homeBtn: 'Voltar ao início',
-                downloadTitle: '📥 Sua aplicação desktop está pronta!',
-                downloadMessage: 'Clique abaixo para baixar a aplicação SyncVoice Medical para Windows.',
-                downloadBtnText: 'Baixar para Windows',
-                downloadNote: 'Requisitos do sistema: Windows 10 ou superior',
-                downloadingText: 'Baixando...',
-                downloadError: 'Erro de download. Tente novamente.',
-                missingCredentials: 'Por favor, verifique seu e-mail primeiro para obter o código de ativação.',
-                checkingCredentials: 'Verificando credenciais...'
+        // Function to save manual code (moved to global scope)
+        function saveManualCode() {
+            const manualCode = document.getElementById('manualCode').value.trim().toUpperCase();
+            if (manualCode && manualCode.length >= 6) {
+                sessionStorage.setItem('activationCode', manualCode);
+                localStorage.setItem('activationCode', manualCode);
+                activationCode = manualCode; // Update the global variable
+                console.log('Manual code saved:', manualCode);
+                
+                // Hide the manual entry
+                document.getElementById('manualCodeEntry').style.display = 'none';
+                
+                // Try download again
+                if (userEmail) {
+                    initiateDownload(userEmail, manualCode);
+                }
+            } else {
+                alert(t.invalidCode);
             }
-        };
+        }
+
+        // Make saveManualCode globally accessible
+        window.saveManualCode = saveManualCode;
 
         // Apply translations
-        const t = translations[lang] || translations.fr;
         document.getElementById('successTitle').textContent = t.title;
         document.getElementById('successMessage').textContent = t.message;
         document.getElementById('paidMessage').textContent = t.paidMessage;
@@ -301,6 +370,12 @@
         document.getElementById('downloadMessage').textContent = t.downloadMessage;
         document.getElementById('downloadBtnText').textContent = t.downloadBtnText;
         document.getElementById('downloadNote').textContent = t.downloadNote;
+        
+        // Apply manual code entry translations
+        const manualCodePrompt = document.getElementById('manualCodePrompt');
+        if (manualCodePrompt) {
+            manualCodePrompt.textContent = t.manualCodePrompt;
+        }
 
         // Show paid info if applicable
         if (isPaid) {
@@ -316,81 +391,7 @@
         // Set page language
         document.documentElement.lang = lang;
 
-        // Handle desktop app download
-        const downloadBtn = document.getElementById('downloadBtn');
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', async function(e) {
-                e.preventDefault();
-                
-                const downloadBtnText = document.getElementById('downloadBtnText');
-                const originalText = downloadBtnText.textContent;
-                
-                console.log('Download button clicked');
-                console.log('Current credentials:', {
-                    email: userEmail,
-                    activationCode: activationCode ? 'present' : 'missing',
-                    userId: userId
-                });
-                
-                // Check if we need to wait for activation code
-                if (!activationCode && userEmail) {
-                    console.log('No activation code found, checking email was sent...');
-                    
-                    // Update button to show checking status
-                    downloadBtn.classList.add('loading');
-                    downloadBtn.disabled = true;
-                    downloadBtnText.textContent = t.checkingCredentials;
-                    
-                    // Try to retrieve activation code from storage after a delay
-                    let attempts = 0;
-                    const maxAttempts = 10;
-                    
-                    const checkForCode = setInterval(() => {
-                        attempts++;
-                        
-                        const storedCode = sessionStorage.getItem('activationCode') || 
-                                          localStorage.getItem('activationCode');
-                        
-                        if (storedCode) {
-                            console.log('Activation code found after waiting');
-                            clearInterval(checkForCode);
-                            
-                            // Reset button
-                            downloadBtn.classList.remove('loading');
-                            downloadBtn.disabled = false;
-                            downloadBtnText.textContent = originalText;
-                            
-                            // Proceed with download
-                            initiateDownload(userEmail, storedCode);
-                        } else if (attempts >= maxAttempts) {
-                            console.log('Activation code not found after waiting');
-                            clearInterval(checkForCode);
-                            
-                            // Reset button
-                            downloadBtn.classList.remove('loading');
-                            downloadBtn.disabled = false;
-                            downloadBtnText.textContent = originalText;
-                            
-                            // Show error
-                            alert(t.missingCredentials);
-                        }
-                    }, 1000);
-                    
-                    return;
-                }
-                
-                // If we have credentials, proceed with download
-                if (!userEmail || !activationCode) {
-                    alert(t.missingCredentials);
-                    console.error('Missing credentials:', { userEmail, activationCode });
-                    return;
-                }
-                
-                initiateDownload(userEmail, activationCode);
-            });
-        }
-
-        // Function to initiate download
+        // Function to initiate download (moved to global scope)
         function initiateDownload(email, code) {
             const downloadBtn = document.getElementById('downloadBtn');
             const downloadBtnText = document.getElementById('downloadBtnText');
@@ -421,6 +422,53 @@
                 downloadBtn.disabled = false;
                 downloadBtnText.textContent = originalText;
             }, 5000);
+        }
+
+        // Handle desktop app download
+        const downloadBtn = document.getElementById('downloadBtn');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                
+                const downloadBtnText = document.getElementById('downloadBtnText');
+                const originalText = downloadBtnText.textContent;
+                
+                console.log('Download button clicked');
+                console.log('Current credentials:', {
+                    email: userEmail,
+                    activationCode: activationCode ? 'present' : 'missing',
+                    userId: userId
+                });
+                
+                // Check if we need to wait for activation code
+                if (!activationCode && userEmail) {
+                    console.log('No activation code found, showing manual entry...');
+                    
+                    // Show manual code entry option immediately
+                    const manualEntry = document.getElementById('manualCodeEntry');
+                    if (manualEntry) {
+                        manualEntry.style.display = 'block';
+                    }
+                    
+                    alert(t.missingCredentials);
+                    return;
+                }
+                
+                // If we have credentials, proceed with download
+                if (!userEmail || !activationCode) {
+                    // Show manual code entry option
+                    const manualEntry = document.getElementById('manualCodeEntry');
+                    if (manualEntry) {
+                        manualEntry.style.display = 'block';
+                    }
+                    
+                    alert(t.missingCredentials);
+                    console.error('Missing credentials:', { userEmail, activationCode });
+                    return;
+                }
+                
+                initiateDownload(userEmail, activationCode);
+            });
         }
 
         // Auto-save email if it comes from URL but isn't in storage

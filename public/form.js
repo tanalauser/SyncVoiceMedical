@@ -941,6 +941,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 if (result.success) {
+                    console.log('Storing user data:', {
+        email: email,
+        activationCode: result.activationCode,
+        userId: result.userId
+    });
+    
+    // Store in both sessionStorage and localStorage
+    if (email) {
+        sessionStorage.setItem('userEmail', email);
+        localStorage.setItem('userEmail', email);
+    }
+    
+    if (result.activationCode) {
+        sessionStorage.setItem('activationCode', result.activationCode);
+        localStorage.setItem('activationCode', result.activationCode);
+        console.log('Activation code stored:', result.activationCode);
+    }
+    
+    if (result.userId) {
+        sessionStorage.setItem('userId', result.userId);
+        localStorage.setItem('userId', result.userId);
+    }
+    
                     if (result.requiresPayment && plan === 'paid') {
                         if (!stripe) {
                             throw new Error('Stripe is not initialized');
