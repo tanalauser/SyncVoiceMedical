@@ -980,13 +980,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 throw new Error(t.paymentError + error.message);
                             } else {
                                 console.log('Payment successful:', paymentIntent);
+
+                                if (result.userId) {
+        sessionStorage.setItem('userId', result.userId);
+    }
+    if (result.activationCode) {
+        sessionStorage.setItem('activationCode', result.activationCode);
+    }
+    if (result.userEmail || email) {
+        sessionStorage.setItem('userEmail', result.userEmail || email);
+    }
+    
+    // Also save to localStorage for persistence
+    localStorage.setItem('userEmail', result.userEmail || email);
+    if (result.activationCode) {
+        localStorage.setItem('activationCode', result.activationCode);
+    }
+
+
                                 alert(t.paymentSuccess);
-                                
-                                // NEW: Preserve download intent in success URL
+
                                 const successUrl = downloadIntent 
-                                    ? `success.html?lang=${lang}&paid=true&download=true`
-                                    : `success.html?lang=${lang}&paid=true`;
-                                window.location.href = successUrl;
+        ? `success.html?lang=${lang}&paid=true&download=true&email=${encodeURIComponent(email)}`
+        : `success.html?lang=${lang}&paid=true&email=${encodeURIComponent(email)}`;
+    window.location.href = successUrl;
+                                
                             }
                         } catch (paymentError) {
                             console.error('Stripe payment error:', paymentError);
@@ -994,6 +1012,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     } else {
                         console.log('Free plan activation successful, preparing redirect...');
+
+                        if (result.userId) {
+        sessionStorage.setItem('userId', result.userId);
+    }
+    if (result.activationCode) {
+        sessionStorage.setItem('activationCode', result.activationCode);
+    }
+    if (result.userEmail || email) {
+        sessionStorage.setItem('userEmail', result.userEmail || email);
+    }
+    
+    // Also save to localStorage for persistence
+    localStorage.setItem('userEmail', result.userEmail || email);
+    if (result.activationCode) {
+        localStorage.setItem('activationCode', result.activationCode);
+    }
+    
+    console.log('Saved to storage:', {
+        userId: result.userId,
+        activationCode: result.activationCode,
+        userEmail: result.userEmail || email
+    });
                         
                         let successMessage = t.activationCodeMessage;
                         

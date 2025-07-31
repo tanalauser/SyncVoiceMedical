@@ -542,6 +542,14 @@ app.post('/api/forgot-password', async (req, res) => {
         user.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000);
         
         await user.save();
+
+        res.json({
+    success: true,
+    message: t.success,
+    userId: user._id.toString(),
+    activationCode: user.activationCode,  // Add this line
+    userEmail: user.email                 // Add this line
+});
         
         const resetLink = `${BASE_URL}/reset-password.html?token=${resetToken}&email=${encodeURIComponent(email)}`;
         

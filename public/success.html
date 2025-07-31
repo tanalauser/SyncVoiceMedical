@@ -48,11 +48,13 @@
             font-size: 16px;
             transition: background-color 0.3s;
             margin: 10px;
+            border: none;
+            cursor: pointer;
         }
         .btn:hover {
             background-color: #5a9d68;
         }
-        /* NEW: Download button styles */
+        /* Download button styles */
         .download-btn {
             background-color: #296396;
             font-weight: 600;
@@ -60,13 +62,17 @@
         .download-btn:hover {
             background-color: #1e4d73;
         }
+        .download-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
         .paid-info {
             background-color: #e8f5e9;
             padding: 20px;
             border-radius: 5px;
             margin-top: 20px;
         }
-        /* NEW: Download section styles */
+        /* Download section styles */
         .download-section {
             background: linear-gradient(135deg, #e3f2fd, #bbdefb);
             border: 1px solid #2196F3;
@@ -86,6 +92,25 @@
             opacity: 0.7;
             cursor: not-allowed;
         }
+        /* Debug info styles */
+        .debug-info {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: left;
+            display: none;
+        }
+        .debug-info h4 {
+            margin-top: 0;
+            color: #666;
+        }
+        .debug-info pre {
+            margin: 5px 0;
+            overflow-x: auto;
+        }
     </style>
 </head>
 <body>
@@ -94,11 +119,11 @@
         <h1 id="successTitle">Succès!</h1>
         <p id="successMessage">Veuillez vérifier votre email pour le code d'activation.</p>
         
-        <!-- NEW: Download section for desktop app -->
+        <!-- Download section for desktop app -->
         <div id="downloadSection" class="download-section" style="display: none;">
             <h3 id="downloadTitle">📥 Votre application desktop est prête!</h3>
             <p id="downloadMessage">Cliquez ci-dessous pour télécharger l'application SyncVoice Medical pour Windows.</p>
-            <button id="downloadBtn" class="btn download-btn" onclick="handleDownload()">
+            <button id="downloadBtn" class="btn download-btn" type="button">
                 <span id="downloadBtnText">Télécharger pour Windows</span>
             </button>
             <p><small id="downloadNote">Système requis: Windows 10 ou supérieur</small></p>
@@ -111,14 +136,69 @@
         <div class="button-group">
             <a href="index.html" class="btn" id="homeBtn">Retour à l'accueil</a>
         </div>
+
+        <!-- Debug info section (hidden by default) -->
+        <div id="debugInfo" class="debug-info">
+            <h4>Debug Information:</h4>
+            <pre id="debugContent"></pre>
+        </div>
     </div>
 
     <script>
+        // Enable debug mode by adding ?debug=true to URL
+        const enableDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
+        
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const lang = urlParams.get('lang') || 'fr';
         const isPaid = urlParams.get('paid') === 'true';
-        const hasDownloadIntent = urlParams.get('download') === 'true'; // NEW: Check for download intent
+        const hasDownloadIntent = urlParams.get('download') === 'true';
+        
+        // Get user data from multiple sources (URL, sessionStorage, localStorage)
+        const userEmail = urlParams.get('email') || 
+                         sessionStorage.getItem('userEmail') || 
+                         localStorage.getItem('userEmail');
+        
+        const activationCode = sessionStorage.getItem('activationCode') || 
+                              localStorage.getItem('activationCode');
+        
+        const userId = urlParams.get('userId') || 
+                      sessionStorage.getItem('userId') || 
+                      localStorage.getItem('userId');
+        
+        // Debug logging
+        const debugData = {
+            timestamp: new Date().toISOString(),
+            urlParams: Object.fromEntries(urlParams.entries()),
+            lang,
+            isPaid,
+            hasDownloadIntent,
+            userEmail,
+            userId,
+            activationCode: activationCode ? activationCode.substring(0, 3) + '***' : null,
+            sessionStorage: {
+                userEmail: sessionStorage.getItem('userEmail'),
+                activationCode: sessionStorage.getItem('activationCode') ? 'present' : 'missing',
+                userId: sessionStorage.getItem('userId')
+            },
+            localStorage: {
+                userEmail: localStorage.getItem('userEmail'),
+                activationCode: localStorage.getItem('activationCode') ? 'present' : 'missing',
+                userId: localStorage.getItem('userId')
+            }
+        };
+        
+        console.log('Success page loaded with:', debugData);
+        
+        // Show debug info if enabled
+        if (enableDebug) {
+            const debugInfoEl = document.getElementById('debugInfo');
+            const debugContentEl = document.getElementById('debugContent');
+            if (debugInfoEl && debugContentEl) {
+                debugInfoEl.style.display = 'block';
+                debugContentEl.textContent = JSON.stringify(debugData, null, 2);
+            }
+        }
 
         // Translations
         const translations = {
@@ -127,78 +207,84 @@
                 message: 'Veuillez vérifier votre email pour le code d\'activation.',
                 paidMessage: 'Votre paiement a été effectué avec succès. Vous pouvez maintenant accéder à toutes les fonctionnalités.',
                 homeBtn: 'Retour à l\'accueil',
-                // NEW: Download translations
                 downloadTitle: '📥 Votre application desktop est prête!',
                 downloadMessage: 'Cliquez ci-dessous pour télécharger l\'application SyncVoice Medical pour Windows.',
                 downloadBtnText: 'Télécharger pour Windows',
                 downloadNote: 'Système requis: Windows 10 ou supérieur',
                 downloadingText: 'Téléchargement en cours...',
-                downloadError: 'Erreur de téléchargement. Veuillez réessayer.'
+                downloadError: 'Erreur de téléchargement. Veuillez réessayer.',
+                missingCredentials: 'Veuillez d\'abord vérifier votre email pour obtenir le code d\'activation.',
+                checkingCredentials: 'Vérification des informations...'
             },
             en: {
                 title: 'Success!',
                 message: 'Please check your email for the activation code.',
                 paidMessage: 'Your payment was successful. You can now access all features.',
                 homeBtn: 'Back to Home',
-                // NEW: Download translations
                 downloadTitle: '📥 Your desktop application is ready!',
                 downloadMessage: 'Click below to download the SyncVoice Medical application for Windows.',
                 downloadBtnText: 'Download for Windows',
                 downloadNote: 'System requirements: Windows 10 or higher',
                 downloadingText: 'Downloading...',
-                downloadError: 'Download error. Please try again.'
+                downloadError: 'Download error. Please try again.',
+                missingCredentials: 'Please check your email first to get the activation code.',
+                checkingCredentials: 'Checking credentials...'
             },
             de: {
                 title: 'Erfolg!',
                 message: 'Bitte überprüfen Sie Ihre E-Mail für den Aktivierungscode.',
                 paidMessage: 'Ihre Zahlung war erfolgreich. Sie können jetzt auf alle Funktionen zugreifen.',
                 homeBtn: 'Zurück zur Startseite',
-                // NEW: Download translations
                 downloadTitle: '📥 Ihre Desktop-Anwendung ist bereit!',
                 downloadMessage: 'Klicken Sie unten, um die SyncVoice Medical Anwendung für Windows herunterzuladen.',
                 downloadBtnText: 'Für Windows herunterladen',
                 downloadNote: 'Systemanforderungen: Windows 10 oder höher',
                 downloadingText: 'Wird heruntergeladen...',
-                downloadError: 'Download-Fehler. Bitte versuchen Sie es erneut.'
+                downloadError: 'Download-Fehler. Bitte versuchen Sie es erneut.',
+                missingCredentials: 'Bitte überprüfen Sie zuerst Ihre E-Mail, um den Aktivierungscode zu erhalten.',
+                checkingCredentials: 'Anmeldeinformationen werden überprüft...'
             },
             es: {
                 title: '¡Éxito!',
                 message: 'Por favor, revise su correo electrónico para el código de activación.',
                 paidMessage: 'Su pago fue exitoso. Ahora puede acceder a todas las funciones.',
                 homeBtn: 'Volver al inicio',
-                // NEW: Download translations
                 downloadTitle: '📥 ¡Su aplicación de escritorio está lista!',
                 downloadMessage: 'Haga clic abajo para descargar la aplicación SyncVoice Medical para Windows.',
                 downloadBtnText: 'Descargar para Windows',
                 downloadNote: 'Requisitos del sistema: Windows 10 o superior',
                 downloadingText: 'Descargando...',
-                downloadError: 'Error de descarga. Por favor, inténtelo de nuevo.'
+                downloadError: 'Error de descarga. Por favor, inténtelo de nuevo.',
+                missingCredentials: 'Por favor, revise su correo electrónico primero para obtener el código de activación.',
+                checkingCredentials: 'Verificando credenciales...'
             },
             it: {
                 title: 'Successo!',
                 message: 'Controlla la tua email per il codice di attivazione.',
                 paidMessage: 'Il tuo pagamento è andato a buon fine. Ora puoi accedere a tutte le funzionalità.',
                 homeBtn: 'Torna alla home',
-                // NEW: Download translations
                 downloadTitle: '📥 La tua applicazione desktop è pronta!',
                 downloadMessage: 'Clicca qui sotto per scaricare l\'applicazione SyncVoice Medical per Windows.',
                 downloadBtnText: 'Scarica per Windows',
                 downloadNote: 'Requisiti di sistema: Windows 10 o superiore',
                 downloadingText: 'Scaricando...',
-                downloadError: 'Errore di download. Riprova.'
+                downloadError: 'Errore di download. Riprova.',
+                missingCredentials: 'Controlla prima la tua email per ottenere il codice di attivazione.',
+                checkingCredentials: 'Verifica delle credenziali...'
             },
             pt: {
                 title: 'Sucesso!',
                 message: 'Por favor, verifique seu email para o código de ativação.',
                 paidMessage: 'Seu pagamento foi bem-sucedido. Agora você pode acessar todos os recursos.',
                 homeBtn: 'Voltar ao início',
-                // NEW: Download translations
                 downloadTitle: '📥 Sua aplicação desktop está pronta!',
                 downloadMessage: 'Clique abaixo para baixar a aplicação SyncVoice Medical para Windows.',
                 downloadBtnText: 'Baixar para Windows',
                 downloadNote: 'Requisitos do sistema: Windows 10 ou superior',
                 downloadingText: 'Baixando...',
-                downloadError: 'Erro de download. Tente novamente.'
+                downloadError: 'Erro de download. Tente novamente.',
+                missingCredentials: 'Por favor, verifique seu e-mail primeiro para obter o código de ativação.',
+                checkingCredentials: 'Verificando credenciais...'
             }
         };
 
@@ -210,7 +296,7 @@
         document.getElementById('homeBtn').textContent = t.homeBtn;
         document.getElementById('homeBtn').href = `index.html?lang=${lang}`;
 
-        // NEW: Apply download translations
+        // Apply download translations
         document.getElementById('downloadTitle').textContent = t.downloadTitle;
         document.getElementById('downloadMessage').textContent = t.downloadMessage;
         document.getElementById('downloadBtnText').textContent = t.downloadBtnText;
@@ -221,7 +307,7 @@
             document.getElementById('paidInfo').style.display = 'block';
         }
 
-        // NEW: Show download section if user came from download intent
+        // Show download section if user came from download intent
         if (hasDownloadIntent) {
             console.log('Download intent detected, showing download section');
             document.getElementById('downloadSection').style.display = 'block';
@@ -230,73 +316,125 @@
         // Set page language
         document.documentElement.lang = lang;
 
-        // NEW: Handle desktop app download
-        function handleDownload() {
-            const downloadBtn = document.getElementById('desktopDownloadBtn');
-if (downloadBtn) {
-    downloadBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Get user credentials from URL parameters or storage
-        const urlParams = new URLSearchParams(window.location.search);
-        const email = urlParams.get('email') || localStorage.getItem('userEmail');
-        const code = urlParams.get('code') || localStorage.getItem('activationCode');
-        const lang = urlParams.get('lang') || 'en';
-        
-        if (email && code) {
-            window.location.href = `/api/download-desktop?lang=${lang}&email=${encodeURIComponent(email)}&code=${code}&source=success`;
-        } else {
-            alert('Missing credentials. Please contact support.');
+        // Handle desktop app download
+        const downloadBtn = document.getElementById('downloadBtn');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                
+                const downloadBtnText = document.getElementById('downloadBtnText');
+                const originalText = downloadBtnText.textContent;
+                
+                console.log('Download button clicked');
+                console.log('Current credentials:', {
+                    email: userEmail,
+                    activationCode: activationCode ? 'present' : 'missing',
+                    userId: userId
+                });
+                
+                // Check if we need to wait for activation code
+                if (!activationCode && userEmail) {
+                    console.log('No activation code found, checking email was sent...');
+                    
+                    // Update button to show checking status
+                    downloadBtn.classList.add('loading');
+                    downloadBtn.disabled = true;
+                    downloadBtnText.textContent = t.checkingCredentials;
+                    
+                    // Try to retrieve activation code from storage after a delay
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    
+                    const checkForCode = setInterval(() => {
+                        attempts++;
+                        
+                        const storedCode = sessionStorage.getItem('activationCode') || 
+                                          localStorage.getItem('activationCode');
+                        
+                        if (storedCode) {
+                            console.log('Activation code found after waiting');
+                            clearInterval(checkForCode);
+                            
+                            // Reset button
+                            downloadBtn.classList.remove('loading');
+                            downloadBtn.disabled = false;
+                            downloadBtnText.textContent = originalText;
+                            
+                            // Proceed with download
+                            initiateDownload(userEmail, storedCode);
+                        } else if (attempts >= maxAttempts) {
+                            console.log('Activation code not found after waiting');
+                            clearInterval(checkForCode);
+                            
+                            // Reset button
+                            downloadBtn.classList.remove('loading');
+                            downloadBtn.disabled = false;
+                            downloadBtnText.textContent = originalText;
+                            
+                            // Show error
+                            alert(t.missingCredentials);
+                        }
+                    }, 1000);
+                    
+                    return;
+                }
+                
+                // If we have credentials, proceed with download
+                if (!userEmail || !activationCode) {
+                    alert(t.missingCredentials);
+                    console.error('Missing credentials:', { userEmail, activationCode });
+                    return;
+                }
+                
+                initiateDownload(userEmail, activationCode);
+            });
         }
-    });
-}
+
+        // Function to initiate download
+        function initiateDownload(email, code) {
+            const downloadBtn = document.getElementById('downloadBtn');
             const downloadBtnText = document.getElementById('downloadBtnText');
             const originalText = downloadBtnText.textContent;
             
-            console.log('Download button clicked');
+            console.log('Initiating download with:', {
+                email: email,
+                code: code,
+                lang: lang
+            });
             
             // Update button state
             downloadBtn.classList.add('loading');
             downloadBtn.disabled = true;
             downloadBtnText.textContent = t.downloadingText;
             
-            // Trigger download
-            try {
-                // Create a temporary link to trigger download
-                const downloadUrl = `/api/download-desktop?lang=${lang}&source=success`;
-                
-                // Method 1: Try direct navigation
-                window.location.href = downloadUrl;
-                
-                // Method 2: Fallback with temporary link
-                setTimeout(() => {
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = 'SyncVoiceMedical-Setup.exe';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                }, 1000);
-                
-            } catch (error) {
-                console.error('Download error:', error);
-                alert(t.downloadError);
-            }
+            // Build download URL with credentials
+            const downloadUrl = `/api/download-desktop?lang=${lang}&email=${encodeURIComponent(email)}&code=${code}&source=success`;
             
-            // Reset button after 3 seconds
+            console.log('Redirecting to:', downloadUrl);
+            
+            // Redirect to download endpoint
+            window.location.href = downloadUrl;
+            
+            // Reset button after 5 seconds (in case download doesn't redirect)
             setTimeout(() => {
                 downloadBtn.classList.remove('loading');
                 downloadBtn.disabled = false;
                 downloadBtnText.textContent = originalText;
-            }, 3000);
+            }, 5000);
         }
 
-        // Debug logging
-        console.log('Success page loaded with parameters:', {
-            lang: lang,
-            isPaid: isPaid,
-            hasDownloadIntent: hasDownloadIntent
-        });
+        // Auto-save email if it comes from URL but isn't in storage
+        if (userEmail && urlParams.get('email')) {
+            if (!sessionStorage.getItem('userEmail')) {
+                sessionStorage.setItem('userEmail', userEmail);
+            }
+            if (!localStorage.getItem('userEmail')) {
+                localStorage.setItem('userEmail', userEmail);
+            }
+        }
+
+        // Log final state
+        console.log('Success page initialization complete');
     </script>
 </body>
 </html>
