@@ -1809,13 +1809,13 @@ hasUsedSpeechBefore = true; // Set flag to skip countdown next time
         
         // Helper function to create section header with clear button
         function createSectionHeader(sectionId, title) {
-            return `
-                <div class="section-header-container">
-                    <div id="section-${sectionId}" class="section-header" data-section="${sectionId}">[${title.replace(':', '')}]</div>
-                    <button id="clear-${sectionId}" class="clear-section-btn" data-section="${sectionId}">${t.clearSection}</button>
-                </div>
-            `;
-        }
+    return `
+        <div class="section-header-container">
+            <div id="section-${sectionId}" class="section-header" data-section="${sectionId}">[${title.replace(':', '')}]</div>
+            <button type="button" id="clear-${sectionId}" class="clear-section-btn" data-section="${sectionId}">${t.clearSection}</button>
+        </div>
+    `;
+}
         
         // Template sections HTML generation based on template type - Making all content divs contenteditable
         switch(templateType) {
@@ -1910,26 +1910,28 @@ hasUsedSpeechBefore = true; // Set flag to skip countdown next time
         
         // Create template action buttons
         const generateWordBtn = document.createElement('button');
-        generateWordBtn.id = 'generateWordBtn';
-        generateWordBtn.className = 'btn action-btn';
-        generateWordBtn.innerHTML = `
-            <svg class="icon" viewBox="0 0 24 24">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                <path d="M14 8V2l6 6h-6z"/>
-                <path d="M5 12.5h14M5 16.5h14M5 8.5h8"/>
-            </svg>
-            <span class="btn-text">${t.generateButton}</span>
-        `;
-        
-        const exitTemplateBtn = document.createElement('button');
-        exitTemplateBtn.id = 'exitTemplateBtn';
-        exitTemplateBtn.className = 'btn action-btn';
-        exitTemplateBtn.innerHTML = `
-            <svg class="icon" viewBox="0 0 24 24">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
-            </svg>
-            <span class="btn-text">${t.exitTemplate}</span>
-        `;
+generateWordBtn.type = 'button'; // Add this line
+generateWordBtn.id = 'generateWordBtn';
+generateWordBtn.className = 'btn action-btn';
+generateWordBtn.innerHTML = `
+    <svg class="icon" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+        <path d="M14 8V2l6 6h-6z"/>
+        <path d="M5 12.5h14M5 16.5h14M5 8.5h8"/>
+    </svg>
+    <span class="btn-text">${t.generateButton}</span>
+`;
+
+const exitTemplateBtn = document.createElement('button');
+exitTemplateBtn.type = 'button'; // Add this line
+exitTemplateBtn.id = 'exitTemplateBtn';
+exitTemplateBtn.className = 'btn action-btn';
+exitTemplateBtn.innerHTML = `
+    <svg class="icon" viewBox="0 0 24 24">
+        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+    </svg>
+    <span class="btn-text">${t.exitTemplate}</span>
+`;
         
         // Apply styles to the buttons
         generateWordBtn.style.backgroundColor = '#69B578';
@@ -2196,26 +2198,44 @@ hasUsedSpeechBefore = true; // Set flag to skip countdown next time
 
     // Function to generate Word document
     function generateWordDocument(templateType) {
-        try {
-            if (typeof docx === 'undefined') {
-                console.error('docx library not loaded');
-                alert(translations[currentLang].libraryNotLoaded);
-                return;
-            }
-
-            // Update section content from the DOM before generating the document
-            updateSectionContentFromDOM();
-
-            const doc = templateHandlers[templateType](sectionContent, currentLang);
-            docx.Packer.toBlob(doc).then(blob => {
-                saveAs(blob, `document_${templateType}_${new Date().toISOString().slice(0,10)}.docx`);
-            });
-            
-        } catch (error) {
-            console.error('Error generating document:', error);
-            alert(`${translations[currentLang].docError}${error.message}`);
+    try {
+        if (typeof docx === 'undefined') {
+            console.error('docx library not loaded');
+            alert(translations[currentLang].libraryNotLoaded);
+            return;
         }
+
+        // Show loading state
+        const generateBtn = document.getElementById('generateWordBtn');
+        const originalText = generateBtn.innerHTML;
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = `<span class="btn-text">${translations[currentLang].loading || 'Generating...'}</span>`;
+
+        // Update section content from the DOM before generating the document
+        updateSectionContentFromDOM();
+
+        const doc = templateHandlers[templateType](sectionContent, currentLang);
+        
+        docx.Packer.toBlob(doc).then(blob => {
+            saveAs(blob, `document_${templateType}_${new Date().toISOString().slice(0,10)}.docx`);
+            
+            // Restore button state
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = originalText;
+        }).catch(error => {
+            console.error('Error packing document:', error);
+            alert(`${translations[currentLang].docError}${error.message}`);
+            
+            // Restore button state
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = originalText;
+        });
+        
+    } catch (error) {
+        console.error('Error generating document:', error);
+        alert(`${translations[currentLang].docError}${error.message}`);
     }
+}
 
     // Template handlers with translations
     const templateHandlers = {
