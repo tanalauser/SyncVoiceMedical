@@ -4,29 +4,346 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Add browser recommendation banner for Firefox users
     addBrowserRecommendationBanner();
-    
-    // Get language using shared module
+
+    // MOVED: Translations object to the top to fix ReferenceError
+    const translations = {
+        fr: {
+            speakNow: 'Parlez maintenant',
+            countdown: 'Démarrage dans',
+            gettingReady: 'Préparation...',
+            speak: 'Parlez en Français',
+            pause: 'Pause',
+            stop: 'Stop',
+            copy: 'Copiez tout dans<br>le presse-papier',
+            copied: 'Copié!',
+            template: 'Utilisez un modèle<br>Word',
+            quit: 'Quitter',
+            clearAll: 'Tout Effacer',
+            clearSection: 'Effacer',
+            placeholder: 'Appuyez sur le bouton "Parlez en Français", attendez que le compte à rebours se termine, puis parlez. Votre transcription apparaîtra ici...',
+            confirmQuit: 'Voulez-vous vraiment quitter ? Tout texte non sauvegardé sera perdu.',
+            browserSupport: 'Votre navigateur ne supporte pas la transcription vocale.',
+            noCode: 'Succès du code d\'activation.',
+            aiCanMakeMistakes: "* L'IA peut faire des erreurs. Veuillez vérifier la transcription.",
+            libraryNotLoaded: 'Erreur : La bibliothèque de génération de documents n\'est pas chargée.',
+            noText: 'Veuillez d\'abord ajouter du texte à transcrire.',
+            docError: 'Erreur lors de la génération du document : ',
+            modalTitle: 'Choisissez un modèle',
+            initError: 'Erreur d\'initialisation de la reconnaissance vocale.',
+            consultationTitle: "CONSULTATION MÉDICALE",
+            consultationReason: "MOTIF DE CONSULTATION:",
+            consultationHistory: "ANTÉCÉDENTS:",
+            consultationExam: "EXAMEN CLINIQUE:",
+            consultationConclusion: "CONCLUSION:",
+            specialistTitle: "COMPTE RENDU DE CONSULTATION SPÉCIALISÉE",
+            specialistSpecialty: "SPÉCIALITÉ:",
+            specialistReason: "MOTIF DE CONSULTATION:",
+            specialistExams: "EXAMENS COMPLÉMENTAIRES:",
+            specialistDiagnosis: "DIAGNOSTIC:",
+            specialistRecommendations: "RECOMMANDATIONS:",
+            generateButton: 'Générer fichier Word',
+            continueEditing: 'Continuer l\'édition',
+            exitTemplate: 'Sortir du modèle',
+            myAccount: 'Mon Compte',
+            upgrade: 'Passer à Premium',
+            logout: 'Se déconnecter',
+            userLabel: 'Utilisateur',
+            statusLabel: 'Statut',
+            daysLabel: 'Jours restants',
+            trialBadge: 'Essai gratuit',
+            premiumBadge: 'Premium',
+            appTitle: 'Transcription Vocale',
+            appSubtitle: 'Commencez à dicter pour transcrire votre texte',
+            subjectLabel: 'Sujet / Référence:',
+            subjectPlaceholder: 'Ex: Consultation du 31/07/2025',
+            transcriptionLabel: 'Transcription:',
+            transcriptionPlaceholder: 'Le texte transcrit apparaîtra ici...',
+            footerText: 'Tous droits réservés.'
+        },
+        en: {
+            speakNow: 'Speak now',
+            countdown: 'Starting in',
+            gettingReady: 'Getting ready...',
+            speak: 'Speak in English',
+            pause: 'Pause',
+            stop: 'Stop',
+            copy: 'Copy all to<br>clipboard',
+            copied: 'Copied!',
+            template: 'Use a Word<br>template',
+            quit: 'Quit',
+            clearAll: 'Clear All',
+            clearSection: 'Clear',
+            placeholder: 'Press the "Speak in English" button, wait for the countdown to finish, then speak. Your transcription will appear here...',
+            confirmQuit: 'Do you really want to quit? Any unsaved text will be lost.',
+            browserSupport: 'Your browser does not support voice transcription.',
+            noCode: 'Successful activation code.',
+            aiCanMakeMistakes: "* AI can make mistakes. Please verify the transcription.",
+            libraryNotLoaded: 'Error: Document generation library not loaded.',
+            noText: 'Please add text to transcribe first.',
+            docError: 'Error generating document: ',
+            modalTitle: 'Choose a template',
+            initError: 'Error initializing speech recognition.',
+            consultationTitle: "MEDICAL CONSULTATION",
+            consultationReason: "REASON FOR CONSULTATION:",
+            consultationHistory: "HISTORY:",
+            consultationExam: "CLINICAL EXAMINATION:",
+            consultationConclusion: "CONCLUSION:",
+            specialistTitle: "SPECIALIST CONSULTATION REPORT",
+            specialistSpecialty: "SPECIALTY:",
+            specialistReason: "REASON FOR CONSULTATION:",
+            specialistExams: "ADDITIONAL EXAMS:",
+            specialistDiagnosis: "DIAGNOSIS:",
+            specialistRecommendations: "RECOMMENDATIONS:",
+            generateButton: 'Generate Word file',
+            continueEditing: 'Continue editing',
+            exitTemplate: 'Exit template',
+            myAccount: 'My Account',
+            upgrade: 'Upgrade to Premium',
+            logout: 'Logout',
+            userLabel: 'User',
+            statusLabel: 'Status',
+            daysLabel: 'Days remaining',
+            trialBadge: 'Free Trial',
+            premiumBadge: 'Premium',
+            appTitle: 'Voice Transcription',
+            appSubtitle: 'Start dictating to transcribe your text',
+            subjectLabel: 'Subject / Reference:',
+            subjectPlaceholder: 'Ex: Consultation on 07/31/2025',
+            transcriptionLabel: 'Transcription:',
+            transcriptionPlaceholder: 'Transcribed text will appear here...',
+            footerText: 'All rights reserved.'
+        },
+        de: {
+            speakNow: 'Sprich jetzt',
+            countdown: 'Beginnend in',
+            gettingReady: 'Vorbereitung...',
+            speak: 'Sprechen Sie in Deutsch',
+            pause: 'Pause',
+            stop: 'Stopp',
+            copy: 'Kopieren Sie alles<br>in die Zwischenablage',
+            copied: 'Kopiert!',
+            template: 'Eine Word Vorlage<br>verwenden',
+            quit: 'Beenden',
+            clearAll: 'Alles Löschen',
+            clearSection: 'Löschen',
+            placeholder: 'Drücken Sie den "Sprechen Sie in Deutsch" Knopf, warten Sie bis der Countdown abgeschlossen ist, dann sprechen Sie. Ihre Transkription erscheint hier...',
+            confirmQuit: 'Möchten Sie wirklich beenden? Ungespeicherter Text geht verloren.',
+            browserSupport: 'Ihr Browser unterstützt keine Sprachtranskription.',
+            noCode: 'Aktivierungscode erforderlich.',
+            aiCanMakeMistakes: "* KI kann Fehler machen. Bitte überprüfen Sie die Transkription.",
+            libraryNotLoaded: 'Dokumentenerstellungsbibliothek nicht geladen.',
+            noText: 'Bitte fügen Sie zuerst Text zum Transkribieren hinzu.',
+            docError: 'Fehler beim Erstellen des Dokuments:',
+            modalTitle: 'Wählen Sie eine Vorlage.',
+            initError: 'Fehler bei der Initialisierung der Spracherkennung.',
+            consultationTitle: "ÄRZTLICHE BERATUNG",
+            consultationReason: "GRUND FÜR DIE KONSULTATION:",
+            consultationHistory: "VORGESCHICHTE:",
+            consultationExam: "KLINISCHE UNTERSUCHUNG:",
+            consultationConclusion: "SCHLUSSFOLGERUNG:",
+            specialistTitle: "SPEZIALISTENBERICHT",
+            specialistSpecialty: "FACHGEBIET:",
+            specialistReason: "GRUND FÜR DIE KONSULTATION:",
+            specialistExams: "ZUSÄTZLICHE UNTERSUCHUNGEN:",
+            specialistDiagnosis: "DIAGNOSE:",
+            specialistRecommendations: "EMPFEHLUNGEN:",
+            generateButton: 'Word-Datei generieren',
+            continueEditing: 'Bearbeitung fortsetzen',
+            exitTemplate: 'Vorlage verlassen',
+            myAccount: 'Mein Konto',
+        upgrade: 'Auf Premium upgraden',
+        logout: 'Abmelden',
+        userLabel: 'Benutzer',
+        statusLabel: 'Status',
+        daysLabel: 'Verbleibende Tage',
+        trialBadge: 'Kostenlose Testversion',
+        premiumBadge: 'Premium',
+        appTitle: 'Sprachtranskription',
+        appSubtitle: 'Beginnen Sie zu diktieren, um Ihren Text zu transkribieren',
+        subjectLabel: 'Betreff / Referenz:',
+        subjectPlaceholder: 'Beispiel: Beratung am 31.07.2025',
+        transcriptionLabel: 'Transkription:',
+        transcriptionPlaceholder: 'Der transkribierte Text erscheint hier...',
+        footerText: 'Alle Rechte vorbehalten.'
+        },
+        es: {
+            speakNow: 'Habla ahora',
+            countdown: 'Comenzando en',
+            gettingReady: 'Preparándose...',
+            speak: 'Habla en español',
+            pause: 'Pausar',
+            stop: 'Detener',
+            copy: 'Copiar todo<br>al portapapeles',
+            copied: '¡Copiado!',
+            template: 'Usar una plantilla<br>de Word',
+            quit: 'Salir',
+            clearAll: 'Borrar Todo',
+            clearSection: 'Borrar',
+            placeholder: 'Pulse el botón "Habla en español", espere a que termine la cuenta atrás, luego hable. Su transcripción aparecerá aquí...',
+            confirmQuit: '¿Realmente quiere salir? Se perderá cualquier texto no guardado.',
+            browserSupport: 'Su navegador no es compatible con la transcripción de voz.',
+            noCode: 'Se requiere código de activación.',
+            aiCanMakeMistakes: "* La IA puede cometer errores. Por favor, verifique la transcripción.",
+            libraryNotLoaded: 'Error: Biblioteca de generación de documentos no cargada.',
+            noText: 'Por favor, añada texto para transcribir primero.',
+            docError: 'Error al generar el documento:',
+            modalTitle: 'Elija una plantilla.',
+            initError: 'Error al inicializar el reconocimiento de voz.',
+            consultationTitle: "CONSULTA MÉDICA",
+            consultationReason: "MOTIVO DE LA CONSULTA:",
+            consultationHistory: "ANTECEDENTES:",
+            consultationExam: "EXAMEN CLÍNICO:",
+            consultationConclusion: "CONCLUSIÓN:",
+            specialistTitle: "INFORME DE CONSULTA ESPECIALIZADA",
+            specialistSpecialty: "ESPECIALIDAD:",
+            specialistReason: "MOTIVO DE LA CONSULTA:",
+            specialistExams: "EXÁMENES COMPLEMENTARIOS:",
+            specialistDiagnosis: "DIAGNÓSTICO:",
+            specialistRecommendations: "RECOMENDACIONES:",
+            generateButton: 'Generar archivo Word',
+            continueEditing: 'Continuar editando',
+            exitTemplate: 'Salir de la plantilla',
+            myAccount: 'Mi Cuenta',
+        upgrade: 'Actualizar a Premium',
+        logout: 'Cerrar sesión',
+        userLabel: 'Usuario',
+        statusLabel: 'Estado',
+        daysLabel: 'Días restantes',
+        trialBadge: 'Prueba gratuita',
+        premiumBadge: 'Premium',
+        appTitle: 'Transcripción de Voz',
+        appSubtitle: 'Comience a dictar para transcribir su texto',
+        subjectLabel: 'Asunto / Referencia:',
+        subjectPlaceholder: 'Ej: Consulta del 31/07/2025',
+        transcriptionLabel: 'Transcripción:',
+        transcriptionPlaceholder: 'El texto transcrito aparecerá aquí...',
+        footerText: 'Todos los derechos reservados.'
+        },
+        it: {
+            speakNow: 'Parla ora',
+            countdown: 'Inizio tra',
+            gettingReady: 'Mi sto preparando...',
+            speak: 'Parla in italiano',
+            pause: 'Pausa',
+            stop: 'Ferma',
+            copy: 'Copia tutto<br>negli appunti',
+            copied: 'Copiato!',
+            template: 'Usa un modello<br>Word',
+            quit: 'Esci',
+            clearAll: 'Cancella Tutto',
+            clearSection: 'Cancella',
+            placeholder: 'Premi il pulsante "Parla in italiano", attendi il termine del conto alla rovescia, poi parla. La tua trascrizione apparirà qui...',
+            confirmQuit: 'Vuoi davvero uscire? Qualsiasi testo non salvato andrà perso.',
+            browserSupport: 'Il tuo browser non supporta la trascrizione vocale.',
+            noCode: 'Codice di attivazione richiesto.',
+            aiCanMakeMistakes: "* L'IA può commettere errori. Si prega di verificare la trascrizione.",
+            libraryNotLoaded: 'Errore: Libreria di generazione dei documenti non caricata.',
+            noText: 'Si prega di aggiungere prima il testo da trascrivere.',
+            docError: 'Errore nella generazione del documento:',
+            modalTitle: 'Scegli un modello.',
+            initError: 'Errore durante linizializzazione del riconoscimento vocale.',
+            consultationTitle: "CONSULTO MEDICO",
+            consultationReason: "MOTIVO DELLA CONSULTAZIONE:",
+            consultationHistory: "STORIA:",
+            consultationExam: "ESAME CLINICO:",
+            consultationConclusion: "CONCLUSIONE:",
+            specialistTitle: "RAPPORTO DI CONSULTAZIONE SPECIALISTICA",
+            specialistSpecialty: "SPECIALITÀ:",
+            specialistReason: "MOTIVO DELLA CONSULTAZIONE:",
+            specialistExams: "ESAMI COMPLEMENTARI:",
+            specialistDiagnosis: "DIAGNOSI:",
+            specialistRecommendations: "RACCOMANDAZIONI:",
+            generateButton: 'Genera file Word',
+            continueEditing: 'Continua a modificare',
+            exitTemplate: 'Esci dal modello',
+            myAccount: 'Il mio Account',
+        upgrade: 'Passa a Premium',
+        logout: 'Esci',
+        userLabel: 'Utente',
+        statusLabel: 'Stato',
+        daysLabel: 'Giorni rimanenti',
+        trialBadge: 'Prova gratuita',
+        premiumBadge: 'Premium',
+        appTitle: 'Trascrizione Vocale',
+        appSubtitle: 'Inizia a dettare per trascrivere il tuo testo',
+        subjectLabel: 'Oggetto / Riferimento:',
+        subjectPlaceholder: 'Es: Consultazione del 31/07/2025',
+        transcriptionLabel: 'Trascrizione:',
+        transcriptionPlaceholder: 'Il testo trascritto apparirà qui...',
+        footerText: 'Tutti i diritti riservati.'
+        },
+        pt: {
+            speakNow: 'Fale agora',
+            countdown: 'Começando em',
+            gettingReady: 'Preparar-se...',
+            speak: 'Fale em português',
+            pause: 'Pausa',
+            stop: 'Parar',
+            copy: 'Copiar tudo para a<br>área de transferência',
+            copied: 'Copiado!',
+            template: 'Usar um modelo<br>Word',
+            quit: 'Sair',
+            clearAll: 'Limpar Tudo',
+            clearSection: 'Limpar',
+            placeholder: 'Pressione o botão "Fale em português", aguarde a contagem regressiva terminar, então fale. Sua transcrição aparecerá aqui...',
+            confirmQuit: 'Tem certeza de que deseja sair? Qualquer texto não salvo será perdido.',
+            browserSupport: 'Seu navegador não suporta transcrição de voz.',
+            noCode: 'Código de ativação necessário.',
+            aiCanMakeMistakes: "* A IA pode cometer erros. Por favor, verifique a transcrição.",
+            libraryNotLoaded: 'Erro: Biblioteca de geração de documentos não carregada.',
+            noText: 'Por favor, adicione texto para transcrever primeiro.',
+            docError: 'Erro ao gerar o documento:',
+            modalTitle: 'Escolha um modelo.',
+            initError: 'Erro ao inicializar o reconhecimento de voz.',
+            consultationTitle: "CONSULTA MÉDICA",
+            consultationReason: "MOTIVO DA CONSULTA:",
+            consultationHistory: "HISTÓRICO:",
+            consultationExam: "EXAME CLÍNICO:",
+            consultationConclusion: "CONCLUSÃO:",
+            specialistTitle: "RELATÓRIO DE CONSULTA ESPECIALIZADA",
+            specialistSpecialty: "ESPECIALIDADE:",
+            specialistReason: "MOTIVO DA CONSULTA:",
+            specialistExams: "EXAMES COMPLEMENTARES:",
+            specialistDiagnosis: "DIAGNÓSTICO:",
+            specialistRecommendations: "RECOMENDAÇÕES:",
+            generateButton: 'Gerar arquivo Word',
+            continueEditing: 'Continuar editando',
+            exitTemplate: 'Sair do modelo',
+            myAccount: 'Minha Conta',
+        upgrade: 'Atualizar para Premium',
+        logout: 'Sair',
+        userLabel: 'Usuário',
+        statusLabel: 'Status',
+        daysLabel: 'Dias restantes',
+        trialBadge: 'Teste gratuito',
+        premiumBadge: 'Premium',
+        appTitle: 'Transcrição de Voz',
+        appSubtitle: 'Comece a ditar para transcrever seu texto',
+        subjectLabel: 'Assunto / Referência:',
+        subjectPlaceholder: 'Ex: Consulta de 31/07/2025',
+        transcriptionLabel: 'Transcrição:',
+        transcriptionPlaceholder: 'O texto transcrito aparecerá aqui...',
+        footerText: 'Todos os direitos reservados.'
+        }
+    };
+
+// Get language using shared module
     let currentLang;
     if (typeof LanguageDetection !== 'undefined' && LanguageDetection.detectLanguage) {
         currentLang = await LanguageDetection.detectLanguage();
         console.log('AppForm: Using shared language detection:', currentLang);
     } else {
-        // Fallback if languageDetection.js is not loaded
         const urlParams = new URLSearchParams(window.location.search);
-        currentLang = urlParams.get('lang') || 'fr'; // Default to French as per your requirements
+        currentLang = urlParams.get('lang') || 'fr';
         console.log('AppForm: Fallback language detection:', currentLang);
     }
 
-    // Update HTML lang attribute
-    document.documentElement.lang = currentLang;
 
     document.documentElement.lang = currentLang;
-    
-    // IMPORTANT: Update navbar and form labels immediately after language detection
-    // This ensures the UI is in the correct language from the start
     const t = translations[currentLang] || translations.fr;
+
     
-    // Update navigation
+        // Update navigation
     document.getElementById('myAccountLink').textContent = t.myAccount || 'Mon Compte';
     document.getElementById('upgradeLink').textContent = t.upgrade || 'Passer à Premium';
     document.getElementById('logoutLink').textContent = t.logout || 'Se déconnecter';
@@ -45,6 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('subjectInput').placeholder = t.subjectPlaceholder || 'Ex: Consultation du 31/07/2025';
     document.getElementById('transcriptionText').placeholder = t.transcriptionPlaceholder || 'Le texte transcrit apparaîtra ici...';
     
+    // Update badge text
     // Update badge text
     const accountTypeBadge = document.getElementById('accountTypeBadge');
     if (accountTypeBadge) {
@@ -65,15 +383,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         'pt': 'pt-PT'
     };
 
+
     let recognition = null;
     let isRecording = false;
-    let isStarting = false; // Flag to track when initialization is happening
-    let isResuming = false; // Add this line to declare the isResuming variable
-    
-    // Variables to track speech recognition state - SIMPLIFIED for Android
+    let isStarting = false;
+    let isResuming = false;
     let lastProcessedIndex = 0;
     let processingTimeout = null;
-    let lastAddedText = ''; // Track last added text to prevent duplicates
+    let lastAddedText = '';
+    let recognitionStartupTimeout = null; // FIXED: No more window.recognitionStartupTimeout
 
     // Initialize buttons and elements
     const startButton = document.getElementById('startButton');
@@ -93,40 +411,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Add this function after your variable declarations
 function resetRecognitionState() {
-    console.log('=== RESETTING RECOGNITION STATE ===');
-    
-    // Clear any pending timeouts
-    if (processingTimeout) {
-        clearTimeout(processingTimeout);
-        processingTimeout = null;
-    }
-    
-    if (window.recognitionStartupTimeout) {
-        clearTimeout(window.recognitionStartupTimeout);
-        window.recognitionStartupTimeout = null;
-    }
-    
-    // Reset tracking variables
-    lastProcessedIndex = 0;
-    lastAddedText = '';
-    
-    // Stop recognition if active
-    if (recognition) {
-        try {
-            recognition.abort();
-        } catch (e) {
-            console.log('Error aborting recognition:', e);
+        console.log('=== RESETTING RECOGNITION STATE ===');
+        
+        // Clear any pending timeouts
+        if (processingTimeout) {
+            clearTimeout(processingTimeout);
+            processingTimeout = null;
         }
-        recognition = null;
+        
+        if (recognitionStartupTimeout) { // FIXED: Use local variable
+            clearTimeout(recognitionStartupTimeout);
+            recognitionStartupTimeout = null;
+        }
+        
+        // Reset tracking variables
+        lastProcessedIndex = 0;
+        lastAddedText = '';
+        
+        // Stop recognition if active
+        if (recognition) {
+            try {
+                recognition.abort();
+            } catch (e) {
+                console.log('Error aborting recognition:', e);
+            }
+            recognition = null;
+        }
+        
+        // Reset UI state
+        isRecording = false;
+        isStarting = false;
+        isResuming = false;
+        
+        console.log('State reset complete');
     }
-    
-    // Reset UI state
-    isRecording = false;
-    isStarting = false;
-    isResuming = false;
-    
-    console.log('State reset complete');
-}
 
 // Call this function before creating new recognition
 function ensureCleanStart() {
@@ -468,53 +786,27 @@ function ensureCleanStart() {
         const isEdge = /Edg/.test(navigator.userAgent);
         const isSafari = /Safari/.test(navigator.userAgent) && /Apple Computer/.test(navigator.vendor);
         const isFirefox = /Firefox/.test(navigator.userAgent);
-        const isOpera = /OPR/.test(navigator.userAgent) || /Opera/.test(navigator.userAgent);
         
-        console.log('Browser detection:', { isChrome, isEdge, isSafari, isFirefox, isOpera });
+        console.log('Browser detection:', { isChrome, isEdge, isSafari, isFirefox });
         
         // Check if Web Speech API is supported
         const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
         console.log('Speech Recognition API available:', hasSpeechRecognition);
         
-        // Special handling for Firefox
-        if (isFirefox) {
-            console.warn('Firefox detected - Speech recognition has limited support');
-            
-            // Check if speech recognition is available in Firefox
-            if (!hasSpeechRecognition) {
-                // Show Firefox-specific instructions
-                showFirefoxInstructions();
-                return false;
-            } else {
-                // Even if available, warn about potential issues
-                const warningMessages = {
-                    fr: 'Firefox a un support limité pour la reconnaissance vocale. Pour une meilleure expérience, nous recommandons Chrome, Edge ou Safari.',
-                    en: 'Firefox has limited support for speech recognition. For the best experience, we recommend Chrome, Edge, or Safari.',
-                    de: 'Firefox hat eingeschränkte Unterstützung für Spracherkennung. Für die beste Erfahrung empfehlen wir Chrome, Edge oder Safari.',
-                    es: 'Firefox tiene soporte limitado para el reconocimiento de voz. Para una mejor experiencia, recomendamos Chrome, Edge o Safari.',
-                    it: 'Firefox ha un supporto limitato per il riconoscimento vocale. Per la migliore esperienza, consigliamo Chrome, Edge o Safari.',
-                    pt: 'O Firefox tem suporte limitado para reconhecimento de voz. Para a melhor experiência, recomendamos Chrome, Edge ou Safari.'
-                };
-                
-                const lang = currentLang || 'fr';
-                showNotification(warningMessages[lang] || warningMessages['fr'], 'warning');
-            }
+        if (isFirefox && !hasSpeechRecognition) {
+            showFirefoxInstructions();
+            return false;
         }
         
         if (!hasSpeechRecognition) {
             const messages = {
                 fr: 'Votre navigateur ne supporte pas la reconnaissance vocale. Veuillez utiliser Chrome, Edge ou Safari.',
-                en: 'Your browser does not support speech recognition. Please use Chrome, Edge, or Safari.',
-                de: 'Ihr Browser unterstützt keine Spracherkennung. Bitte verwenden Sie Chrome, Edge oder Safari.',
-                es: 'Su navegador no admite el reconocimiento de voz. Use Chrome, Edge o Safari.',
-                it: 'Il tuo browser non supporta il riconoscimento vocale. Usa Chrome, Edge o Safari.',
-                pt: 'Seu navegador não suporta reconhecimento de voz. Use Chrome, Edge ou Safari.'
+                en: 'Your browser does not support speech recognition. Please use Chrome, Edge, or Safari.'
             };
             
             const lang = currentLang || 'fr';
             alert(messages[lang] || messages['fr']);
             
-            // Disable the start button
             if (startButton) {
                 startButton.disabled = true;
                 startButton.style.opacity = '0.5';
@@ -523,240 +815,27 @@ function ensureCleanStart() {
             
             return false;
         }
-
-
-
-        
-        // Check if we're on HTTPS (required for microphone access on many browsers)
-        const isSecureContext = window.isSecureContext;
-        console.log('Secure context (HTTPS):', isSecureContext);
-        
-        if (!isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            console.warn('Not on HTTPS - microphone access may be blocked');
-            const messages = {
-                fr: 'Ce site doit être accédé via HTTPS pour utiliser le microphone.',
-                en: 'This site must be accessed via HTTPS to use the microphone.',
-                de: 'Diese Website muss über HTTPS aufgerufen werden, um das Mikrofon zu verwenden.',
-                es: 'Este sitio debe accederse a través de HTTPS para usar el micrófono.',
-                it: 'Questo sito deve essere accessibile tramite HTTPS per utilizzare il microfono.',
-                pt: 'Este site deve ser acessado via HTTPS para usar o microfone.'
-            };
-            const lang = currentLang || 'fr';
-            showNotification(messages[lang] || messages['fr'], 'warning');
-        }
         
         return true;
     }
 
     function showFirefoxInstructions() {
+        // Simplified Firefox instructions
         const lang = currentLang || 'fr';
+        const message = lang === 'fr' 
+            ? 'Firefox ne supporte pas la reconnaissance vocale. Utilisez Chrome, Edge ou Safari.'
+            : 'Firefox does not support speech recognition. Please use Chrome, Edge, or Safari.';
         
-        const instructions = {
-            fr: {
-                title: 'Firefox - Reconnaissance Vocale Non Disponible',
-                message: 'Firefox ne supporte pas nativement la reconnaissance vocale sur la plupart des systèmes.',
-                recommendations: [
-                    'Utilisez Chrome, Edge, ou Safari pour la transcription vocale',
-                    'Ou activez la reconnaissance vocale dans Firefox (voir ci-dessous)'
-                ],
-                howToEnable: 'Pour essayer d\'activer dans Firefox:',
-                steps: [
-                    'Tapez about:config dans la barre d\'adresse',
-                    'Acceptez le risque et continuez',
-                    'Recherchez "webspeech"',
-                    'Activez "media.webspeech.recognition.enable"',
-                    'Redémarrez Firefox'
-                ],
-                note: 'Note: Cela peut ne pas fonctionner sur tous les systèmes.'
-            },
-            en: {
-                title: 'Firefox - Speech Recognition Not Available',
-                message: 'Firefox does not natively support speech recognition on most systems.',
-                recommendations: [
-                    'Use Chrome, Edge, or Safari for voice transcription',
-                    'Or enable speech recognition in Firefox (see below)'
-                ],
-                howToEnable: 'To try enabling in Firefox:',
-                steps: [
-                    'Type about:config in the address bar',
-                    'Accept the risk and continue',
-                    'Search for "webspeech"',
-                    'Enable "media.webspeech.recognition.enable"',
-                    'Restart Firefox'
-                ],
-                note: 'Note: This may not work on all systems.'
-            },
-            de: {
-                title: 'Firefox - Spracherkennung Nicht Verfügbar',
-                message: 'Firefox unterstützt die Spracherkennung auf den meisten Systemen nicht nativ.',
-                recommendations: [
-                    'Verwenden Sie Chrome, Edge oder Safari für die Sprachtranskription',
-                    'Oder aktivieren Sie die Spracherkennung in Firefox (siehe unten)'
-                ],
-                howToEnable: 'So versuchen Sie es in Firefox zu aktivieren:',
-                steps: [
-                    'Geben Sie about:config in die Adressleiste ein',
-                    'Akzeptieren Sie das Risiko und fahren Sie fort',
-                    'Suchen Sie nach "webspeech"',
-                    'Aktivieren Sie "media.webspeech.recognition.enable"',
-                    'Starten Sie Firefox neu'
-                ],
-                note: 'Hinweis: Dies funktioniert möglicherweise nicht auf allen Systemen.'
-            },
-            es: {
-                title: 'Firefox - Reconocimiento de Voz No Disponible',
-                message: 'Firefox no admite de forma nativa el reconocimiento de voz en la mayoría de los sistemas.',
-                recommendations: [
-                    'Use Chrome, Edge o Safari para la transcripción de voz',
-                    'O habilite el reconocimiento de voz en Firefox (ver abajo)'
-                ],
-                howToEnable: 'Para intentar habilitarlo en Firefox:',
-                steps: [
-                    'Escriba about:config en la barra de direcciones',
-                    'Acepte el riesgo y continúe',
-                    'Busque "webspeech"',
-                    'Habilite "media.webspeech.recognition.enable"',
-                    'Reinicie Firefox'
-                ],
-                note: 'Nota: Esto puede no funcionar en todos los sistemas.'
-            },
-            it: {
-                title: 'Firefox - Riconoscimento Vocale Non Disponibile',
-                message: 'Firefox non supporta nativamente il riconoscimento vocale sulla maggior parte dei sistemi.',
-                recommendations: [
-                    'Usa Chrome, Edge o Safari per la trascrizione vocale',
-                    'O abilita il riconoscimento vocale in Firefox (vedi sotto)'
-                ],
-                howToEnable: 'Per provare ad abilitarlo in Firefox:',
-                steps: [
-                    'Digita about:config nella barra degli indirizzi',
-                    'Accetta il rischio e continua',
-                    'Cerca "webspeech"',
-                    'Abilita "media.webspeech.recognition.enable"',
-                    'Riavvia Firefox'
-                ],
-                note: 'Nota: Questo potrebbe non funzionare su tutti i sistemi.'
-            },
-            pt: {
-                title: 'Firefox - Reconhecimento de Voz Não Disponível',
-                message: 'O Firefox não suporta nativamente o reconhecimento de voz na maioria dos sistemas.',
-                recommendations: [
-                    'Use Chrome, Edge ou Safari para transcrição de voz',
-                    'Ou ative o reconhecimento de voz no Firefox (veja abaixo)'
-                ],
-                howToEnable: 'Para tentar ativar no Firefox:',
-                steps: [
-                    'Digite about:config na barra de endereços',
-                    'Aceite o risco e continue',
-                    'Procure por "webspeech"',
-                    'Ative "media.webspeech.recognition.enable"',
-                    'Reinicie o Firefox'
-                ],
-                note: 'Nota: Isso pode não funcionar em todos os sistemas.'
-            }
-        };
-        
-        const instr = instructions[lang] || instructions['fr'];
-        
-        // Create a detailed modal/overlay with instructions
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            z-index: 10000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        `;
-        
-        const modal = document.createElement('div');
-        modal.style.cssText = `
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        `;
-        
-        modal.innerHTML = `
-            <h2 style="color: #ff6b35; margin-bottom: 20px;">${instr.title}</h2>
-            <p style="margin-bottom: 20px; color: #333;">${instr.message}</p>
-            
-            <h3 style="margin-top: 20px; margin-bottom: 10px; color: #333;">Recommendations:</h3>
-            <ul style="margin-bottom: 20px;">
-                ${instr.recommendations.map(rec => `<li style="margin-bottom: 5px;">${rec}</li>`).join('')}
-            </ul>
-            
-            <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                <h4 style="margin-bottom: 10px; color: #333;">${instr.howToEnable}</h4>
-                <ol style="margin-left: 20px;">
-                    ${instr.steps.map(step => `<li style="margin-bottom: 5px;">${step}</li>`).join('')}
-                </ol>
-                <p style="margin-top: 10px; font-style: italic; color: #666;">${instr.note}</p>
-            </div>
-            
-            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-                <button id="closeFirefoxModal" style="
-                    background: #69B578;
-                    color: white;
-                    border: none;
-                    padding: 10px 20px;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-size: 16px;
-                ">OK</button>
-                <button id="downloadChrome" style="
-                    background: #4285f4;
-                    color: white;
-                    border: none;
-                    padding: 10px 20px;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-size: 16px;
-                ">Download Chrome</button>
-            </div>
-        `;
-        
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-        
-        // Add event listeners
-        document.getElementById('closeFirefoxModal').addEventListener('click', () => {
-            document.body.removeChild(overlay);
-        });
-        
-        document.getElementById('downloadChrome').addEventListener('click', () => {
-            window.open('https://www.google.com/chrome/', '_blank');
-            document.body.removeChild(overlay);
-        });
-        
-        // Close on overlay click
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                document.body.removeChild(overlay);
-            }
-        });
+        alert(message);
     }
 
     // Add a browser recommendation banner at the top of the page
     function addBrowserRecommendationBanner() {
         if (/Firefox/.test(navigator.userAgent)) {
             const lang = currentLang || 'fr';
-            const messages = {
-                fr: '🔊 Pour une meilleure expérience de transcription vocale, nous recommandons Chrome, Edge ou Safari.',
-                en: '🔊 For the best voice transcription experience, we recommend Chrome, Edge, or Safari.',
-                de: '🔊 Für die beste Sprachtranskriptionserfahrung empfehlen wir Chrome, Edge oder Safari.',
-                es: '🔊 Para la mejor experiencia de transcripción de voz, recomendamos Chrome, Edge o Safari.',
-                it: '🔊 Per la migliore esperienza di trascrizione vocale, consigliamo Chrome, Edge o Safari.',
-                pt: '🔊 Para a melhor experiência de transcrição de voz, recomendamos Chrome, Edge ou Safari.'
-            };
+            const message = lang === 'fr'
+                ? '🔊 Pour une meilleure expérience, nous recommandons Chrome, Edge ou Safari.'
+                : '🔊 For the best experience, we recommend Chrome, Edge, or Safari.';
             
             const banner = document.createElement('div');
             banner.style.cssText = `
@@ -771,7 +850,7 @@ function ensureCleanStart() {
                 z-index: 9999;
                 font-size: 14px;
             `;
-            banner.textContent = messages[lang] || messages['fr'];
+            banner.textContent = message;
             
             const closeBtn = document.createElement('button');
             closeBtn.textContent = '✕';
@@ -788,14 +867,11 @@ function ensureCleanStart() {
             `;
             closeBtn.addEventListener('click', () => {
                 document.body.removeChild(banner);
-                // Adjust body padding
                 document.body.style.paddingTop = '0';
             });
             
             banner.appendChild(closeBtn);
             document.body.appendChild(banner);
-            
-            // Adjust body padding to prevent content overlap
             document.body.style.paddingTop = '40px';
         }
     }
@@ -911,300 +987,302 @@ function ensureCleanStart() {
     }
 
     function createRecognition() {
-        console.log('=== Creating Speech Recognition Instance ===');
+    console.log('=== Creating Speech Recognition Instance ===');
+    
+    // Check for both webkit and standard SpeechRecognition APIs - FIREFOX SUPPORT
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+        console.error('SpeechRecognition API not available');
         
-        // Check for both webkit and standard SpeechRecognition APIs - FIREFOX SUPPORT
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        // Check if Firefox and provide specific guidance
+        if (/Firefox/.test(navigator.userAgent)) {
+            showFirefoxInstructions();
+        } else {
+            const lang = currentLang || 'fr';
+            const message = translations[lang]?.browserSupport || 'Your browser does not support speech recognition.';
+            alert(message);
+        }
+        return null;
+    }
+    
+    try {
+        const recognitionInstance = new SpeechRecognition();
         
-        if (!SpeechRecognition) {
-            console.error('SpeechRecognition API not available');
-            
-            // Check if Firefox and provide specific guidance
-            if (/Firefox/.test(navigator.userAgent)) {
-                showFirefoxInstructions();
-            } else {
-                alert(translations[currentLang]?.browserSupport || 'Your browser does not support speech recognition.');
-            }
-            return null;
+        // Configure recognition
+        recognitionInstance.continuous = true;
+        recognitionInstance.interimResults = true;
+        recognitionInstance.lang = languageMap[currentLang] || 'fr-FR';
+        recognitionInstance.maxAlternatives = 1;
+        
+        // Add Firefox-specific configuration if detected
+        if (/Firefox/.test(navigator.userAgent)) {
+            console.log('Applying Firefox-specific configuration');
+            // Firefox may need different settings
+            recognitionInstance.continuous = true;
+            recognitionInstance.interimResults = false; // Firefox may have issues with interim results
         }
         
-        try {
-            const recognitionInstance = new SpeechRecognition();
+        console.log('Recognition settings:', {
+            continuous: recognitionInstance.continuous,
+            interimResults: recognitionInstance.interimResults,
+            lang: recognitionInstance.lang,
+            maxAlternatives: recognitionInstance.maxAlternatives
+        });
+        
+        console.log('Using SpeechRecognition API:', SpeechRecognition === window.SpeechRecognition ? 'Standard' : 'Webkit');
+    
+        // FIXED: onstart handler with consistent state management
+        recognitionInstance.onstart = function() {
+            console.log('=== SPEECH RECOGNITION STARTED ===');
+            console.log('Recognition started at:', new Date().toISOString());
             
-            // Configure recognition
-            recognitionInstance.continuous = true;
-            recognitionInstance.interimResults = true;
-            recognitionInstance.lang = languageMap[currentLang] || 'fr-FR';
-            recognitionInstance.maxAlternatives = 1;
-            
-            // Add Firefox-specific configuration if detected
-            if (/Firefox/.test(navigator.userAgent)) {
-                console.log('Applying Firefox-specific configuration');
-                // Firefox may need different settings
-                recognitionInstance.continuous = true;
-                recognitionInstance.interimResults = false; // Firefox may have issues with interim results
+            // FIXED: Clear local timeout variable instead of window.recognitionStartupTimeout
+            if (recognitionStartupTimeout) {
+                clearTimeout(recognitionStartupTimeout);
+                recognitionStartupTimeout = null;
             }
             
-            console.log('Recognition settings:', {
-                continuous: recognitionInstance.continuous,
-                interimResults: recognitionInstance.interimResults,
-                lang: recognitionInstance.lang
-            });
+            // Clear the starting flag and hide countdown
+            isStarting = false;
+            countdownOverlay.style.display = 'none';
+            countdownNumber.style.display = 'block';
             
-            console.log('Using SpeechRecognition API:', SpeechRecognition === window.SpeechRecognition ? 'Standard' : 'Webkit');
+            // IMPORTANT: Update button states
+            enableRecordingButtons();
+            
+            console.log('Speech recognition is now active and listening');
+        };
         
-            // FIXED: Add the missing onstart handler
-            recognitionInstance.onstart = function() {
-                console.log('=== SPEECH RECOGNITION STARTED ===');
-                console.log('Recognition started at:', new Date().toISOString());
+        // Handle recognition results
+        recognitionInstance.onresult = function(event) {
+            console.log('=== SPEECH RECOGNITION RESULT ===');
+            console.log('Result index:', event.resultIndex, 'Results length:', event.results.length);
+            
+            // Process all results from resultIndex onwards
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const result = event.results[i];
                 
-                // Clear any startup timeout since we've successfully started
-                if (window.recognitionStartupTimeout) {
-                    clearTimeout(window.recognitionStartupTimeout);
-                    window.recognitionStartupTimeout = null;
+                if (result.isFinal) {
+                    const transcript = result[0].transcript.trim();
+                    
+                    if (transcript) {
+                        console.log(`Final transcript: "${transcript}"`);
+                        
+                        // Add the transcript
+                        if (templateMode) {
+                            processTemplateTranscript(transcript);
+                        } else {
+                            // Add to textarea with proper spacing
+                            if (transcriptionText.value && !transcriptionText.value.endsWith(' ')) {
+                                transcriptionText.value += ' ';
+                            }
+                            transcriptionText.value += transcript;
+                            
+                            // Auto-scroll
+                            transcriptionText.scrollTop = transcriptionText.scrollHeight;
+                        }
+                    }
+                } else {
+                    // Log interim results for debugging
+                    console.log('Interim result:', result[0].transcript);
                 }
-                
-                // Clear the starting flag and hide countdown
+            }
+        };
+
+        // Enhanced error handling
+        recognitionInstance.onerror = function(event) {
+            console.error('=== SPEECH RECOGNITION ERROR ===');
+            console.error('Error type:', event.error);
+            console.error('Error message:', event.message);
+            console.error('Full event:', event);
+            
+            // FIXED: Clear local timeout variable instead of window.recognitionStartupTimeout
+            if (recognitionStartupTimeout) {
+                clearTimeout(recognitionStartupTimeout);
+                recognitionStartupTimeout = null;
+            }
+            
+            // Provide user-friendly error messages based on error type
+            const errorMessages = {
+                'no-speech': {
+                    fr: 'Aucune parole détectée. Assurez-vous que votre microphone fonctionne et parlez clairement.',
+                    en: 'No speech detected. Please ensure your microphone is working and speak clearly.',
+                    de: 'Keine Sprache erkannt. Bitte stellen Sie sicher, dass Ihr Mikrofon funktioniert.',
+                    es: 'No se detectó voz. Asegúrese de que su micrófono funcione correctamente.',
+                    it: 'Nessun discorso rilevato. Assicurati che il microfono funzioni correttamente.',
+                    pt: 'Nenhuma fala detectada. Certifique-se de que seu microfone está funcionando.'
+                },
+                'not-allowed': {
+                    fr: 'Permission du microphone refusée. Veuillez autoriser l\'accès au microphone.',
+                    en: 'Microphone permission denied. Please allow microphone access.',
+                    de: 'Mikrofonberechtigung verweigert. Bitte erlauben Sie den Mikrofonzugriff.',
+                    es: 'Permiso de micrófono denegado. Por favor, permita el acceso al micrófono.',
+                    it: 'Permesso microfono negato. Consentire l\'accesso al microfono.',
+                    pt: 'Permissão do microfone negada. Por favor, permita o acesso ao microfone.'
+                },
+                'network': {
+                    fr: 'Erreur réseau. Vérifiez votre connexion Internet.',
+                    en: 'Network error. Please check your internet connection.',
+                    de: 'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung.',
+                    es: 'Error de red. Por favor, verifique su conexión a Internet.',
+                    it: 'Errore di rete. Controlla la tua connessione Internet.',
+                    pt: 'Erro de rede. Verifique sua conexão com a Internet.'
+                },
+                'audio-capture': {
+                    fr: 'Impossible de capturer l\'audio. Vérifiez que votre microphone est connecté.',
+                    en: 'Unable to capture audio. Please check your microphone is connected.',
+                    de: 'Audio kann nicht erfasst werden. Bitte überprüfen Sie Ihr Mikrofon.',
+                    es: 'No se puede capturar audio. Verifique que su micrófono esté conectado.',
+                    it: 'Impossibile acquisire l\'audio. Verifica che il microfono sia collegato.',
+                    pt: 'Não foi possível capturar áudio. Verifique se o microfone está conectado.'
+                },
+                'service-not-allowed': {
+                    fr: 'Service de reconnaissance vocale non autorisé sur cet appareil.',
+                    en: 'Speech recognition service not allowed on this device.',
+                    de: 'Spracherkennungsdienst auf diesem Gerät nicht erlaubt.',
+                    es: 'Servicio de reconocimiento de voz no permitido en este dispositivo.',
+                    it: 'Servizio di riconoscimento vocale non consentito su questo dispositivo.',
+                    pt: 'Serviço de reconhecimento de voz não permitido neste dispositivo.'
+                },
+                'bad-grammar': {
+                    fr: 'Erreur de configuration de la reconnaissance vocale.',
+                    en: 'Speech recognition configuration error.',
+                    de: 'Konfigurationsfehler der Spracherkennung.',
+                    es: 'Error de configuración del reconocimiento de voz.',
+                    it: 'Errore di configurazione del riconoscimento vocale.',
+                    pt: 'Erro de configuração do reconhecimento de voz.'
+                }
+            };
+            
+            // Get the appropriate error message
+            const errorType = event.error;
+            const lang = currentLang || 'fr';
+            const errorMessageSet = errorMessages[errorType] || errorMessages['no-speech'];
+            const errorMessage = errorMessageSet[lang] || errorMessageSet['fr'];
+            
+            // Handle startup errors specially (Android compatibility)
+            if (isStarting) {
                 isStarting = false;
                 countdownOverlay.style.display = 'none';
                 countdownNumber.style.display = 'block';
                 
-                // IMPORTANT: Update button states
-                enableRecordingButtons();
-                
-                console.log('Speech recognition is now active and listening');
-            };
-            
-            // Handle recognition results
-            recognitionInstance.onresult = function(event) {
-                console.log('=== SPEECH RECOGNITION RESULT ===');
-                console.log('Result index:', event.resultIndex, 'Results length:', event.results.length);
-                
-                // Process all results from resultIndex onwards
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const result = event.results[i];
-                    
-                    if (result.isFinal) {
-                        const transcript = result[0].transcript.trim();
-                        
-                        if (transcript) {
-                            console.log(`Final transcript: "${transcript}"`);
-                            
-                            // Add the transcript
-                            if (templateMode) {
-                                processTemplateTranscript(transcript);
-                            } else {
-                                // Add to textarea with proper spacing
-                                if (transcriptionText.value && !transcriptionText.value.endsWith(' ')) {
-                                    transcriptionText.value += ' ';
-                                }
-                                transcriptionText.value += transcript;
-                                
-                                // Auto-scroll
-                                transcriptionText.scrollTop = transcriptionText.scrollHeight;
-                            }
-                        }
-                    } else {
-                        // Log interim results for debugging
-                        console.log('Interim result:', result[0].transcript);
-                    }
-                }
-            };
-
-        
-            // Enhanced error handling
-            recognitionInstance.onerror = function(event) {
-                console.error('=== SPEECH RECOGNITION ERROR ===');
-                console.error('Error type:', event.error);
-                console.error('Error message:', event.message);
-                console.error('Full event:', event);
-                
-                // Clear any pending startup timeout
-                if (window.recognitionStartupTimeout) {
-                    clearTimeout(window.recognitionStartupTimeout);
-                    window.recognitionStartupTimeout = null;
-                }
-                
-                // Provide user-friendly error messages based on error type
-                const errorMessages = {
-                    'no-speech': {
-                        fr: 'Aucune parole détectée. Assurez-vous que votre microphone fonctionne et parlez clairement.',
-                        en: 'No speech detected. Please ensure your microphone is working and speak clearly.',
-                        de: 'Keine Sprache erkannt. Bitte stellen Sie sicher, dass Ihr Mikrofon funktioniert.',
-                        es: 'No se detectó voz. Asegúrese de que su micrófono funcione correctamente.',
-                        it: 'Nessun discorso rilevato. Assicurati che il microfono funzioni correttamente.',
-                        pt: 'Nenhuma fala detectada. Certifique-se de que seu microfone está funcionando.'
-                    },
-                    'not-allowed': {
-                        fr: 'Permission du microphone refusée. Veuillez autoriser l\'accès au microphone.',
-                        en: 'Microphone permission denied. Please allow microphone access.',
-                        de: 'Mikrofonberechtigung verweigert. Bitte erlauben Sie den Mikrofonzugriff.',
-                        es: 'Permiso de micrófono denegado. Por favor, permita el acceso al micrófono.',
-                        it: 'Permesso microfono negato. Consentire l\'accesso al microfono.',
-                        pt: 'Permissão do microfone negada. Por favor, permita o acesso ao microfone.'
-                    },
-                    'network': {
-                        fr: 'Erreur réseau. Vérifiez votre connexion Internet.',
-                        en: 'Network error. Please check your internet connection.',
-                        de: 'Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung.',
-                        es: 'Error de red. Por favor, verifique su conexión a Internet.',
-                        it: 'Errore di rete. Controlla la tua connessione Internet.',
-                        pt: 'Erro de rede. Verifique sua conexão com a Internet.'
-                    },
-                    'audio-capture': {
-                        fr: 'Impossible de capturer l\'audio. Vérifiez que votre microphone est connecté.',
-                        en: 'Unable to capture audio. Please check your microphone is connected.',
-                        de: 'Audio kann nicht erfasst werden. Bitte überprüfen Sie Ihr Mikrofon.',
-                        es: 'No se puede capturar audio. Verifique que su micrófono esté conectado.',
-                        it: 'Impossibile acquisire l\'audio. Verifica che il microfono sia collegato.',
-                        pt: 'Não foi possível capturar áudio. Verifique se o microfone está conectado.'
-                    },
-                    'service-not-allowed': {
-                        fr: 'Service de reconnaissance vocale non autorisé sur cet appareil.',
-                        en: 'Speech recognition service not allowed on this device.',
-                        de: 'Spracherkennungsdienst auf diesem Gerät nicht erlaubt.',
-                        es: 'Servicio de reconocimiento de voz no permitido en este dispositivo.',
-                        it: 'Servizio di riconoscimento vocale non consentito su questo dispositivo.',
-                        pt: 'Serviço de reconhecimento de voz não permitido neste dispositivo.'
-                    },
-                    'bad-grammar': {
-                        fr: 'Erreur de configuration de la reconnaissance vocale.',
-                        en: 'Speech recognition configuration error.',
-                        de: 'Konfigurationsfehler der Spracherkennung.',
-                        es: 'Error de configuración del reconocimiento de voz.',
-                        it: 'Errore di configurazione del riconoscimento vocale.',
-                        pt: 'Erro de configuração do reconhecimento de voz.'
-                    }
-                };
-                
-                // Get the appropriate error message
-                const errorType = event.error;
-                const lang = currentLang || 'fr';
-                const errorMessageSet = errorMessages[errorType] || errorMessages['no-speech'];
-                const errorMessage = errorMessageSet[lang] || errorMessageSet['fr'];
-                
-                // Handle startup errors specially (Android compatibility)
-                if (isStarting) {
-                    isStarting = false;
-                    countdownOverlay.style.display = 'none';
-                    countdownNumber.style.display = 'block';
-                    
-                    // Show specific startup error message
-                    if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
-                        showNotification(errorMessage, 'error');
-                    } else {
-                        const startupErrorMessages = {
-                            fr: 'Impossible de démarrer la reconnaissance vocale. Votre appareil peut ne pas supporter cette fonctionnalité.',
-                            en: 'Unable to start speech recognition. Your device may not support this feature.',
-                            de: 'Spracherkennung kann nicht gestartet werden. Ihr Gerät unterstützt diese Funktion möglicherweise nicht.',
-                            es: 'No se puede iniciar el reconocimiento de voz. Su dispositivo puede no admitir esta función.',
-                            it: 'Impossibile avviare il riconoscimento vocale. Il dispositivo potrebbe non supportare questa funzione.',
-                            pt: 'Não é possível iniciar o reconhecimento de voz. Seu dispositivo pode não suportar este recurso.'
-                        };
-                        showNotification(startupErrorMessages[lang] || startupErrorMessages['fr'], 'error');
-                    }
-                    resetButtons();
-                    return;
-                }
-                
-                // Don't show repetitive "no-speech" errors during normal operation
-                if (errorType === 'no-speech') {
-                    // Only show the error once, not repeatedly
-                    if (!this.noSpeechErrorShown) {
-                        this.noSpeechErrorShown = true;
-                        // Show a subtle notification instead of alert
-                        showNotification(errorMessage, 'warning');
-                    }
-                } else {
-                    // For other errors, show immediately
+                // Show specific startup error message
+                if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
                     showNotification(errorMessage, 'error');
-                    this.noSpeechErrorShown = false;
-                }
-                
-                resetButtons();
-                
-                // For critical errors, stop recognition completely
-                if (errorType === 'not-allowed' || errorType === 'audio-capture' || errorType === 'service-not-allowed') {
-                    isRecording = false;
-                    if (recognition) {
-                        recognition.abort();
-                    }
-                }
-            };
-        
-            // Handle end of recognition
-            recognitionInstance.onend = function() {
-                console.log('=== RECOGNITION ENDED ===');
-                
-                // Clear any pending startup timeout
-                if (window.recognitionStartupTimeout) {
-                    clearTimeout(window.recognitionStartupTimeout);
-                    window.recognitionStartupTimeout = null;
-                }
-                
-                // Handle startup failures (Android compatibility)
-                if (isStarting) {
-                    console.log('Recognition ended during startup - likely failed to start');
-                    isStarting = false;
-                    countdownOverlay.style.display = 'none';
-                    countdownNumber.style.display = 'block';
-                    resetButtons();
-                    
-                    // Show startup failure message
-                    const startupFailureMessages = {
-                        fr: 'Échec du démarrage de la reconnaissance vocale. Veuillez réessayer.',
-                        en: 'Speech recognition failed to start. Please try again.',
-                        de: 'Spracherkennung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.',
-                        es: 'No se pudo iniciar el reconocimiento de voz. Inténtelo de nuevo.',
-                        it: 'Impossibile avviare il riconoscimento vocale. Riprova.',
-                        pt: 'Falha ao iniciar o reconhecimento de voz. Tente novamente.'
-                    };
-                    const lang = currentLang || 'fr';
-                    showNotification(startupFailureMessages[lang] || startupFailureMessages['fr'], 'error');
-                    return;
-                }
-                
-                if (isRecording) {
-                    // Restart recognition if still recording (with improved Android compatibility)
-                    setTimeout(() => {
-                        if (isRecording && recognition) {
-                            try {
-                                console.log('Restarting recognition...');
-                                recognition.start();
-                            } catch (restartError) {
-                                console.error('Error restarting recognition:', restartError);
-                                resetButtons();
-                                
-                                const restartErrorMessages = {
-                                    fr: 'Erreur lors de la reprise de la reconnaissance vocale.',
-                                    en: 'Error resuming speech recognition.',
-                                    de: 'Fehler beim Fortsetzen der Spracherkennung.',
-                                    es: 'Error al reanudar el reconocimiento de voz.',
-                                    it: 'Errore nel riprendere il riconoscimento vocale.',
-                                    pt: 'Erro ao retomar o reconhecimento de voz.'
-                                };
-                                const lang = currentLang || 'fr';
-                                showNotification(restartErrorMessages[lang] || restartErrorMessages['fr'], 'error');
-                            }
-                        }
-                    }, 300); // Increased delay for better Android compatibility
                 } else {
-                    resetButtons();
+                    const startupErrorMessages = {
+                        fr: 'Impossible de démarrer la reconnaissance vocale. Votre appareil peut ne pas supporter cette fonctionnalité.',
+                        en: 'Unable to start speech recognition. Your device may not support this feature.',
+                        de: 'Spracherkennung kann nicht gestartet werden. Ihr Gerät unterstützt diese Funktion möglicherweise nicht.',
+                        es: 'No se puede iniciar el reconocimiento de voz. Su dispositivo puede no admitir esta función.',
+                        it: 'Impossibile avviare il riconoscimento vocale. Il dispositivo potrebbe non supportare questa funzione.',
+                        pt: 'Não é possível iniciar o reconhecimento de voz. Seu dispositivo pode não suportar este recurso.'
+                    };
+                    showNotification(startupErrorMessages[lang] || startupErrorMessages['fr'], 'error');
                 }
-            };
-            
-            return recognitionInstance;
-            
-        } catch (error) {
-            console.error('Error creating recognition instance:', error);
-            
-            if (/Firefox/.test(navigator.userAgent)) {
-                showFirefoxInstructions();
+                resetButtons();
+                return;
             }
             
-            return null;
+            // Don't show repetitive "no-speech" errors during normal operation
+            if (errorType === 'no-speech') {
+                // Only show the error once, not repeatedly
+                if (!this.noSpeechErrorShown) {
+                    this.noSpeechErrorShown = true;
+                    // Show a subtle notification instead of alert
+                    showNotification(errorMessage, 'warning');
+                }
+            } else {
+                // For other errors, show immediately
+                showNotification(errorMessage, 'error');
+                this.noSpeechErrorShown = false;
+            }
+            
+            resetButtons();
+            
+            // For critical errors, stop recognition completely
+            if (errorType === 'not-allowed' || errorType === 'audio-capture' || errorType === 'service-not-allowed') {
+                isRecording = false;
+                if (recognition) {
+                    recognition.abort();
+                }
+            }
+        };
+    
+        // Handle end of recognition
+        recognitionInstance.onend = function() {
+            console.log('=== RECOGNITION ENDED ===');
+            
+            // FIXED: Clear local timeout variable instead of window.recognitionStartupTimeout
+            if (recognitionStartupTimeout) {
+                clearTimeout(recognitionStartupTimeout);
+                recognitionStartupTimeout = null;
+            }
+            
+            // Handle startup failures (Android compatibility)
+            if (isStarting) {
+                console.log('Recognition ended during startup - likely failed to start');
+                isStarting = false;
+                countdownOverlay.style.display = 'none';
+                countdownNumber.style.display = 'block';
+                resetButtons();
+                
+                // Show startup failure message
+                const startupFailureMessages = {
+                    fr: 'Échec du démarrage de la reconnaissance vocale. Veuillez réessayer.',
+                    en: 'Speech recognition failed to start. Please try again.',
+                    de: 'Spracherkennung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.',
+                    es: 'No se pudo iniciar el reconocimiento de voz. Inténtelo de nuevo.',
+                    it: 'Impossibile avviare il riconoscimento vocale. Riprova.',
+                    pt: 'Falha ao iniciar o reconhecimento de voz. Tente novamente.'
+                };
+                const lang = currentLang || 'fr';
+                showNotification(startupFailureMessages[lang] || startupFailureMessages['fr'], 'error');
+                return;
+            }
+            
+            if (isRecording) {
+                // Restart recognition if still recording (with improved Android compatibility)
+                setTimeout(() => {
+                    if (isRecording && recognition) {
+                        try {
+                            console.log('Restarting recognition...');
+                            recognition.start();
+                        } catch (restartError) {
+                            console.error('Error restarting recognition:', restartError);
+                            resetButtons();
+                            
+                            const restartErrorMessages = {
+                                fr: 'Erreur lors de la reprise de la reconnaissance vocale.',
+                                en: 'Error resuming speech recognition.',
+                                de: 'Fehler beim Fortsetzen der Spracherkennung.',
+                                es: 'Error al reanudar el reconocimiento de voz.',
+                                it: 'Errore nel riprendere il riconoscimento vocale.',
+                                pt: 'Erro ao retomar o reconhecimento de voz.'
+                            };
+                            const lang = currentLang || 'fr';
+                            showNotification(restartErrorMessages[lang] || restartErrorMessages['fr'], 'error');
+                        }
+                    }
+                }, 300); // Increased delay for better Android compatibility
+            } else {
+                resetButtons();
+            }
+        };
+        
+        return recognitionInstance;
+        
+    } catch (error) {
+        console.error('Error creating recognition instance:', error);
+        
+        if (/Firefox/.test(navigator.userAgent)) {
+            showFirefoxInstructions();
         }
+        
+        return null;
     }
+}
 
 
     // Function to show countdown before starting recognition
@@ -1298,25 +1376,20 @@ function ensureCleanStart() {
                         console.log('Attempting to start speech recognition...');
                         
                         // Set a timeout to handle cases where recognition never starts (Android fix)
-                        window.recognitionStartupTimeout = setTimeout(() => {
-                            console.error('Speech recognition failed to start within timeout period');
-                            isStarting = false;
-                            countdownOverlay.style.display = 'none';
-                            countdownNumber.style.display = 'block';
-                            resetButtons();
-                            
-                            // Show user-friendly error message
-                            const errorMessages = {
-                                fr: 'Impossible de démarrer la reconnaissance vocale. Veuillez réessayer ou vérifier vos paramètres de microphone.',
-                                en: 'Unable to start speech recognition. Please try again or check your microphone settings.',
-                                de: 'Spracherkennung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.',
-                                es: 'No se pudo iniciar el reconocimiento de voz. Inténtelo de nuevo.',
-                                it: 'Impossibile avviare il riconoscimento vocale. Riprova.',
-                                pt: 'Não foi possível iniciar o reconhecimento de voz. Tente novamente.'
-                            };
-                            const lang = currentLang || 'fr';
-                            showNotification(errorMessages[lang] || errorMessages['fr'], 'error');
-                        }, 10000); // Increased from 5000 to 10000 (10 seconds)
+                        recognitionStartupTimeout = setTimeout(() => {
+            console.error('Speech recognition failed to start within timeout period');
+            isStarting = false;
+            countdownOverlay.style.display = 'none';
+            countdownNumber.style.display = 'block';
+            resetButtons();
+            
+            const errorMessages = {
+                fr: 'Impossible de démarrer la reconnaissance vocale. Veuillez réessayer.',
+                en: 'Unable to start speech recognition. Please try again.'
+            };
+            const lang = currentLang || 'fr';
+            showNotification(errorMessages[lang] || errorMessages['fr'], 'error');
+        }, 10000);
                         
                         // Try to start recognition with enhanced error handling
                         try {
@@ -1345,10 +1418,10 @@ function ensureCleanStart() {
                                             enableRecordingButtons();
                                             
                                             // Clear the timeout since we're handling it manually
-                                            if (window.recognitionStartupTimeout) {
-                                                clearTimeout(window.recognitionStartupTimeout);
-                                                window.recognitionStartupTimeout = null;
-                                            }
+                                            if (recognitionStartupTimeout) {
+    clearTimeout(recognitionStartupTimeout);
+    recognitionStartupTimeout = null;
+}
                                         } catch (e) {
                                             console.error('Error in fallback handler:', e);
                                         }
@@ -1360,10 +1433,10 @@ function ensureCleanStart() {
                             console.error('Error starting recognition:', startError);
                             
                             // Clear the timeout since we got an immediate error
-                            if (window.recognitionStartupTimeout) {
-                                clearTimeout(window.recognitionStartupTimeout);
-                                window.recognitionStartupTimeout = null;
-                            }
+                            if (recognitionStartupTimeout) {
+    clearTimeout(recognitionStartupTimeout);
+    recognitionStartupTimeout = null;
+}
                             
                             // Reset state
                             isStarting = false;
@@ -1565,343 +1638,6 @@ function ensureCleanStart() {
         }
     }
 
-    // UI translations
-    const translations = {
-        fr: {
-            speakNow: 'Parlez maintenant',
-            countdown: 'Démarrage dans',
-            gettingReady: 'Préparation...',
-            speak: 'Parlez en Français',
-            pause: 'Pause',
-            stop: 'Stop',
-            copy: 'Copiez tout dans<br>le presse-papier',
-            copied: 'Copié!',
-            template: 'Utilisez un modèle<br>Word',
-            quit: 'Quitter',
-            clearAll: 'Tout Effacer',
-            clearSection: 'Effacer',
-            placeholder: 'Appuyez sur le bouton "Parlez en Français", attendez que le compte à rebours se termine, puis parlez. Votre transcription apparaîtra ici...',
-            confirmQuit: 'Voulez-vous vraiment quitter ? Tout texte non sauvegardé sera perdu.',
-            browserSupport: 'Votre navigateur ne supporte pas la transcription vocale.',
-            noCode: 'Succès du code d\'activation.',
-            aiCanMakeMistakes: "* L'IA peut faire des erreurs. Veuillez vérifier la transcription.",
-            libraryNotLoaded: 'Erreur : La bibliothèque de génération de documents n\'est pas chargée.',
-            noText: 'Veuillez d\'abord ajouter du texte à transcrire.',
-            docError: 'Erreur lors de la génération du document : ',
-            modalTitle: 'Choisissez un modèle',
-            initError: 'Erreur d\'initialisation de la reconnaissance vocale.',
-            consultationTitle: "CONSULTATION MÉDICALE",
-            consultationReason: "MOTIF DE CONSULTATION:",
-            consultationHistory: "ANTÉCÉDENTS:",
-            consultationExam: "EXAMEN CLINIQUE:",
-            consultationConclusion: "CONCLUSION:",
-            specialistTitle: "COMPTE RENDU DE CONSULTATION SPÉCIALISÉE",
-            specialistSpecialty: "SPÉCIALITÉ:",
-            specialistReason: "MOTIF DE CONSULTATION:",
-            specialistExams: "EXAMENS COMPLÉMENTAIRES:",
-            specialistDiagnosis: "DIAGNOSTIC:",
-            specialistRecommendations: "RECOMMANDATIONS:",
-            generateButton: 'Générer fichier Word',
-            continueEditing: 'Continuer l\'édition',
-            exitTemplate: 'Sortir du modèle',
-            myAccount: 'Mon Compte',
-        upgrade: 'Passer à Premium',
-        logout: 'Se déconnecter',
-        userLabel: 'Utilisateur',
-        statusLabel: 'Statut',
-        daysLabel: 'Jours restants',
-        trialBadge: 'Essai gratuit',
-        premiumBadge: 'Premium',
-        appTitle: 'Transcription Vocale',
-        appSubtitle: 'Commencez à dicter pour transcrire votre texte',
-        subjectLabel: 'Sujet / Référence:',
-        subjectPlaceholder: 'Ex: Consultation du 31/07/2025',
-        transcriptionLabel: 'Transcription:',
-        transcriptionPlaceholder: 'Le texte transcrit apparaîtra ici...',
-        footerText: 'Tous droits réservés.'
-        },
-        en: {
-            speakNow: 'Speak now',
-            countdown: 'Starting in',
-            gettingReady: 'Getting ready...',
-            speak: 'Speak in English',
-            pause: 'Pause',
-            stop: 'Stop',
-            copy: 'Copy all to<br>clipboard',
-            copied: 'Copied!',
-            template: 'Use a Word<br>template',
-            quit: 'Quit',
-            clearAll: 'Clear All',
-            clearSection: 'Clear',
-            placeholder: 'Press the "Speak in English" button, wait for the countdown to finish, then speak. Your transcription will appear here...',
-            confirmQuit: 'Do you really want to quit? Any unsaved text will be lost.',
-            browserSupport: 'Your browser does not support voice transcription.',
-            noCode: 'Successful activation code.',
-            aiCanMakeMistakes: "* AI can make mistakes. Please verify the transcription.",
-            libraryNotLoaded: 'Error: Document generation library not loaded.',
-            noText: 'Please add text to transcribe first.',
-            docError: 'Error generating document: ',
-            modalTitle: 'Choose a template',
-            initError: 'Error initializing speech recognition.',
-            consultationTitle: "MEDICAL CONSULTATION",
-            consultationReason: "REASON FOR CONSULTATION:",
-            consultationHistory: "HISTORY:",
-            consultationExam: "CLINICAL EXAMINATION:",
-            consultationConclusion: "CONCLUSION:",
-            specialistTitle: "SPECIALIST CONSULTATION REPORT",
-            specialistSpecialty: "SPECIALTY:",
-            specialistReason: "REASON FOR CONSULTATION:",
-            specialistExams: "ADDITIONAL EXAMS:",
-            specialistDiagnosis: "DIAGNOSIS:",
-            specialistRecommendations: "RECOMMENDATIONS:",
-            generateButton: 'Generate Word file',
-            continueEditing: 'Continue editing',
-            exitTemplate: 'Exit template',myAccount: 'My Account',
-        upgrade: 'Upgrade to Premium',
-        logout: 'Logout',
-        userLabel: 'User',
-        statusLabel: 'Status',
-        daysLabel: 'Days remaining',
-        trialBadge: 'Free Trial',
-        premiumBadge: 'Premium',
-        appTitle: 'Voice Transcription',
-        appSubtitle: 'Start dictating to transcribe your text',
-        subjectLabel: 'Subject / Reference:',
-        subjectPlaceholder: 'Ex: Consultation on 07/31/2025',
-        transcriptionLabel: 'Transcription:',
-        transcriptionPlaceholder: 'Transcribed text will appear here...',
-        footerText: 'All rights reserved.'
-        },
-        de: {
-            speakNow: 'Sprich jetzt',
-            countdown: 'Beginnend in',
-            gettingReady: 'Vorbereitung...',
-            speak: 'Sprechen Sie in Deutsch',
-            pause: 'Pause',
-            stop: 'Stopp',
-            copy: 'Kopieren Sie alles<br>in die Zwischenablage',
-            copied: 'Kopiert!',
-            template: 'Eine Word Vorlage<br>verwenden',
-            quit: 'Beenden',
-            clearAll: 'Alles Löschen',
-            clearSection: 'Löschen',
-            placeholder: 'Drücken Sie den "Sprechen Sie in Deutsch" Knopf, warten Sie bis der Countdown abgeschlossen ist, dann sprechen Sie. Ihre Transkription erscheint hier...',
-            confirmQuit: 'Möchten Sie wirklich beenden? Ungespeicherter Text geht verloren.',
-            browserSupport: 'Ihr Browser unterstützt keine Sprachtranskription.',
-            noCode: 'Aktivierungscode erforderlich.',
-            aiCanMakeMistakes: "* KI kann Fehler machen. Bitte überprüfen Sie die Transkription.",
-            libraryNotLoaded: 'Dokumentenerstellungsbibliothek nicht geladen.',
-            noText: 'Bitte fügen Sie zuerst Text zum Transkribieren hinzu.',
-            docError: 'Fehler beim Erstellen des Dokuments:',
-            modalTitle: 'Wählen Sie eine Vorlage.',
-            initError: 'Fehler bei der Initialisierung der Spracherkennung.',
-            consultationTitle: "ÄRZTLICHE BERATUNG",
-            consultationReason: "GRUND FÜR DIE KONSULTATION:",
-            consultationHistory: "VORGESCHICHTE:",
-            consultationExam: "KLINISCHE UNTERSUCHUNG:",
-            consultationConclusion: "SCHLUSSFOLGERUNG:",
-            specialistTitle: "SPEZIALISTENBERICHT",
-            specialistSpecialty: "FACHGEBIET:",
-            specialistReason: "GRUND FÜR DIE KONSULTATION:",
-            specialistExams: "ZUSÄTZLICHE UNTERSUCHUNGEN:",
-            specialistDiagnosis: "DIAGNOSE:",
-            specialistRecommendations: "EMPFEHLUNGEN:",
-            generateButton: 'Word-Datei generieren',
-            continueEditing: 'Bearbeitung fortsetzen',
-            exitTemplate: 'Vorlage verlassen',
-            myAccount: 'Mein Konto',
-        upgrade: 'Auf Premium upgraden',
-        logout: 'Abmelden',
-        userLabel: 'Benutzer',
-        statusLabel: 'Status',
-        daysLabel: 'Verbleibende Tage',
-        trialBadge: 'Kostenlose Testversion',
-        premiumBadge: 'Premium',
-        appTitle: 'Sprachtranskription',
-        appSubtitle: 'Beginnen Sie zu diktieren, um Ihren Text zu transkribieren',
-        subjectLabel: 'Betreff / Referenz:',
-        subjectPlaceholder: 'Beispiel: Beratung am 31.07.2025',
-        transcriptionLabel: 'Transkription:',
-        transcriptionPlaceholder: 'Der transkribierte Text erscheint hier...',
-        footerText: 'Alle Rechte vorbehalten.'
-        },
-        es: {
-            speakNow: 'Habla ahora',
-            countdown: 'Comenzando en',
-            gettingReady: 'Preparándose...',
-            speak: 'Habla en español',
-            pause: 'Pausar',
-            stop: 'Detener',
-            copy: 'Copiar todo<br>al portapapeles',
-            copied: '¡Copiado!',
-            template: 'Usar una plantilla<br>de Word',
-            quit: 'Salir',
-            clearAll: 'Borrar Todo',
-            clearSection: 'Borrar',
-            placeholder: 'Pulse el botón "Habla en español", espere a que termine la cuenta atrás, luego hable. Su transcripción aparecerá aquí...',
-            confirmQuit: '¿Realmente quiere salir? Se perderá cualquier texto no guardado.',
-            browserSupport: 'Su navegador no es compatible con la transcripción de voz.',
-            noCode: 'Se requiere código de activación.',
-            aiCanMakeMistakes: "* La IA puede cometer errores. Por favor, verifique la transcripción.",
-            libraryNotLoaded: 'Error: Biblioteca de generación de documentos no cargada.',
-            noText: 'Por favor, añada texto para transcribir primero.',
-            docError: 'Error al generar el documento:',
-            modalTitle: 'Elija una plantilla.',
-            initError: 'Error al inicializar el reconocimiento de voz.',
-            consultationTitle: "CONSULTA MÉDICA",
-            consultationReason: "MOTIVO DE LA CONSULTA:",
-            consultationHistory: "ANTECEDENTES:",
-            consultationExam: "EXAMEN CLÍNICO:",
-            consultationConclusion: "CONCLUSIÓN:",
-            specialistTitle: "INFORME DE CONSULTA ESPECIALIZADA",
-            specialistSpecialty: "ESPECIALIDAD:",
-            specialistReason: "MOTIVO DE LA CONSULTA:",
-            specialistExams: "EXÁMENES COMPLEMENTARIOS:",
-            specialistDiagnosis: "DIAGNÓSTICO:",
-            specialistRecommendations: "RECOMENDACIONES:",
-            generateButton: 'Generar archivo Word',
-            continueEditing: 'Continuar editando',
-            exitTemplate: 'Salir de la plantilla',
-            myAccount: 'Mi Cuenta',
-        upgrade: 'Actualizar a Premium',
-        logout: 'Cerrar sesión',
-        userLabel: 'Usuario',
-        statusLabel: 'Estado',
-        daysLabel: 'Días restantes',
-        trialBadge: 'Prueba gratuita',
-        premiumBadge: 'Premium',
-        appTitle: 'Transcripción de Voz',
-        appSubtitle: 'Comience a dictar para transcribir su texto',
-        subjectLabel: 'Asunto / Referencia:',
-        subjectPlaceholder: 'Ej: Consulta del 31/07/2025',
-        transcriptionLabel: 'Transcripción:',
-        transcriptionPlaceholder: 'El texto transcrito aparecerá aquí...',
-        footerText: 'Todos los derechos reservados.'
-        },
-        it: {
-            speakNow: 'Parla ora',
-            countdown: 'Inizio tra',
-            gettingReady: 'Mi sto preparando...',
-            speak: 'Parla in italiano',
-            pause: 'Pausa',
-            stop: 'Ferma',
-            copy: 'Copia tutto<br>negli appunti',
-            copied: 'Copiato!',
-            template: 'Usa un modello<br>Word',
-            quit: 'Esci',
-            clearAll: 'Cancella Tutto',
-            clearSection: 'Cancella',
-            placeholder: 'Premi il pulsante "Parla in italiano", attendi il termine del conto alla rovescia, poi parla. La tua trascrizione apparirà qui...',
-            confirmQuit: 'Vuoi davvero uscire? Qualsiasi testo non salvato andrà perso.',
-            browserSupport: 'Il tuo browser non supporta la trascrizione vocale.',
-            noCode: 'Codice di attivazione richiesto.',
-            aiCanMakeMistakes: "* L'IA può commettere errori. Si prega di verificare la trascrizione.",
-            libraryNotLoaded: 'Errore: Libreria di generazione dei documenti non caricata.',
-            noText: 'Si prega di aggiungere prima il testo da trascrivere.',
-            docError: 'Errore nella generazione del documento:',
-            modalTitle: 'Scegli un modello.',
-            initError: 'Errore durante linizializzazione del riconoscimento vocale.',
-            consultationTitle: "CONSULTO MEDICO",
-            consultationReason: "MOTIVO DELLA CONSULTAZIONE:",
-            consultationHistory: "STORIA:",
-            consultationExam: "ESAME CLINICO:",
-            consultationConclusion: "CONCLUSIONE:",
-            specialistTitle: "RAPPORTO DI CONSULTAZIONE SPECIALISTICA",
-            specialistSpecialty: "SPECIALITÀ:",
-            specialistReason: "MOTIVO DELLA CONSULTAZIONE:",
-            specialistExams: "ESAMI COMPLEMENTARI:",
-            specialistDiagnosis: "DIAGNOSI:",
-            specialistRecommendations: "RACCOMANDAZIONI:",
-            generateButton: 'Genera file Word',
-            continueEditing: 'Continua a modificare',
-            exitTemplate: 'Esci dal modello',
-            myAccount: 'Il mio Account',
-        upgrade: 'Passa a Premium',
-        logout: 'Esci',
-        userLabel: 'Utente',
-        statusLabel: 'Stato',
-        daysLabel: 'Giorni rimanenti',
-        trialBadge: 'Prova gratuita',
-        premiumBadge: 'Premium',
-        appTitle: 'Trascrizione Vocale',
-        appSubtitle: 'Inizia a dettare per trascrivere il tuo testo',
-        subjectLabel: 'Oggetto / Riferimento:',
-        subjectPlaceholder: 'Es: Consultazione del 31/07/2025',
-        transcriptionLabel: 'Trascrizione:',
-        transcriptionPlaceholder: 'Il testo trascritto apparirà qui...',
-        footerText: 'Tutti i diritti riservati.'
-        },
-        pt: {
-            speakNow: 'Fale agora',
-            countdown: 'Começando em',
-            gettingReady: 'Preparar-se...',
-            speak: 'Fale em português',
-            pause: 'Pausa',
-            stop: 'Parar',
-            copy: 'Copiar tudo para a<br>área de transferência',
-            copied: 'Copiado!',
-            template: 'Usar um modelo<br>Word',
-            quit: 'Sair',
-            clearAll: 'Limpar Tudo',
-            clearSection: 'Limpar',
-            placeholder: 'Pressione o botão "Fale em português", aguarde a contagem regressiva terminar, então fale. Sua transcrição aparecerá aqui...',
-            confirmQuit: 'Tem certeza de que deseja sair? Qualquer texto não salvo será perdido.',
-            browserSupport: 'Seu navegador não suporta transcrição de voz.',
-            noCode: 'Código de ativação necessário.',
-            aiCanMakeMistakes: "* A IA pode cometer erros. Por favor, verifique a transcrição.",
-            libraryNotLoaded: 'Erro: Biblioteca de geração de documentos não carregada.',
-            noText: 'Por favor, adicione texto para transcrever primeiro.',
-            docError: 'Erro ao gerar o documento:',
-            modalTitle: 'Escolha um modelo.',
-            initError: 'Erro ao inicializar o reconhecimento de voz.',
-            consultationTitle: "CONSULTA MÉDICA",
-            consultationReason: "MOTIVO DA CONSULTA:",
-            consultationHistory: "HISTÓRICO:",
-            consultationExam: "EXAME CLÍNICO:",
-            consultationConclusion: "CONCLUSÃO:",
-            specialistTitle: "RELATÓRIO DE CONSULTA ESPECIALIZADA",
-            specialistSpecialty: "ESPECIALIDADE:",
-            specialistReason: "MOTIVO DA CONSULTA:",
-            specialistExams: "EXAMES COMPLEMENTARES:",
-            specialistDiagnosis: "DIAGNÓSTICO:",
-            specialistRecommendations: "RECOMENDAÇÕES:",
-            generateButton: 'Gerar arquivo Word',
-            continueEditing: 'Continuar editando',
-            exitTemplate: 'Sair do modelo',
-            myAccount: 'Minha Conta',
-        upgrade: 'Atualizar para Premium',
-        logout: 'Sair',
-        userLabel: 'Usuário',
-        statusLabel: 'Status',
-        daysLabel: 'Dias restantes',
-        trialBadge: 'Teste gratuito',
-        premiumBadge: 'Premium',
-        appTitle: 'Transcrição de Voz',
-        appSubtitle: 'Comece a ditar para transcrever seu texto',
-        subjectLabel: 'Assunto / Referência:',
-        subjectPlaceholder: 'Ex: Consulta de 31/07/2025',
-        transcriptionLabel: 'Transcrição:',
-        transcriptionPlaceholder: 'O texto transcrito aparecerá aqui...',
-        footerText: 'Todos os direitos reservados.'
-        }
-    };
-
-    const translationUpdates = {
-        fr: { gettingReady: 'Préparation...' },
-        en: { gettingReady: 'Getting ready...' },
-        de: { gettingReady: 'Wird vorbereitet...' },
-        es: { gettingReady: 'Preparando...' },
-        it: { gettingReady: 'Preparazione in corso...' },
-        pt: { gettingReady: 'Preparando...' }
-    };
-    
-    // Apply the updates to the translations object
-    Object.keys(translationUpdates).forEach(lang => {
-        if (translations[lang]) {
-            Object.assign(translations[lang], translationUpdates[lang]);
-        }
-    });
-
 
     // Reset button states
     function resetButtons() {
@@ -1909,7 +1645,7 @@ function ensureCleanStart() {
         pauseButton.disabled = true;
         stopButton.disabled = true;
         startButton.classList.remove('recording');
-        isRecording = false;
+        isRecording = false; // FIXED: Use individual variable consistently
     }
 
     function enableRecordingButtons() {
@@ -1917,7 +1653,20 @@ function ensureCleanStart() {
         pauseButton.disabled = false;
         stopButton.disabled = false;
         startButton.classList.add('recording');
-        isRecording = true;
+        isRecording = true; // FIXED: Use individual variable consistently
+    }
+
+    function updateUIText() {
+        const t = translations[currentLang] || translations.fr;
+        startButton.querySelector('.btn-text').innerHTML = t.speak;
+        pauseButton.querySelector('.btn-text').innerHTML = t.pause;
+        stopButton.querySelector('.btn-text').innerHTML = t.stop;
+        copyButton.querySelector('.btn-text').innerHTML = t.copy;
+        templateButton.querySelector('.btn-text').innerHTML = t.template;
+        quitButton.querySelector('.btn-text').innerHTML = t.quit;
+        clearButton.textContent = t.clearAll;
+        transcriptionText.placeholder = t.placeholder;
+        aiCanMakeMistakesMessage.innerHTML = t.aiCanMakeMistakes;
     }
 
     // Function to create template sections - UPDATED to make all content areas editable
@@ -2664,139 +2413,25 @@ function ensureCleanStart() {
         });
     }
 
-    // Update UI text based on language
-    function updateUIText() {
-        const t = translations[currentLang] || translations.fr;
-        startButton.querySelector('.btn-text').innerHTML = t.speak;
-        pauseButton.querySelector('.btn-text').innerHTML = t.pause;
-        stopButton.querySelector('.btn-text').innerHTML = t.stop;
-        copyButton.querySelector('.btn-text').innerHTML = t.copy;
-        templateButton.querySelector('.btn-text').innerHTML = t.template;
-        quitButton.querySelector('.btn-text').innerHTML = t.quit;
-        clearButton.textContent = t.clearAll;
-        transcriptionText.placeholder = t.placeholder;
-        aiCanMakeMistakesMessage.innerHTML = t.aiCanMakeMistakes;
-    }
 
     // Debug helper function
     // Replace the existing debugSpeechRecognition function with this enhanced version
 function debugSpeechRecognition() {
-    console.log('=== COMPREHENSIVE SPEECH RECOGNITION DEBUG ===');
-    
-    // Basic environment info
-    console.log('--- Environment ---');
-    console.log('Browser:', navigator.userAgent);
-    console.log('Language:', navigator.language);
-    console.log('Current time:', new Date().toISOString());
-    console.log('Page URL:', window.location.href);
-    console.log('HTTPS:', window.location.protocol === 'https:');
-    
-    // Speech API availability
-    console.log('\n--- Speech API ---');
-    const hasSpeechAPI = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-    console.log('Speech API available:', hasSpeechAPI);
-    
-    if (hasSpeechAPI) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        console.log('Speech API type:', SpeechRecognition === window.SpeechRecognition ? 'Standard' : 'Webkit');
-    }
-    
-    // Current state
-    console.log('\n--- Current State ---');
-    console.log('Recognition object exists:', !!recognition);
-    console.log('Is recording:', isRecording);
-    console.log('Is starting:', isStarting);
-    console.log('Is resuming:', isResuming);
-    console.log('Template mode:', templateMode);
-    console.log('Current language:', currentLang);
-    console.log('Language setting:', languageMap[currentLang] || 'not found');
-    
-    // UI elements
-    console.log('\n--- UI Elements ---');
-    console.log('Start button exists:', !!startButton);
-    console.log('Start button disabled:', startButton?.disabled);
-    console.log('Transcription textarea exists:', !!transcriptionText);
-    console.log('Transcription textarea visible:', transcriptionText?.style.display !== 'none');
-    
-    // Test microphone access
-    console.log('\n--- Testing Microphone Access ---');
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            console.log('✓ Microphone access granted');
-            
-            // Get audio tracks info
-            const audioTracks = stream.getAudioTracks();
-            console.log('Number of audio tracks:', audioTracks.length);
-            
-            audioTracks.forEach((track, index) => {
-                console.log(`Audio track ${index + 1}:`, {
-                    label: track.label,
-                    enabled: track.enabled,
-                    muted: track.muted,
-                    readyState: track.readyState,
-                    settings: track.getSettings()
-                });
-            });
-            
-            // Clean up
-            stream.getTracks().forEach(track => track.stop());
-        })
-        .catch(error => {
-            console.error('✗ Microphone access denied:', error.name, error.message);
+        console.log('=== SPEECH RECOGNITION DEBUG ===');
+        console.log('Browser:', navigator.userAgent);
+        console.log('Speech API available:', 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+        console.log('Current state:', {
+            recognition: !!recognition,
+            isRecording,
+            isStarting,
+            isResuming,
+            currentLang
         });
-    
-    // Test creating recognition
-    console.log('\n--- Testing Recognition Creation ---');
-    try {
-        const testRecognition = createRecognition();
-        if (testRecognition) {
-            console.log('✓ Recognition created successfully');
-            console.log('Recognition settings:', {
-                continuous: testRecognition.continuous,
-                interimResults: testRecognition.interimResults,
-                lang: testRecognition.lang,
-                maxAlternatives: testRecognition.maxAlternatives
-            });
-            
-            // Don't start it, just test creation
-            testRecognition.abort();
-        } else {
-            console.error('✗ Failed to create recognition object');
-        }
-    } catch (error) {
-        console.error('✗ Error creating recognition:', error);
+        console.log('=== END DEBUG ===');
     }
-    
-    // Check for common issues
-    console.log('\n--- Common Issues Check ---');
-    
-    if (!hasSpeechAPI) {
-        console.warn('⚠️ Speech Recognition API not available - use Chrome, Edge, or Safari');
-    }
-    
-    if (window.location.protocol === 'file:') {
-        console.warn('⚠️ Running from file:// protocol - microphone access may be blocked');
-    }
-    
-    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-        console.warn('⚠️ Not in secure context (HTTPS) - microphone access may be blocked');
-    }
-    
-    const isFirefox = /Firefox/.test(navigator.userAgent);
-    if (isFirefox) {
-        console.warn('⚠️ Firefox detected - limited speech recognition support');
-    }
-    
-    console.log('\n=== END DEBUG ===');
-}
 
 // Make it globally available
 window.debugSpeech = debugSpeechRecognition;
-
-// Auto-run debug on page load for testing
-setTimeout(debugSpeechRecognition, 1000);
-    // Make debug function available globally
-    window.debugSpeech = debugSpeechRecognition;
 
     // Initialize UI
     resetButtons();
@@ -2804,13 +2439,10 @@ setTimeout(debugSpeechRecognition, 1000);
 
     // Cleanup function for page unload (Android compatibility)
     window.addEventListener('beforeunload', () => {
-        // Clear any pending timeouts
-        if (window.recognitionStartupTimeout) {
-            clearTimeout(window.recognitionStartupTimeout);
-            window.recognitionStartupTimeout = null;
+        if (recognitionStartupTimeout) { // FIXED: Use local variable
+            clearTimeout(recognitionStartupTimeout);
         }
         
-        // Stop recognition if active
         if (recognition && isRecording) {
             try {
                 recognition.stop();
@@ -2837,4 +2469,3 @@ setTimeout(debugSpeechRecognition, 1000);
         }
     });
 });
-// Force redeploy 07/16/2025
