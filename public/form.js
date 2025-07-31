@@ -1,14 +1,18 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // Debug mode - set to false for production
+    const DEBUG = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const log = (...args) => DEBUG && console.log(...args);
+
     // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const plan = urlParams.get('plan') || 'free';
-    const downloadIntent = urlParams.get('intent') === 'download'; // NEW: Check for download intent
+    const downloadIntent = urlParams.get('intent') === 'download';
     
     // Use shared language detection module
     let lang;
     if (typeof LanguageDetection !== 'undefined' && LanguageDetection.detectLanguage) {
         lang = await LanguageDetection.detectLanguage();
-        console.log('Form: Using shared language detection:', lang);
+        log('Form: Using shared language detection:', lang);
     } else {
         // Fallback if languageDetection.js is not loaded
         const urlLang = urlParams.get('lang');
@@ -17,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             storedLang = localStorage.getItem('selectedLanguage');
         } catch (e) {
-            console.log('localStorage access error');
+            log('localStorage access error');
         }
         
         // Extract the base language code
@@ -31,12 +35,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             localStorage.setItem('selectedLanguage', lang);
         } catch (e) {
-            console.log('localStorage write error');
+            log('localStorage write error');
         }
     }
     
-    console.log('Form page - using language:', lang);
-    console.log('Download intent:', downloadIntent); // NEW: Log download intent
+    log('Form page - using language:', lang);
+    log('Download intent:', downloadIntent);
 
     // Get DOM elements
     const form = document.getElementById('registrationForm');
@@ -56,80 +60,89 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitButton.disabled = false;
     }
 
-    // Initialize Stripe (existing code remains the same)
+    // Initialize Stripe with environment variable
     let stripe;
     let elements;
     let cardElement;
+    let stripePublishableKey;
 
-    if (window.Stripe) {
+    // Fetch Stripe publishable key from server
+    if (window.Stripe && plan === 'paid') {
         try {
-            stripe = Stripe(
-                'pk_test_51QgwsQP3dr2cRIwx5Nll9FKqZotSsNwhKChXjloSZmyy49Z9TfWdnaCvdBhhveHfkJQioLT0gtjc2kax5J6KdX3y006odnigC0'
-            );
-            console.log('Stripe initialized successfully');
+            const apiBaseUrl = getApiBaseUrl();
+            const configResponse = await fetch(`${apiBaseUrl}/api/config`);
+            if (configResponse.ok) {
+                const config = await configResponse.json();
+                stripePublishableKey = config.stripePublishableKey;
+            } else {
+                // Fallback to test key if server doesn't provide one
+                stripePublishableKey = 'pk_test_51QgwsQP3dr2cRIwx5Nll9FKqZotSsNwhKChXjloSZmyy49Z9TfWdnaCvdBhhveHfkJQioLT0gtjc2kax5J6KdX3y006odnigC0';
+                log('Using fallback Stripe key');
+            }
+
+            stripe = Stripe(stripePublishableKey);
+            log('Stripe initialized successfully');
             
-            if (plan === 'paid') {
-                elements = stripe.elements();
-                
-                const paymentElement = document.getElementById('payment-element');
-                if (paymentElement) {
-                    const container = document.getElementById('payment-element-container');
-                    if (container) {
-                        container.style.display = 'block';
-                        container.classList.remove('hidden');
-                    }
-                    
-                    cardElement = elements.create('card', {
-                        style: {
-                            base: {
-                                color: '#333333',
-                                fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-                                fontSmoothing: 'antialiased',
-                                fontSize: '16px',
-                                '::placeholder': {
-                                    color: '#aab7c4'
-                                },
-                                iconColor: '#69B578'
-                            },
-                            invalid: {
-                                color: '#dc3545',
-                                iconColor: '#dc3545'
-                            }
-                        }
-                    });
-                    
-                    cardElement.mount('#payment-element');
-                    
-                    cardElement.addEventListener('change', function(event) {
-                        const displayError = document.getElementById('card-errors');
-                        if (displayError) {
-                            if (event.error) {
-                                displayError.textContent = event.error.message;
-                            } else {
-                                displayError.textContent = '';
-                            }
-                        }
-                    });
-                    
-                    console.log('Stripe card element mounted');
-                } else {
-                    console.error('Payment element container not found');
+            elements = stripe.elements();
+            
+            const paymentElement = document.getElementById('payment-element');
+            if (paymentElement) {
+                const container = document.getElementById('payment-element-container');
+                if (container) {
+                    container.style.display = 'block';
+                    container.classList.remove('hidden');
                 }
+                
+                cardElement = elements.create('card', {
+                    style: {
+                        base: {
+                            color: '#333333',
+                            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                            fontSmoothing: 'antialiased',
+                            fontSize: '16px',
+                            '::placeholder': {
+                                color: '#aab7c4'
+                            },
+                            iconColor: '#69B578'
+                        },
+                        invalid: {
+                            color: '#dc3545',
+                            iconColor: '#dc3545'
+                        }
+                    }
+                });
+                
+                cardElement.mount('#payment-element');
+                
+                cardElement.addEventListener('change', function(event) {
+                    const displayError = document.getElementById('card-errors');
+                    if (displayError) {
+                        if (event.error) {
+                            displayError.textContent = event.error.message;
+                        } else {
+                            displayError.textContent = '';
+                        }
+                    }
+                });
+                
+                log('Stripe card element mounted');
+            } else {
+                console.error('Payment element container not found');
             }
         } catch (error) {
             console.error('Error initializing Stripe:', error);
-            alert('Error initializing payment system. Please try again later.');
+            const t = translations[lang] || translations.fr;
+            alert(t.paymentInitError || 'Error initializing payment system. Please try again later.');
         }
     }
     
-    // UPDATED translations with download intent messages
+    // Enhanced translations with new error messages
     const translations = {
         fr: {
             pageTitle: 'SyncVoice Medical - Formulaire',
             titles: {
                 free: 'Veuillez remplir les champs ci-dessous pour obtenir votre code d\'activation.',
                 paid: 'Veuillez remplir les champs ci-dessous pour obtenir votre compte et votre facture.',
-                // NEW: Download intent titles
                 downloadFree: 'Inscrivez-vous pour télécharger l\'application desktop et obtenir votre code d\'activation.',
                 downloadPaid: 'Inscrivez-vous pour télécharger l\'application desktop et obtenir votre accès premium.'
             },
@@ -154,7 +167,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 free: 'Veuillez envoyer mon code d\'activation pour 7 jours à l\'adresse email ci-dessus.',
                 paid: 'Procéder au paiement de 25 € TTC pour un mois (Carte Blue, Visa, Mastercard).',
                 paidUK: 'Procéder au paiement de £25 VAT Inc. pour un mois (Visa, Mastercard).',
-                // NEW: Download intent submit buttons
                 downloadFree: 'S\'inscrire et télécharger l\'application desktop (7 jours gratuits)',
                 downloadPaid: 'S\'inscrire et télécharger l\'application desktop (25 € TTC/mois)'
             },
@@ -168,15 +180,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentSubtitle: 'Vos informations de paiement sont sécurisées',
             subscription: 'Abonnement mensuel',
             total: 'Total',
-            // NEW: Download intent notification
-            downloadNotification: '📥 Après inscription, vous pourrez télécharger l\'application desktop depuis la page de succès.'
+            downloadNotification: '📥 Après inscription, vous pourrez télécharger l\'application desktop depuis la page de succès.',
+            // New error messages
+            fillAllFields: 'Veuillez remplir tous les champs obligatoires',
+            acceptTerms: 'Veuillez accepter les conditions générales',
+            paymentInitError: 'Erreur lors de l\'initialisation du système de paiement. Veuillez réessayer plus tard.',
+            passwordTooWeak: 'Le mot de passe doit contenir au moins 8 caractères, incluant majuscules, minuscules et chiffres',
+            serverError: 'Erreur serveur. Veuillez réessayer plus tard.'
         },
         en: {
             pageTitle: 'SyncVoice Medical - Form',
             titles: {
                 free: 'Please fill in the fields below to get your activation code.',
                 paid: 'Please fill in the fields below to get your account and invoice.',
-                // NEW: Download intent titles
                 downloadFree: 'Register to download the desktop application and get your activation code.',
                 downloadPaid: 'Register to download the desktop application and get your premium access.'
             },
@@ -201,7 +217,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 free: 'Please send my 7-day activation code to the email address above.',
                 paid: 'Proceed to payment of €25 VAT Inc. for one month (Visa, Mastercard).',
                 paidUK: 'Proceed to payment of £25 VAT Inc. for one month (Visa, Mastercard).',
-                // NEW: Download intent submit buttons
                 downloadFree: 'Register and download desktop app (7 days free)',
                 downloadPaid: 'Register and download desktop app (€25 VAT Inc./month)'
             },
@@ -215,15 +230,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentSubtitle: 'Your payment information is secure',
             subscription: 'Monthly subscription',
             total: 'Total',
-            // NEW: Download intent notification
-            downloadNotification: '📥 After registration, you will be able to download the desktop application from the success page.'
+            downloadNotification: '📥 After registration, you will be able to download the desktop application from the success page.',
+            // New error messages
+            fillAllFields: 'Please fill in all required fields',
+            acceptTerms: 'Please accept the terms and conditions',
+            paymentInitError: 'Error initializing payment system. Please try again later.',
+            passwordTooWeak: 'Password must be at least 8 characters long and include uppercase, lowercase letters and numbers',
+            serverError: 'Server error. Please try again later.'
         },
         de: {
             pageTitle: 'SyncVoice Medical - Formular',
             titles: {
                 free: 'Bitte füllen Sie die untenstehenden Felder aus, um Ihren Aktivierungscode zu erhalten.',
                 paid: 'Bitte füllen Sie die untenstehenden Felder aus, um Ihr Konto und Ihre Rechnung zu erhalten.',
-                // NEW: Download intent titles
                 downloadFree: 'Registrieren Sie sich, um die Desktop-Anwendung herunterzuladen und Ihren Aktivierungscode zu erhalten.',
                 downloadPaid: 'Registrieren Sie sich, um die Desktop-Anwendung herunterzuladen und Ihren Premium-Zugang zu erhalten.'
             },
@@ -248,7 +267,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 free: 'Bitte senden Sie meinen 7-Tage-Aktivierungscode an die oben angegebene E-Mail-Adresse.',
                 paid: 'Weiter zur Zahlung von 25 € inkl. MwSt. für einen Monat (Visa, Mastercard).',
                 paidUK: 'Weiter zur Zahlung von £25 inkl. MwSt. für einen Monat (Visa, Mastercard).',
-                // NEW: Download intent submit buttons
                 downloadFree: 'Registrieren und Desktop-App herunterladen (7 Tage kostenlos)',
                 downloadPaid: 'Registrieren und Desktop-App herunterladen (25 € inkl. MwSt./Monat)'
             },
@@ -262,15 +280,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentSubtitle: 'Ihre Zahlungsinformationen sind sicher',
             subscription: 'Monatliches Abonnement',
             total: 'Gesamt',
-            // NEW: Download intent notification
-            downloadNotification: '📥 Nach der Registrierung können Sie die Desktop-Anwendung von der Erfolgsseite herunterladen.'
+            downloadNotification: '📥 Nach der Registrierung können Sie die Desktop-Anwendung von der Erfolgsseite herunterladen.',
+            // New error messages
+            fillAllFields: 'Bitte füllen Sie alle Pflichtfelder aus',
+            acceptTerms: 'Bitte akzeptieren Sie die Allgemeinen Geschäftsbedingungen',
+            paymentInitError: 'Fehler beim Initialisieren des Zahlungssystems. Bitte versuchen Sie es später erneut.',
+            passwordTooWeak: 'Das Passwort muss mindestens 8 Zeichen lang sein und Groß-, Kleinbuchstaben und Zahlen enthalten',
+            serverError: 'Serverfehler. Bitte versuchen Sie es später erneut.'
         },
         es: {
             pageTitle: 'SyncVoice Medical - Formulario',
             titles: {
                 free: 'Por favor, complete los campos siguientes para obtener su código de activación.',
                 paid: 'Por favor, complete los campos siguientes para obtener su cuenta y factura.',
-                // NEW: Download intent titles
                 downloadFree: 'Regístrese para descargar la aplicación de escritorio y obtener su código de activación.',
                 downloadPaid: 'Regístrese para descargar la aplicación de escritorio y obtener su acceso premium.'
             },
@@ -295,7 +317,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 free: 'Por favor, envíe mi código de activación de 7 días a la dirección de correo electrónico anterior.',
                 paid: 'Proceder al pago de 25 € IVA inc. por un mes (Visa, Mastercard).',
                 paidUK: 'Proceder al pago de £25 IVA inc. por un mes (Visa, Mastercard).',
-                // NEW: Download intent submit buttons
                 downloadFree: 'Registrarse y descargar aplicación de escritorio (7 días gratis)',
                 downloadPaid: 'Registrarse y descargar aplicación de escritorio (25 € IVA inc./mes)'
             },
@@ -309,15 +330,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentSubtitle: 'Su información de pago está segura',
             subscription: 'Suscripción mensual',
             total: 'Total',
-            // NEW: Download intent notification
-            downloadNotification: '📥 Después del registro, podrá descargar la aplicación de escritorio desde la página de éxito.'
+            downloadNotification: '📥 Después del registro, podrá descargar la aplicación de escritorio desde la página de éxito.',
+            // New error messages
+            fillAllFields: 'Por favor, complete todos los campos requeridos',
+            acceptTerms: 'Por favor, acepte los términos y condiciones',
+            paymentInitError: 'Error al inicializar el sistema de pago. Por favor, inténtelo de nuevo más tarde.',
+            passwordTooWeak: 'La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas y números',
+            serverError: 'Error del servidor. Por favor, inténtelo de nuevo más tarde.'
         },
         it: {
             pageTitle: 'SyncVoice Medical - Modulo',
             titles: {
                 free: 'Compila i campi sottostanti per ottenere il tuo codice di attivazione.',
                 paid: 'Compila i campi sottostanti per ottenere il tuo account e la fattura.',
-                // NEW: Download intent titles
                 downloadFree: 'Registrati per scaricare l\'applicazione desktop e ottenere il tuo codice di attivazione.',
                 downloadPaid: 'Registrati per scaricare l\'applicazione desktop e ottenere il tuo accesso premium.'
             },
@@ -342,7 +367,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 free: 'Invia il mio codice di attivazione di 7 giorni all\'indirizzo email sopra indicato.',
                 paid: 'Procedi al pagamento di 25 € IVA inc. per un mese (Visa, Mastercard).',
                 paidUK: 'Procedi al pagamento di £25 IVA inc. per un mese (Visa, Mastercard).',
-                // NEW: Download intent submit buttons
                 downloadFree: 'Registrati e scarica l\'app desktop (7 giorni gratis)',
                 downloadPaid: 'Registrati e scarica l\'app desktop (25 € IVA inc./mese)'
             },
@@ -356,15 +380,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentSubtitle: 'Le tue informazioni di pagamento sono sicure',
             subscription: 'Abbonamento mensile',
             total: 'Totale',
-            // NEW: Download intent notification
-            downloadNotification: '📥 Dopo la registrazione, potrai scaricare l\'applicazione desktop dalla pagina di successo.'
+            downloadNotification: '📥 Dopo la registrazione, potrai scaricare l\'applicazione desktop dalla pagina di successo.',
+            // New error messages
+            fillAllFields: 'Si prega di compilare tutti i campi obbligatori',
+            acceptTerms: 'Si prega di accettare i termini e le condizioni',
+            paymentInitError: 'Errore durante l\'inizializzazione del sistema di pagamento. Si prega di riprovare più tardi.',
+            passwordTooWeak: 'La password deve essere lunga almeno 8 caratteri e includere maiuscole, minuscole e numeri',
+            serverError: 'Errore del server. Si prega di riprovare più tardi.'
         },
         pt: {
             pageTitle: 'SyncVoice Medical - Formulário',
             titles: {
                 free: 'Por favor, preencha os campos abaixo para obter seu código de ativação.',
                 paid: 'Por favor, preencha os campos abaixo para obter sua conta e fatura.',
-                // NEW: Download intent titles
                 downloadFree: 'Registre-se para baixar a aplicação desktop e obter seu código de ativação.',
                 downloadPaid: 'Registre-se para baixar a aplicação desktop e obter seu acesso premium.'
             },
@@ -389,7 +417,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 free: 'Por favor, envie meu código de ativação de 7 dias para o endereço de email acima.',
                 paid: 'Prosseguir para o pagamento de 25 € IVA inc. por um mês (Visa, Mastercard).',
                 paidUK: 'Prosseguir para o pagamento de £25 IVA inc. por um mês (Visa, Mastercard).',
-                // NEW: Download intent submit buttons
                 downloadFree: 'Registrar e baixar app desktop (7 dias grátis)',
                 downloadPaid: 'Registrar e baixar app desktop (25 € IVA inc./mês)'
             },
@@ -403,8 +430,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             paymentSubtitle: 'Suas informações de pagamento estão seguras',
             subscription: 'Assinatura mensal',
             total: 'Total',
-            // NEW: Download intent notification
-            downloadNotification: '📥 Após o registro, você poderá baixar a aplicação desktop da página de sucesso.'
+            downloadNotification: '📥 Após o registro, você poderá baixar a aplicação desktop da página de sucesso.',
+            // New error messages
+            fillAllFields: 'Por favor, preencha todos os campos obrigatórios',
+            acceptTerms: 'Por favor, aceite os termos e condições',
+            paymentInitError: 'Erro ao inicializar o sistema de pagamento. Por favor, tente novamente mais tarde.',
+            passwordTooWeak: 'A senha deve ter pelo menos 8 caracteres e incluir letras maiúsculas, minúsculas e números',
+            serverError: 'Erro do servidor. Por favor, tente novamente mais tarde.'
         }
     };
 
@@ -413,34 +445,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         fr: {
             passwordLabel: 'Mot de passe :',
             confirmPasswordLabel: 'Confirmer le mot de passe :',
-            passwordHelp: 'Au moins 8 caractères'
+            passwordHelp: 'Au moins 8 caractères, avec majuscules, minuscules et chiffres'
         },
         en: {
             passwordLabel: 'Password:',
             confirmPasswordLabel: 'Confirm Password:',
-            passwordHelp: 'At least 8 characters'
+            passwordHelp: 'At least 8 characters, with uppercase, lowercase and numbers'
         },
         de: {
             passwordLabel: 'Passwort:',
             confirmPasswordLabel: 'Passwort bestätigen:',
-            passwordHelp: 'Mindestens 8 Zeichen'
+            passwordHelp: 'Mindestens 8 Zeichen, mit Groß-, Kleinbuchstaben und Zahlen'
         },
         es: {
             passwordLabel: 'Contraseña:',
             confirmPasswordLabel: 'Confirmar Contraseña:',
-            passwordHelp: 'Al menos 8 caracteres'
+            passwordHelp: 'Al menos 8 caracteres, con mayúsculas, minúsculas y números'
         },
         it: {
             passwordLabel: 'Password:',
             confirmPasswordLabel: 'Conferma Password:',
-            passwordHelp: 'Almeno 8 caratteri'
+            passwordHelp: 'Almeno 8 caratteri, con maiuscole, minuscole e numeri'
         },
         pt: {
             passwordLabel: 'Senha:',
             confirmPasswordLabel: 'Confirmar Senha:',
-            passwordHelp: 'Pelo menos 8 caracteres'
+            passwordHelp: 'Pelo menos 8 caracteres, com maiúsculas, minúsculas e números'
         }
     };
+
+    // Enhanced password validation function
+    function validatePassword(password) {
+        if (!password || password.length < 8) {
+            return false;
+        }
+        
+        // Check for at least one uppercase, one lowercase, and one number
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasLowerCase = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        
+        return hasUpperCase && hasLowerCase && hasNumber;
+    }
 
     // Function to determine API base URL based on environment
     function getApiBaseUrl() {
@@ -448,15 +494,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const hostname = window.location.hostname;
         const port = window.location.port;
         
-        console.log('Current location:', { protocol, hostname, port });
+        log('Current location:', { protocol, hostname, port });
         
-        // For local development - FIXED to use port 8080
+        // For local development
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            // Check if a specific port is configured
             const devPort = port || '8080';
             return `${protocol}//${hostname}:${devPort}`;
         }
         
-        // For file:// protocol (local testing) - FIXED to use port 8080
+        // For file:// protocol (local testing)
         if (protocol === 'file:') {
             return 'http://localhost:8080';
         }
@@ -507,7 +554,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // NEW: Function to show download intent notification
+    // Function to show download intent notification
     function showDownloadNotification(language) {
         if (!downloadIntent) return;
         
@@ -537,7 +584,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Function to update content based on language
     function updateContent(language) {
-        console.log('Updating content for language:', language, 'Plan:', plan, 'Download intent:', downloadIntent);
+        log('Updating content for language:', language, 'Plan:', plan, 'Download intent:', downloadIntent);
         const t = translations[language] || translations.fr;
 
         if (htmlElement) {
@@ -546,7 +593,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (pageTitle) pageTitle.textContent = t.pageTitle;
         
-        // NEW: Update form title based on download intent
+        // Update form title based on download intent
         if (formTitle && t.titles) {
             if (downloadIntent) {
                 formTitle.textContent = plan === 'paid' ? t.titles.downloadPaid : t.titles.downloadFree;
@@ -555,7 +602,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // NEW: Update submit button based on download intent
+        // Update submit button based on download intent
         if (submitButton && t.submitButtons) {
             if (plan === 'paid') {
                 if (downloadIntent) {
@@ -609,10 +656,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const origin = window.location.origin;
                 const termsPath = `${origin}/terms/${currentLang}/${termsType}.html`;
                 
-                console.log('Terms file URL:', termsPath);
-                console.log('Current language:', currentLang);
-                console.log('Current plan:', currentPlan);
-                console.log('Terms type:', termsType);
+                log('Terms file URL:', termsPath);
+                log('Current language:', currentLang);
+                log('Current plan:', currentPlan);
+                log('Terms type:', termsType);
                 
                 window.open(termsPath, '_blank');
             });
@@ -631,7 +678,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Call the payment UI update function
         updatePaymentUI(language, '');
         
-        // NEW: Show download notification if applicable
+        // Show download notification if applicable
         showDownloadNotification(language);
     }
 
@@ -733,14 +780,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         proceedMessage.style.display = 'none';
     }
 
-    // ENHANCED: Form submission handler with download intent handling
+    // Enhanced form submission handler with improved validation
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Form submitted');
-            console.log('Current plan:', plan);
-            console.log('Current language:', lang);
-            console.log('Download intent:', downloadIntent); // NEW: Log download intent
+            log('Form submitted');
+            log('Current plan:', plan);
+            log('Current language:', lang);
+            log('Download intent:', downloadIntent);
 
             const t = translations[lang] || translations.fr;
             const originalButtonText = submitButton.textContent;
@@ -752,13 +799,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const formData = new FormData(form);
                 
                 // Log form data for debugging
-                console.log('Form data collected:', {
+                log('Form data collected:', {
                     firstName: formData.get('prenom'),
                     lastName: formData.get('nom'),
                     email: formData.get('email'),
                     version: plan,
                     language: lang,
-                    downloadIntent: downloadIntent // NEW: Log download intent
+                    downloadIntent: downloadIntent
                 });
 
                 // Validate required fields
@@ -769,23 +816,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const confirmPassword = formData.get('confirmPassword');
                 
                 if (!email || !firstName || !lastName) {
-                    alert('Please fill in all required fields');
+                    alert(t.fillAllFields);
                     submitButton.disabled = false;
                     submitButton.textContent = originalButtonText;
                     return;
                 }
 
-                // Password validation
-                if (!password || password.length < 8) {
+                // Enhanced password validation
+                if (!validatePassword(password)) {
                     const passwordErrors = {
-                        fr: 'Le mot de passe doit contenir au moins 8 caractères',
-                        en: 'Password must be at least 8 characters long',
-                        de: 'Das Passwort muss mindestens 8 Zeichen lang sein',
-                        es: 'La contraseña debe tener al menos 8 caracteres',
-                        it: 'La password deve avere almeno 8 caratteri',
-                        pt: 'A senha deve ter pelo menos 8 caracteres'
+                        fr: 'Le mot de passe doit contenir au moins 8 caractères, avec majuscules, minuscules et chiffres',
+                        en: 'Password must be at least 8 characters long and include uppercase, lowercase letters and numbers',
+                        de: 'Das Passwort muss mindestens 8 Zeichen lang sein und Groß-, Kleinbuchstaben und Zahlen enthalten',
+                        es: 'La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas y números',
+                        it: 'La password deve essere lunga almeno 8 caratteri e includere maiuscole, minuscole e numeri',
+                        pt: 'A senha deve ter pelo menos 8 caracteres e incluir letras maiúsculas, minúsculas e números'
                     };
-                    alert(passwordErrors[lang] || passwordErrors['fr']);
+                    alert(t.passwordTooWeak || passwordErrors[lang] || passwordErrors['fr']);
                     submitButton.disabled = false;
                     submitButton.textContent = originalButtonText;
                     return;
@@ -808,7 +855,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Check if terms are accepted
                 if (!termsAcceptCheckbox.checked) {
-                    alert('Please accept the terms and conditions');
+                    alert(t.acceptTerms);
                     submitButton.disabled = false;
                     submitButton.textContent = originalButtonText;
                     return;
@@ -823,13 +870,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const checkResponse = await fetch(checkEmailUrl, {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
                             },
                             body: JSON.stringify({ email })
                         });
 
                         const checkResult = await checkResponse.json();
-                        console.log('Email check result:', checkResult);
+                        log('Email check result:', checkResult);
 
                         if (!checkResponse.ok && !checkResult.withinTrial) {
                             const errorMessages = {
@@ -877,7 +925,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     version: plan,
                     language: lang,
                     termsAccepted: true,
-                    downloadIntent: downloadIntent // NEW: Include download intent
+                    downloadIntent: downloadIntent
                 };
 
                 // Add currency and amount based on country
@@ -907,7 +955,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     requestData.amount = amount;
                 }
 
-                console.log('Sending request data:', requestData);
+                log('Sending request data:', requestData);
 
                 const apiBaseUrl = getApiBaseUrl();
                 const apiUrl = `${apiBaseUrl}/api/send-activation`;
@@ -915,13 +963,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify(requestData)
                 });
 
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
+                log('Response status:', response.status);
+                log('Response headers:', response.headers);
 
                 const contentType = response.headers.get('content-type');
                 let result;
@@ -931,39 +980,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     const text = await response.text();
                     console.error('Non-JSON response received:', text);
-                    throw new Error(`Server returned non-JSON response. Status: ${response.status}. Content: ${text.substring(0, 200)}...`);
+                    throw new Error(t.serverError || `Server error: ${response.status}`);
                 }
 
-                console.log('API response:', result);
+                log('API response:', result);
 
                 if (!response.ok) {
-                    throw new Error(result.message || `Server error: ${response.status}`);
+                    throw new Error(result.message || t.serverError || `Server error: ${response.status}`);
                 }
 
                 if (result.success) {
-                    console.log('Storing user data:', {
-        email: email,
-        activationCode: result.activationCode,
-        userId: result.userId
-    });
-    
-    // Store in both sessionStorage and localStorage
-    if (email) {
-        sessionStorage.setItem('userEmail', email);
-        localStorage.setItem('userEmail', email);
-    }
-    
-    if (result.activationCode) {
-        sessionStorage.setItem('activationCode', result.activationCode);
-        localStorage.setItem('activationCode', result.activationCode);
-        console.log('Activation code stored:', result.activationCode);
-    }
-    
-    if (result.userId) {
-        sessionStorage.setItem('userId', result.userId);
-        localStorage.setItem('userId', result.userId);
-    }
-    
+                    log('Storing user data:', {
+                        email: email,
+                        activationCode: result.activationCode,
+                        userId: result.userId
+                    });
+                    
+                    // Store only in sessionStorage to avoid duplicate storage
+                    if (email) {
+                        sessionStorage.setItem('userEmail', email);
+                    }
+                    
+                    if (result.activationCode) {
+                        sessionStorage.setItem('activationCode', result.activationCode);
+                        log('Activation code stored:', result.activationCode);
+                    }
+                    
+                    if (result.userId) {
+                        sessionStorage.setItem('userId', result.userId);
+                    }
+                    
                     if (result.requiresPayment && plan === 'paid') {
                         if (!stripe) {
                             throw new Error('Stripe is not initialized');
@@ -973,10 +1019,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         
                         const countryInput = formData.get('pays') || '';
                         const countryCode = getCountryCode(countryInput);
-                        console.log('Country input:', countryInput, '→ Country code:', countryCode);
+                        log('Country input:', countryInput, '→ Country code:', countryCode);
                         
                         try {
-                            console.log('Confirming card payment with client secret:', result.clientSecret);
+                            log('Confirming card payment with client secret:', result.clientSecret);
                             
                             const { error, paymentIntent } = await stripe.confirmCardPayment(
                                 result.clientSecret,
@@ -1002,61 +1048,47 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 console.error('Payment error:', error);
                                 throw new Error(t.paymentError + error.message);
                             } else {
-                                console.log('Payment successful:', paymentIntent);
+                                log('Payment successful:', paymentIntent);
 
                                 if (result.userId) {
-        sessionStorage.setItem('userId', result.userId);
-    }
-    if (result.activationCode) {
-        sessionStorage.setItem('activationCode', result.activationCode);
-    }
-    if (result.userEmail || email) {
-        sessionStorage.setItem('userEmail', result.userEmail || email);
-    }
-    
-    // Also save to localStorage for persistence
-    localStorage.setItem('userEmail', result.userEmail || email);
-    if (result.activationCode) {
-        localStorage.setItem('activationCode', result.activationCode);
-    }
-
+                                    sessionStorage.setItem('userId', result.userId);
+                                }
+                                if (result.activationCode) {
+                                    sessionStorage.setItem('activationCode', result.activationCode);
+                                }
+                                if (result.userEmail || email) {
+                                    sessionStorage.setItem('userEmail', result.userEmail || email);
+                                }
 
                                 alert(t.paymentSuccess);
 
                                 const successUrl = downloadIntent 
-        ? `success.html?lang=${lang}&paid=true&download=true&email=${encodeURIComponent(email)}`
-        : `success.html?lang=${lang}&paid=true&email=${encodeURIComponent(email)}`;
-    window.location.href = successUrl;
-                                
+                                    ? `success.html?lang=${lang}&paid=true&download=true&email=${encodeURIComponent(email)}`
+                                    : `success.html?lang=${lang}&paid=true&email=${encodeURIComponent(email)}`;
+                                window.location.href = successUrl;
                             }
                         } catch (paymentError) {
                             console.error('Stripe payment error:', paymentError);
                             throw new Error(t.paymentError + paymentError.message);
                         }
                     } else {
-                        console.log('Free plan activation successful, preparing redirect...');
+                        log('Free plan activation successful, preparing redirect...');
 
                         if (result.userId) {
-        sessionStorage.setItem('userId', result.userId);
-    }
-    if (result.activationCode) {
-        sessionStorage.setItem('activationCode', result.activationCode);
-    }
-    if (result.userEmail || email) {
-        sessionStorage.setItem('userEmail', result.userEmail || email);
-    }
-    
-    // Also save to localStorage for persistence
-    localStorage.setItem('userEmail', result.userEmail || email);
-    if (result.activationCode) {
-        localStorage.setItem('activationCode', result.activationCode);
-    }
-    
-    console.log('Saved to storage:', {
-        userId: result.userId,
-        activationCode: result.activationCode,
-        userEmail: result.userEmail || email
-    });
+                            sessionStorage.setItem('userId', result.userId);
+                        }
+                        if (result.activationCode) {
+                            sessionStorage.setItem('activationCode', result.activationCode);
+                        }
+                        if (result.userEmail || email) {
+                            sessionStorage.setItem('userEmail', result.userEmail || email);
+                        }
+                        
+                        log('Saved to storage:', {
+                            userId: result.userId,
+                            activationCode: result.activationCode,
+                            userEmail: result.userEmail || email
+                        });
                         
                         let successMessage = t.activationCodeMessage;
                         
@@ -1074,12 +1106,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         
                         alert(successMessage);
                         
-                        console.log('Redirecting to success page...');
-                        // NEW: Preserve download intent in success URL
+                        log('Redirecting to success page...');
                         const successUrl = downloadIntent 
                             ? `success.html?lang=${lang}&download=true`
                             : `success.html?lang=${lang}`;
-                        console.log('Success URL:', successUrl);
+                        log('Success URL:', successUrl);
                         
                         try {
                             window.location.replace(successUrl);
@@ -1088,6 +1119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             window.location.href = successUrl;
                         }
                         
+                        // Fallback UI if redirect fails
                         setTimeout(() => {
                             if (window.location.pathname.includes('form.html')) {
                                 console.warn('Redirect failed, trying alternative...');
@@ -1111,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }, 2000);
                     }
                 } else {
-                    throw new Error(result.message || 'Unknown error occurred');
+                    throw new Error(result.message || t.serverError || 'Unknown error occurred');
                 }
             } catch (error) {
                 console.error('Form Submission Error:', error);

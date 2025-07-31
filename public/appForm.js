@@ -393,7 +393,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lastAddedText = '';
     let recognitionStartupTimeout = null; // FIXED: No more window.recognitionStartupTimeout
 
-    // Initialize buttons and elements
+    let hasUsedSpeechBefore = false;
+let activeInputField = null;
+const subjectInput = document.getElementById('subjectInput');
+
+// Initialize buttons and elements
     const startButton = document.getElementById('startButton');
     const pauseButton = document.getElementById('pauseButton');
     const stopButton = document.getElementById('stopButton');
@@ -408,6 +412,108 @@ document.addEventListener('DOMContentLoaded', async () => {
     const templateItems = document.querySelectorAll('.template-item');
     const aiCanMakeMistakesMessage = document.getElementById('AICanMakeMistakes_message');
 
+
+    // NEW: Function to track which input field is focused
+function setupInputFieldTracking() {
+    // Track when subject input is focused
+    if (subjectInput) {
+        subjectInput.addEventListener('focus', () => {
+            activeInputField = 'subject';
+            console.log('Subject input focused - transcription will go here');
+        });
+        
+        subjectInput.addEventListener('blur', () => {
+            // Don't immediately clear - give a small delay in case user is just clicking start button
+            setTimeout(() => {
+                if (document.activeElement !== startButton) {
+                    activeInputField = null;
+                }
+            }, 100);
+        });
+    }
+    
+    // Track when main transcription area is focused
+    if (transcriptionText) {
+        transcriptionText.addEventListener('focus', () => {
+            activeInputField = 'transcription';
+            console.log('Transcription area focused - transcription will go here');
+        });
+        
+        transcriptionText.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (document.activeElement !== startButton) {
+                    activeInputField = null;
+                }
+            }, 100);
+        });
+    }
+}
+
+//Function to add transcription to the correct field
+// NEW: Function to add transcription to the correct field
+function addTranscriptionToActiveField(transcript) {
+    // Validate input
+    if (!transcript || transcript.trim() === '') {
+        console.log('Empty transcript received, skipping');
+        return;
+    }
+    
+    const cleanTranscript = transcript.trim();
+    console.log(`Processing transcript: "${cleanTranscript}" | Active field: ${activeInputField} | Template mode: ${templateMode}`);
+    
+    // Priority 1: If subject input field is focused and active
+    if (activeInputField === 'subject' && subjectInput) {
+        console.log('Adding transcription to subject input field');
+        
+        // Add proper spacing if there's already text
+        if (subjectInput.value && !subjectInput.value.endsWith(' ')) {
+            subjectInput.value += ' ';
+        }
+        
+        // Add the transcript
+        subjectInput.value += cleanTranscript;
+        
+        // Trigger input event to ensure any listeners are notified
+        subjectInput.dispatchEvent(new Event('input', { bubbles: true }));
+        
+        // Focus back to the input to maintain cursor position
+        subjectInput.focus();
+        
+        console.log(`Successfully added to subject field: "${cleanTranscript}"`);
+        return;
+    }
+    
+    // Priority 2: If in template mode, use template logic
+    if (templateMode) {
+        console.log('Adding transcription to template mode');
+        try {
+            processTemplateTranscript(cleanTranscript);
+            console.log('Successfully processed template transcript');
+        } catch (error) {
+            console.error('Error processing template transcript:', error);
+        }
+        return;
+    }
+    
+    // Priority 3: Normal transcription mode (default)
+    console.log('Adding transcription to main transcription area');
+    
+    // Add proper spacing if there's already text
+    if (transcriptionText.value && !transcriptionText.value.endsWith(' ')) {
+        transcriptionText.value += ' ';
+    }
+    
+    // Add the transcript
+    transcriptionText.value += cleanTranscript;
+    
+    // Trigger input event
+    transcriptionText.dispatchEvent(new Event('input', { bubbles: true }));
+    
+    // Auto-scroll to bottom to show new text
+    transcriptionText.scrollTop = transcriptionText.scrollHeight;
+    
+    console.log(`Successfully added to main transcription area: "${cleanTranscript}"`);
+}
 
     // Add this function after your variable declarations
 function resetRecognitionState() {
@@ -1056,39 +1162,28 @@ function ensureCleanStart() {
         
         // Handle recognition results
         recognitionInstance.onresult = function(event) {
-            console.log('=== SPEECH RECOGNITION RESULT ===');
-            console.log('Result index:', event.resultIndex, 'Results length:', event.results.length);
+    console.log('=== SPEECH RECOGNITION RESULT ===');
+    console.log('Result index:', event.resultIndex, 'Results length:', event.results.length);
+    
+    // Process all results from resultIndex onwards
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        
+        if (result.isFinal) {
+            const transcript = result[0].transcript.trim();
             
-            // Process all results from resultIndex onwards
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const result = event.results[i];
+            if (transcript) {
+                console.log(`Final transcript: "${transcript}"`);
                 
-                if (result.isFinal) {
-                    const transcript = result[0].transcript.trim();
-                    
-                    if (transcript) {
-                        console.log(`Final transcript: "${transcript}"`);
-                        
-                        // Add the transcript
-                        if (templateMode) {
-                            processTemplateTranscript(transcript);
-                        } else {
-                            // Add to textarea with proper spacing
-                            if (transcriptionText.value && !transcriptionText.value.endsWith(' ')) {
-                                transcriptionText.value += ' ';
-                            }
-                            transcriptionText.value += transcript;
-                            
-                            // Auto-scroll
-                            transcriptionText.scrollTop = transcriptionText.scrollHeight;
-                        }
-                    }
-                } else {
-                    // Log interim results for debugging
-                    console.log('Interim result:', result[0].transcript);
-                }
+                // REPLACE the existing transcription logic with this:
+                addTranscriptionToActiveField(transcript);
             }
-        };
+        } else {
+            // Log interim results for debugging
+            console.log('Interim result:', result[0].transcript);
+        }
+    }
+};
 
         // Enhanced error handling
         recognitionInstance.onerror = function(event) {
@@ -1287,208 +1382,238 @@ function ensureCleanStart() {
 
     // Function to show countdown before starting recognition
     function startWithCountdown() {
-        console.log('=== PRODUCTION DEBUG START ===');
-        console.log('Current URL:', window.location.href);
-        console.log('Protocol:', window.location.protocol);
-        console.log('User Agent:', navigator.userAgent);
-        console.log('Secure Context:', window.isSecureContext);
+    console.log('=== PRODUCTION DEBUG START ===');
+    console.log('Current URL:', window.location.href);
+    console.log('Protocol:', window.location.protocol);
+    console.log('User Agent:', navigator.userAgent);
+    console.log('Secure Context:', window.isSecureContext);
+    
+    // Check Web Speech API availability
+    console.log('SpeechRecognition available:', 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+    
+    // Check media devices
+    console.log('MediaDevices available:', !!navigator.mediaDevices);
+    console.log('getUserMedia available:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+    
+    const t = translations[currentLang] || translations.fr;
+    
+    // Ensure clean state before starting
+    resetRecognitionState();
+    
+    // Check microphone access first with detailed logging
+    checkMicrophoneAccess().then(hasAccess => {
+        console.log('Microphone access check result:', hasAccess);
         
-        // Check Web Speech API availability
-        console.log('SpeechRecognition available:', 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+        if (!hasAccess) {
+            const lang = currentLang || 'fr';
+            const messages = {
+                fr: 'Veuillez autoriser l\'accès au microphone pour utiliser la transcription vocale.',
+                en: 'Please allow microphone access to use voice transcription.',
+                de: 'Bitte erlauben Sie den Mikrofonzugriff für die Sprachtranskription.',
+                es: 'Por favor, permita el acceso al micrófono para usar la transcripción de voz.',
+                it: 'Consentire l\'accesso al microfono per utilizzare la trascrizione vocale.',
+                pt: 'Por favor, permita o acesso ao microfone para usar a transcrição de voz.'
+            };
+            showNotification(messages[lang] || messages['fr'], 'error');
+            resetButtons();
+            return;
+        }
         
-        // Check media devices
-        console.log('MediaDevices available:', !!navigator.mediaDevices);
-        console.log('getUserMedia available:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
-        
-        const t = translations[currentLang] || translations.fr;
-        
-        // Ensure clean state before starting
-        resetRecognitionState();
-        
-        // Check microphone access first with detailed logging
-        checkMicrophoneAccess().then(hasAccess => {
-            console.log('Microphone access check result:', hasAccess);
-            
-            if (!hasAccess) {
-                const lang = currentLang || 'fr';
-                const messages = {
-                    fr: 'Veuillez autoriser l\'accès au microphone pour utiliser la transcription vocale.',
-                    en: 'Please allow microphone access to use voice transcription.',
-                    de: 'Bitte erlauben Sie den Mikrofonzugriff für die Sprachtranskription.',
-                    es: 'Por favor, permita el acceso al micrófono para usar la transcripción de voz.',
-                    it: 'Consentire l\'accesso al microfono per utilizzare la trascrizione vocale.',
-                    pt: 'Por favor, permita o acesso ao microfone para usar a transcrição de voz.'
-                };
-                showNotification(messages[lang] || messages['fr'], 'error');
+        try {
+            // Create fresh recognition instance
+            recognition = createRecognition();
+            if (!recognition) {
+                console.error('Failed to create recognition instance');
                 resetButtons();
                 return;
             }
             
-            try {
-                // Create fresh recognition instance
-                recognition = createRecognition();
-                if (!recognition) {
-                    console.error('Failed to create recognition instance');
+            // If resuming after pause, skip countdown
+            if (isResuming) {
+                console.log("Resuming after pause - skipping countdown");
+                isResuming = false;
+                isRecording = true;
+                
+                try {
+                    recognition.start();
+                    enableRecordingButtons();
+                } catch (error) {
+                    console.error('Error resuming recognition:', error);
                     resetButtons();
-                    return;
                 }
-                
-                // If resuming after pause, skip countdown
-                if (isResuming) {
-                    console.log("Resuming after pause - skipping countdown");
-                    isResuming = false;
-                    isRecording = true;
-                    
-                    try {
-                        recognition.start();
-                        enableRecordingButtons();
-                    } catch (error) {
-                        console.error('Error resuming recognition:', error);
-                        resetButtons();
-                    }
-                    return;
-                }
-                
-                // Normal countdown for first start
-                isStarting = true;
-                
-                // Set countdown text
-                countdownText.textContent = t.countdown;
-                countdownNumber.textContent = '3';
-                
-                // Show overlay
-                countdownOverlay.style.display = 'flex';
-                
-                // Start countdown
-                let count = 3;
-                const countdownInterval = setInterval(() => {
-                    count--;
-                    countdownNumber.textContent = count.toString();
-                    
-                    if (count === 0) {
-                        clearInterval(countdownInterval);
-                        
-                        // Update to "Getting ready..." message
-                        countdownText.textContent = t.gettingReady || "Préparation...";
-                        countdownNumber.style.display = 'none';
-                        
-                        // FIXED: Better Android compatibility for speech recognition startup
-                        console.log('Attempting to start speech recognition...');
-                        
-                        // Set a timeout to handle cases where recognition never starts (Android fix)
-                        recognitionStartupTimeout = setTimeout(() => {
-            console.error('Speech recognition failed to start within timeout period');
-            isStarting = false;
-            countdownOverlay.style.display = 'none';
-            countdownNumber.style.display = 'block';
-            resetButtons();
-            
-            const errorMessages = {
-                fr: 'Impossible de démarrer la reconnaissance vocale. Veuillez réessayer.',
-                en: 'Unable to start speech recognition. Please try again.'
-            };
-            const lang = currentLang || 'fr';
-            showNotification(errorMessages[lang] || errorMessages['fr'], 'error');
-        }, 10000);
-                        
-                        // Try to start recognition with enhanced error handling
-                        try {
-                            console.log('Calling recognition.start()...');
-                            recognition.start();
-                            
-                            // Don't set isRecording to true yet - wait for onstart event
-                            console.log('recognition.start() called successfully');
-                            
-                            // Add an additional check after a short delay
-                            setTimeout(() => {
-                                // If we haven't received onstart event yet, try to detect if recognition is actually running
-                                if (isStarting && !isRecording) {
-                                    console.warn('Recognition may not have started properly - no onstart event received');
-                                    
-                                    // Try to trigger a manual state check
-                                    if (recognition) {
-                                        try {
-                                            // Some browsers might already be recording without firing onstart
-                                            // Force enable buttons if we detect this condition
-                                            console.log('Forcing button state update due to missing onstart event');
-                                            isStarting = false;
-                                            isRecording = true;
-                                            countdownOverlay.style.display = 'none';
-                                            countdownNumber.style.display = 'block';
-                                            enableRecordingButtons();
-                                            
-                                            // Clear the timeout since we're handling it manually
-                                            if (recognitionStartupTimeout) {
-    clearTimeout(recognitionStartupTimeout);
-    recognitionStartupTimeout = null;
+                return;
+            }
+
+            if (hasUsedSpeechBefore) {
+    console.log("Speech has been used before - skipping countdown");
+    isRecording = true;
+    
+    try {
+        recognition.start();
+        enableRecordingButtons();
+    } catch (error) {
+        console.error('Error starting recognition without countdown:', error);
+        resetButtons();
+    }
+    return;
 }
-                                        } catch (e) {
-                                            console.error('Error in fallback handler:', e);
+            
+            // MODIFIED: Skip countdown if speech has been used before
+            if (hasUsedSpeechBefore) {
+                console.log("Speech has been used before - skipping countdown");
+                isRecording = true;
+                
+                try {
+                    recognition.start();
+                    enableRecordingButtons();
+                } catch (error) {
+                    console.error('Error starting recognition without countdown:', error);
+                    resetButtons();
+                }
+                return;
+            }
+            
+            // Normal countdown for first start only
+            isStarting = true;
+hasUsedSpeechBefore = true; // Set flag to skip countdown next time
+            
+            // MODIFIED: Change countdown from 3 to 2 seconds
+            countdownText.textContent = t.countdown;
+            countdownNumber.textContent = '2';
+            
+            // Show overlay
+            countdownOverlay.style.display = 'flex';
+            
+            // MODIFIED: Start countdown with 2 seconds instead of 3
+            let count = 2;
+            const countdownInterval = setInterval(() => {
+                count--;
+                countdownNumber.textContent = count.toString();
+                
+                if (count === 0) {
+                    clearInterval(countdownInterval);
+                    
+                    // Update to "Getting ready..." message
+                    countdownText.textContent = t.gettingReady || "Préparation...";
+                    countdownNumber.style.display = 'none';
+                    
+                    // FIXED: Better Android compatibility for speech recognition startup
+                    console.log('Attempting to start speech recognition...');
+                    
+                    // Set a timeout to handle cases where recognition never starts (Android fix)
+                    recognitionStartupTimeout = setTimeout(() => {
+                        console.error('Speech recognition failed to start within timeout period');
+                        isStarting = false;
+                        countdownOverlay.style.display = 'none';
+                        countdownNumber.style.display = 'block';
+                        resetButtons();
+                        
+                        const errorMessages = {
+                            fr: 'Impossible de démarrer la reconnaissance vocale. Veuillez réessayer.',
+                            en: 'Unable to start speech recognition. Please try again.'
+                        };
+                        const lang = currentLang || 'fr';
+                        showNotification(errorMessages[lang] || errorMessages['fr'], 'error');
+                    }, 10000);
+                    
+                    // Try to start recognition with enhanced error handling
+                    try {
+                        console.log('Calling recognition.start()...');
+                        recognition.start();
+                        
+                        // Don't set isRecording to true yet - wait for onstart event
+                        console.log('recognition.start() called successfully');
+                        
+                        // Add an additional check after a short delay
+                        setTimeout(() => {
+                            // If we haven't received onstart event yet, try to detect if recognition is actually running
+                            if (isStarting && !isRecording) {
+                                console.warn('Recognition may not have started properly - no onstart event received');
+                                
+                                // Try to trigger a manual state check
+                                if (recognition) {
+                                    try {
+                                        // Some browsers might already be recording without firing onstart
+                                        // Force enable buttons if we detect this condition
+                                        console.log('Forcing button state update due to missing onstart event');
+                                        isStarting = false;
+                                        isRecording = true;
+                                        countdownOverlay.style.display = 'none';
+                                        countdownNumber.style.display = 'block';
+                                        enableRecordingButtons();
+                                        
+                                        // Clear the timeout since we're handling it manually
+                                        if (recognitionStartupTimeout) {
+                                            clearTimeout(recognitionStartupTimeout);
+                                            recognitionStartupTimeout = null;
                                         }
+                                    } catch (e) {
+                                        console.error('Error in fallback handler:', e);
                                     }
                                 }
-                            }, 2000); // Check after 2 seconds
-                            
-                        } catch (startError) {
-                            console.error('Error starting recognition:', startError);
-                            
-                            // Clear the timeout since we got an immediate error
-                            if (recognitionStartupTimeout) {
-    clearTimeout(recognitionStartupTimeout);
-    recognitionStartupTimeout = null;
-}
-                            
-                            // Reset state
-                            isStarting = false;
-                            isRecording = false;
-                            countdownOverlay.style.display = 'none';
-                            countdownNumber.style.display = 'block';
-                            resetButtons();
-                            
-                            // Show specific error message
-                            const startErrorMessages = {
-                                fr: 'Erreur lors du démarrage de la reconnaissance vocale. Veuillez vérifier vos paramètres.',
-                                en: 'Error starting speech recognition. Please check your settings.',
-                                de: 'Fehler beim Starten der Spracherkennung. Überprüfen Sie Ihre Einstellungen.',
-                                es: 'Error al iniciar el reconocimiento de voz. Verifique su configuración.',
-                                it: 'Errore nell\'avvio del riconoscimento vocale. Controlla le impostazioni.',
-                                pt: 'Erro ao iniciar o reconhecimento de voz. Verifique suas configurações.'
-                            };
-                            const lang = currentLang || 'fr';
-                            showNotification(startErrorMessages[lang] || startErrorMessages['fr'], 'error');
+                            }
+                        }, 2000); // Check after 2 seconds
+                        
+                    } catch (startError) {
+                        console.error('Error starting recognition:', startError);
+                        
+                        // Clear the timeout since we got an immediate error
+                        if (recognitionStartupTimeout) {
+                            clearTimeout(recognitionStartupTimeout);
+                            recognitionStartupTimeout = null;
                         }
+                        
+                        // Reset state
+                        isStarting = false;
+                        isRecording = false;
+                        countdownOverlay.style.display = 'none';
+                        countdownNumber.style.display = 'block';
+                        resetButtons();
+                        
+                        // Show specific error message
+                        const startErrorMessages = {
+                            fr: 'Erreur lors du démarrage de la reconnaissance vocale. Veuillez vérifier vos paramètres.',
+                            en: 'Error starting speech recognition. Please check your settings.',
+                            de: 'Fehler beim Starten der Spracherkennung. Überprüfen Sie Ihre Einstellungen.',
+                            es: 'Error al iniciar el reconocimiento de voz. Verifique su configuración.',
+                            it: 'Errore nell\'avvio del riconoscimento vocale. Controlla le impostazioni.',
+                            pt: 'Erro ao iniciar o reconhecimento de voz. Verifique suas configurações.'
+                        };
+                        const lang = currentLang || 'fr';
+                        showNotification(startErrorMessages[lang] || startErrorMessages['fr'], 'error');
                     }
-                }, 1000);
-                
-            } catch (error) {
-                console.error('Error in startWithCountdown:', error);
-                resetButtons();
-                isStarting = false;
-                countdownOverlay.style.display = 'none';
-                
-                // Clear any pending timeout
-                if (window.recognitionStartupTimeout) {
-                    clearTimeout(window.recognitionStartupTimeout);
-                    window.recognitionStartupTimeout = null;
                 }
-                
-                // Show error message
-                const generalErrorMessages = {
-                    fr: 'Une erreur est survenue lors de l\'initialisation. Veuillez réessayer.',
-                    en: 'An error occurred during initialization. Please try again.',
-                    de: 'Bei der Initialisierung ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.',
-                    es: 'Ocurrió un error durante la inicialización. Inténtelo de nuevo.',
-                    it: 'Si è verificato un errore durante l\'inizializzazione. Riprova.',
-                    pt: 'Ocorreu um erro durante a inicialização. Tente novamente.'
-                };
-                const lang = currentLang || 'fr';
-                showNotification(generalErrorMessages[lang] || generalErrorMessages['fr'], 'error');
-            }
-        }).catch(error => {
-            console.error('Microphone access check failed:', error);
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error in startWithCountdown:', error);
             resetButtons();
-        });
-    }
+            isStarting = false;
+            countdownOverlay.style.display = 'none';
+            
+            // Clear any pending timeout
+            if (recognitionStartupTimeout) {
+                clearTimeout(recognitionStartupTimeout);
+                recognitionStartupTimeout = null;
+            }
+            
+            // Show error message
+            const generalErrorMessages = {
+                fr: 'Une erreur est survenue lors de l\'initialisation. Veuillez réessayer.',
+                en: 'An error occurred during initialization. Please try again.',
+                de: 'Bei der Initialisierung ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.',
+                es: 'Ocurrió un error durante la inicialización. Inténtelo de nuevo.',
+                it: 'Si è verificato un errore durante l\'inizializzazione. Riprova.',
+                pt: 'Ocorreu um erro durante a inicialização. Tente novamente.'
+            };
+            const lang = currentLang || 'fr';
+            showNotification(generalErrorMessages[lang] || generalErrorMessages['fr'], 'error');
+        }
+    }).catch(error => {
+        console.error('Microphone access check failed:', error);
+        resetButtons();
+    });
+}
 
     // Function to process template transcript with improved section detection
     function processTemplateTranscript(transcript) {
@@ -2377,6 +2502,13 @@ function ensureCleanStart() {
             return doc;
         }
     };
+
+    // Initialize UI
+resetButtons();
+updateUIText();
+
+// NEW: Setup input field tracking
+setupInputFieldTracking();
 
     // Template selection handler
     templateItems.forEach(item => {
