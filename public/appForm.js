@@ -20,6 +20,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Update HTML lang attribute
     document.documentElement.lang = currentLang;
 
+    document.documentElement.lang = currentLang;
+    
+    // IMPORTANT: Update navbar and form labels immediately after language detection
+    // This ensures the UI is in the correct language from the start
+    const t = translations[currentLang] || translations.fr;
+    
+    // Update navigation
+    document.getElementById('myAccountLink').textContent = t.myAccount || 'Mon Compte';
+    document.getElementById('upgradeLink').textContent = t.upgrade || 'Passer à Premium';
+    document.getElementById('logoutLink').textContent = t.logout || 'Se déconnecter';
+    
+    // Update form labels
+    document.getElementById('userLabel').textContent = t.userLabel || 'Utilisateur';
+    document.getElementById('statusLabel').textContent = t.statusLabel || 'Statut';
+    document.getElementById('daysLabel').textContent = t.daysLabel || 'Jours restants';
+    document.getElementById('appTitle').textContent = t.appTitle || 'Transcription Vocale';
+    document.getElementById('appSubtitle').textContent = t.appSubtitle || 'Commencez à dicter pour transcrire votre texte';
+    document.getElementById('subjectLabel').textContent = t.subjectLabel || 'Sujet / Référence:';
+    document.getElementById('transcriptionLabel').textContent = t.transcriptionLabel || 'Transcription:';
+    document.getElementById('footerText').textContent = t.footerText || 'Tous droits réservés.';
+    
+    // Update placeholders
+    document.getElementById('subjectInput').placeholder = t.subjectPlaceholder || 'Ex: Consultation du 31/07/2025';
+    document.getElementById('transcriptionText').placeholder = t.transcriptionPlaceholder || 'Le texte transcrit apparaîtra ici...';
+    
+    // Update badge text
+    const accountTypeBadge = document.getElementById('accountTypeBadge');
+    if (accountTypeBadge) {
+        if (accountTypeBadge.classList.contains('trial-badge')) {
+            accountTypeBadge.textContent = t.trialBadge || 'Essai gratuit';
+        } else if (accountTypeBadge.classList.contains('premium-badge')) {
+            accountTypeBadge.textContent = t.premiumBadge || 'Premium';
+        }
+    }
+
     // Language mapping for Web Speech API
     const languageMap = {
         'fr': 'fr-FR',
@@ -1172,34 +1207,6 @@ function ensureCleanStart() {
     }
 
 
-    // Enhanced error handling for network issues
-recognitionInstance.onerror = function(event) {
-    console.error('=== SPEECH RECOGNITION ERROR ===');
-    console.error('Error type:', event.error);
-    
-    // Special handling for network errors
-    if (event.error === 'network') {
-        // Try to restart recognition after a delay
-        if (isRecording && !isStarting) {
-            console.log('Network error detected, attempting to recover...');
-            setTimeout(() => {
-                if (isRecording && recognition) {
-                    try {
-                        recognition.start();
-                        console.log('Recognition restarted after network error');
-                    } catch (e) {
-                        console.error('Failed to restart after network error:', e);
-                        resetButtons();
-                    }
-                }
-            }, 1000);
-        }
-        return; // Don't show error message for transient network issues
-    }
-    
-    // ... rest of the existing error handling
-};
-
     // Function to show countdown before starting recognition
     function startWithCountdown() {
         console.log('=== PRODUCTION DEBUG START ===');
@@ -1596,7 +1603,22 @@ recognitionInstance.onerror = function(event) {
             specialistRecommendations: "RECOMMANDATIONS:",
             generateButton: 'Générer fichier Word',
             continueEditing: 'Continuer l\'édition',
-            exitTemplate: 'Sortir du modèle'
+            exitTemplate: 'Sortir du modèle',
+            myAccount: 'Mon Compte',
+        upgrade: 'Passer à Premium',
+        logout: 'Se déconnecter',
+        userLabel: 'Utilisateur',
+        statusLabel: 'Statut',
+        daysLabel: 'Jours restants',
+        trialBadge: 'Essai gratuit',
+        premiumBadge: 'Premium',
+        appTitle: 'Transcription Vocale',
+        appSubtitle: 'Commencez à dicter pour transcrire votre texte',
+        subjectLabel: 'Sujet / Référence:',
+        subjectPlaceholder: 'Ex: Consultation du 31/07/2025',
+        transcriptionLabel: 'Transcription:',
+        transcriptionPlaceholder: 'Le texte transcrit apparaîtra ici...',
+        footerText: 'Tous droits réservés.'
         },
         en: {
             speakNow: 'Speak now',
@@ -1634,7 +1656,21 @@ recognitionInstance.onerror = function(event) {
             specialistRecommendations: "RECOMMENDATIONS:",
             generateButton: 'Generate Word file',
             continueEditing: 'Continue editing',
-            exitTemplate: 'Exit template'
+            exitTemplate: 'Exit template',myAccount: 'My Account',
+        upgrade: 'Upgrade to Premium',
+        logout: 'Logout',
+        userLabel: 'User',
+        statusLabel: 'Status',
+        daysLabel: 'Days remaining',
+        trialBadge: 'Free Trial',
+        premiumBadge: 'Premium',
+        appTitle: 'Voice Transcription',
+        appSubtitle: 'Start dictating to transcribe your text',
+        subjectLabel: 'Subject / Reference:',
+        subjectPlaceholder: 'Ex: Consultation on 07/31/2025',
+        transcriptionLabel: 'Transcription:',
+        transcriptionPlaceholder: 'Transcribed text will appear here...',
+        footerText: 'All rights reserved.'
         },
         de: {
             speakNow: 'Sprich jetzt',
@@ -1672,7 +1708,22 @@ recognitionInstance.onerror = function(event) {
             specialistRecommendations: "EMPFEHLUNGEN:",
             generateButton: 'Word-Datei generieren',
             continueEditing: 'Bearbeitung fortsetzen',
-            exitTemplate: 'Vorlage verlassen'
+            exitTemplate: 'Vorlage verlassen',
+            myAccount: 'Mein Konto',
+        upgrade: 'Auf Premium upgraden',
+        logout: 'Abmelden',
+        userLabel: 'Benutzer',
+        statusLabel: 'Status',
+        daysLabel: 'Verbleibende Tage',
+        trialBadge: 'Kostenlose Testversion',
+        premiumBadge: 'Premium',
+        appTitle: 'Sprachtranskription',
+        appSubtitle: 'Beginnen Sie zu diktieren, um Ihren Text zu transkribieren',
+        subjectLabel: 'Betreff / Referenz:',
+        subjectPlaceholder: 'Beispiel: Beratung am 31.07.2025',
+        transcriptionLabel: 'Transkription:',
+        transcriptionPlaceholder: 'Der transkribierte Text erscheint hier...',
+        footerText: 'Alle Rechte vorbehalten.'
         },
         es: {
             speakNow: 'Habla ahora',
@@ -1710,7 +1761,22 @@ recognitionInstance.onerror = function(event) {
             specialistRecommendations: "RECOMENDACIONES:",
             generateButton: 'Generar archivo Word',
             continueEditing: 'Continuar editando',
-            exitTemplate: 'Salir de la plantilla'
+            exitTemplate: 'Salir de la plantilla',
+            myAccount: 'Mi Cuenta',
+        upgrade: 'Actualizar a Premium',
+        logout: 'Cerrar sesión',
+        userLabel: 'Usuario',
+        statusLabel: 'Estado',
+        daysLabel: 'Días restantes',
+        trialBadge: 'Prueba gratuita',
+        premiumBadge: 'Premium',
+        appTitle: 'Transcripción de Voz',
+        appSubtitle: 'Comience a dictar para transcribir su texto',
+        subjectLabel: 'Asunto / Referencia:',
+        subjectPlaceholder: 'Ej: Consulta del 31/07/2025',
+        transcriptionLabel: 'Transcripción:',
+        transcriptionPlaceholder: 'El texto transcrito aparecerá aquí...',
+        footerText: 'Todos los derechos reservados.'
         },
         it: {
             speakNow: 'Parla ora',
@@ -1748,7 +1814,22 @@ recognitionInstance.onerror = function(event) {
             specialistRecommendations: "RACCOMANDAZIONI:",
             generateButton: 'Genera file Word',
             continueEditing: 'Continua a modificare',
-            exitTemplate: 'Esci dal modello'
+            exitTemplate: 'Esci dal modello',
+            myAccount: 'Il mio Account',
+        upgrade: 'Passa a Premium',
+        logout: 'Esci',
+        userLabel: 'Utente',
+        statusLabel: 'Stato',
+        daysLabel: 'Giorni rimanenti',
+        trialBadge: 'Prova gratuita',
+        premiumBadge: 'Premium',
+        appTitle: 'Trascrizione Vocale',
+        appSubtitle: 'Inizia a dettare per trascrivere il tuo testo',
+        subjectLabel: 'Oggetto / Riferimento:',
+        subjectPlaceholder: 'Es: Consultazione del 31/07/2025',
+        transcriptionLabel: 'Trascrizione:',
+        transcriptionPlaceholder: 'Il testo trascritto apparirà qui...',
+        footerText: 'Tutti i diritti riservati.'
         },
         pt: {
             speakNow: 'Fale agora',
@@ -1786,7 +1867,22 @@ recognitionInstance.onerror = function(event) {
             specialistRecommendations: "RECOMENDAÇÕES:",
             generateButton: 'Gerar arquivo Word',
             continueEditing: 'Continuar editando',
-            exitTemplate: 'Sair do modelo'
+            exitTemplate: 'Sair do modelo',
+            myAccount: 'Minha Conta',
+        upgrade: 'Atualizar para Premium',
+        logout: 'Sair',
+        userLabel: 'Usuário',
+        statusLabel: 'Status',
+        daysLabel: 'Dias restantes',
+        trialBadge: 'Teste gratuito',
+        premiumBadge: 'Premium',
+        appTitle: 'Transcrição de Voz',
+        appSubtitle: 'Comece a ditar para transcrever seu texto',
+        subjectLabel: 'Assunto / Referência:',
+        subjectPlaceholder: 'Ex: Consulta de 31/07/2025',
+        transcriptionLabel: 'Transcrição:',
+        transcriptionPlaceholder: 'O texto transcrito aparecerá aqui...',
+        footerText: 'Todos os direitos reservados.'
         }
     };
 
