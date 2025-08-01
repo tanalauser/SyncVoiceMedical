@@ -1230,6 +1230,15 @@ countdownOverlay.style.cssText = `
     
     const t = translations[currentLang] || translations.fr;
     
+    // Add failsafe timeout to ensure overlay is hidden
+    const failsafeTimeout = setTimeout(() => {
+        console.log('Failsafe: Force hiding countdown overlay');
+        countdownOverlay.style.display = 'none';
+        resetCountdownStyles();
+        enableRecordingButtons();
+        showRecordingIndicator();
+    }, 5000); // Maximum 5 seconds before force hiding
+    
     // ENHANCED: Different timing for template mode vs normal mode
     if (templateMode) {
         // Template mode needs more time for recognition to be fully ready
@@ -1252,16 +1261,20 @@ countdownOverlay.style.cssText = `
                 
                 // Keep "SPEAK NOW" visible for 3 seconds in template mode
                 setTimeout(() => {
-                    if (isRecording || isStarting) { // Only continue if still active
-                        // Hide overlay and enable UI
-                        countdownOverlay.style.display = 'none';
-                        resetCountdownStyles();
-                        enableRecordingButtons();
-                        showRecordingIndicator();
-                        
-                        console.log('Template mode: Speech recognition fully ready and UI enabled');
-                    }
+                    clearTimeout(failsafeTimeout); // Clear failsafe since we're hiding normally
+                    // Hide overlay and enable UI
+                    countdownOverlay.style.display = 'none';
+                    resetCountdownStyles();
+                    enableRecordingButtons();
+                    showRecordingIndicator();
+                    
+                    console.log('Template mode: Speech recognition fully ready and UI enabled');
                 }, 3000); // Show "SPEAK NOW" for 3 seconds in template mode
+            } else {
+                // If not recording/starting, hide immediately
+                clearTimeout(failsafeTimeout);
+                countdownOverlay.style.display = 'none';
+                resetCountdownStyles();
             }
         }, 1500); // Wait 1.5 seconds before showing "SPEAK NOW"
         
@@ -1277,14 +1290,13 @@ countdownOverlay.style.cssText = `
         
         // Shorter delay for normal mode
         setTimeout(() => {
-            if (isRecording || isStarting) {
-                countdownOverlay.style.display = 'none';
-                resetCountdownStyles();
-                enableRecordingButtons();
-                showRecordingIndicator();
-                
-                console.log('Normal mode: Speech recognition ready and UI enabled');
-            }
+            clearTimeout(failsafeTimeout); // Clear failsafe since we're hiding normally
+            countdownOverlay.style.display = 'none';
+            resetCountdownStyles();
+            enableRecordingButtons();
+            showRecordingIndicator();
+            
+            console.log('Normal mode: Speech recognition ready and UI enabled');
         }, 1500); // Shorter delay for normal mode
     }
 };
