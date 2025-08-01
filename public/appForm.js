@@ -1215,6 +1215,7 @@ countdownOverlay.style.cssText = `
     
         // FIXED: onstart handler with consistent state management
         // FIXED: onstart handler with consistent state management
+        // FIXED: onstart handler with consistent state management
         recognitionInstance.onstart = function() {
     console.log('=== SPEECH RECOGNITION STARTED ===');
     console.log('Recognition started at:', new Date().toISOString());
@@ -1241,7 +1242,7 @@ countdownOverlay.style.cssText = `
         }
         enableRecordingButtons();
         showRecordingIndicator();
-    }, 8000); // Maximum 8 seconds before force hiding
+    }, 5000); // Maximum 5 seconds before force hiding
     
     // FIXED: Immediately enable recording when recognition starts
     // Enable UI right away so speech can be captured
@@ -1249,59 +1250,20 @@ countdownOverlay.style.cssText = `
     showRecordingIndicator();
     console.log('🎤 MICROPHONE ACTIVE - You can speak NOW! Recording enabled immediately.');
     
-    // Show preparation feedback but don't block speech input
-    if (templateMode) {
-        // Template mode - show brief preparation message
-        console.log('Template mode - showing preparation message');
-        
-        // Show "Getting ready" message briefly
-        countdownText.textContent = t.gettingReady || 'Préparation...';
-        countdownText.style.fontSize = '2.5em';
-        countdownText.style.color = '#f39c12'; // Orange color
-        countdownText.style.animation = 'pulse 1s infinite';
-        countdownNumber.style.display = 'none';
-        
-        // After 1 second, show "SPEAK NOW" and hide overlay
-        setTimeout(() => {
-            if (isRecording) { // Only continue if still recording
-                countdownText.textContent = t.speakNow || 'PARLEZ MAINTENANT';
-                countdownText.style.fontSize = '3em';
-                countdownText.style.color = '#4CAF50'; // Green color
-                countdownText.style.animation = 'speakNowPulse 1s infinite';
-                
-                // Hide overlay after showing "SPEAK NOW" for 1 second
-                setTimeout(() => {
-                    clearTimeout(failsafeTimeout); // Clear failsafe since we're hiding normally
-                    countdownOverlay.style.display = 'none';
-                    resetCountdownStyles();
-                    console.log('Template mode: Overlay hidden, speech recognition active');
-                }, 1000); // Show "SPEAK NOW" for only 1 second
-            } else {
-                // If not recording, hide immediately
-                clearTimeout(failsafeTimeout);
-                countdownOverlay.style.display = 'none';
-                resetCountdownStyles();
-            }
-        }, 1000); // Wait only 1 second before showing "SPEAK NOW"
-        
-    } else {
-        // Normal mode - immediate feedback
-        console.log('Normal mode - showing speak now message');
-        
-        countdownText.textContent = t.speakNow || 'PARLEZ MAINTENANT';
-        countdownText.style.fontSize = '3em';
-        countdownText.style.color = '#4CAF50';
-        countdownText.style.animation = 'speakNowPulse 1s infinite';
-        countdownNumber.style.display = 'none';
-        
-        // Hide overlay quickly in normal mode
-        setTimeout(() => {
-            clearTimeout(failsafeTimeout); // Clear failsafe since we're hiding normally
-            countdownOverlay.style.display = 'none';
-            resetCountdownStyles();
-            console.log('Normal mode: Overlay hidden, speech recognition active');
-        }, 800); // Hide after just 0.8 seconds in normal mode
-    }
+    // Show "SPEAK NOW" very briefly then hide overlay immediately
+    countdownText.textContent = t.speakNow || 'PARLEZ MAINTENANT';
+    countdownText.style.fontSize = '4em';
+    countdownText.style.color = '#4CAF50';
+    countdownText.style.animation = 'speakNowPulse 1s infinite';
+    countdownNumber.style.display = 'none';
+    
+    // Hide overlay after just 200ms - recognition is already active
+    setTimeout(() => {
+        clearTimeout(failsafeTimeout); // Clear failsafe since we're hiding normally
+        countdownOverlay.style.display = 'none';
+        resetCountdownStyles();
+        console.log('Overlay hidden, speech recognition fully active');
+    }, 200); // Hide after just 0.2 seconds
 };
 
 function resetCountdownStyles() {
