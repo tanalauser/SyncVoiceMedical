@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             speakNow: 'Parlez maintenant',
             countdown: 'Démarrage dans',
             gettingReady: 'Préparation...',
+            listeningActive: 'Écoute active',
             speak: 'Parlez en Français',
             pause: 'Pause',
             stop: 'Stop',
@@ -64,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             speakNow: 'Speak now',
             countdown: 'Starting in',
             gettingReady: 'Getting ready...',
+            listeningActive: 'Listening',
             speak: 'Speak in English',
             pause: 'Pause',
             stop: 'Stop',
@@ -117,6 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             speakNow: 'Sprich jetzt',
             countdown: 'Beginnend in',
             gettingReady: 'Vorbereitung...',
+            listeningActive: 'Hört zu',
             speak: 'Sprechen Sie in Deutsch',
             pause: 'Pause',
             stop: 'Stopp',
@@ -170,6 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             speakNow: 'Habla ahora',
             countdown: 'Comenzando en',
             gettingReady: 'Preparándose...',
+            listeningActive: 'Escuchando',
             speak: 'Habla en español',
             pause: 'Pausar',
             stop: 'Detener',
@@ -223,6 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             speakNow: 'Parla ora',
             countdown: 'Inizio tra',
             gettingReady: 'Mi sto preparando...',
+            listeningActive: 'In ascolto',
             speak: 'Parla in italiano',
             pause: 'Pausa',
             stop: 'Ferma',
@@ -276,6 +281,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             speakNow: 'Fale agora',
             countdown: 'Começando em',
             gettingReady: 'Preparar-se...',
+            listeningActive: 'Ouvindo',
             speak: 'Fale em português',
             pause: 'Pausa',
             stop: 'Parar',
@@ -288,7 +294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             placeholder: 'Pressione o botão "Fale em português", aguarde a contagem regressiva terminar, então fale. Sua transcrição aparecerá aqui...',
             confirmQuit: 'Tem certeza de que deseja sair? Qualquer texto não salvo será perdido.',
             browserSupport: 'Seu navegador não suporta transcrição de voz.',
-            noCode: 'Código de ativação necessário.',
+            noCode: 'Código de ativção necessário.',
             aiCanMakeMistakes: "* A IA pode cometer erros. Por favor, verifique a transcrição.",
             libraryNotLoaded: 'Erro: Biblioteca de geração de documentos não carregada.',
             noText: 'Por favor, adicione texto para transcrever primeiro.',
@@ -337,6 +343,73 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentLang = urlParams.get('lang') || 'fr';
         console.log('AppForm: Fallback language detection:', currentLang);
     }
+
+
+    const preparationStyles = document.createElement('style');
+preparationStyles.textContent = `
+    /* Enhanced "getting ready" animation */
+    @keyframes preparingPulse {
+        0%, 100% { 
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% { 
+            transform: scale(1.05);
+            opacity: 0.8;
+        }
+    }
+    
+    /* Enhanced "speak now" animation */
+    @keyframes speakNowPulse {
+        0%, 100% { 
+            transform: scale(1);
+            color: #4CAF50;
+            text-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+        }
+        50% { 
+            transform: scale(1.1);
+            color: #66BB6A;
+            text-shadow: 0 0 30px rgba(76, 175, 80, 0.6);
+        }
+    }
+    
+    /* Template mode specific styling */
+    .template-mode-countdown {
+        background: linear-gradient(135deg, rgba(26, 95, 122, 0.95), rgba(0, 0, 0, 0.9)) !important;
+    }
+    
+    .template-mode-countdown #countdownText {
+        border: 2px solid #1976d2;
+        padding: 20px;
+        border-radius: 10px;
+        background: rgba(25, 118, 210, 0.1);
+    }
+`;
+document.head.appendChild(preparationStyles);
+
+
+function debugRecognitionTiming() {
+    console.log('=== RECOGNITION TIMING DEBUG ===');
+    console.log('Current time:', new Date().toISOString());
+    console.log('Template mode:', templateMode);
+    console.log('Is recording:', isRecording);
+    console.log('Is starting:', isStarting);
+    console.log('Recognition object exists:', !!recognition);
+    console.log('Countdown overlay visible:', countdownOverlay.style.display !== 'none');
+    console.log('=== END TIMING DEBUG ===');
+}
+
+// Make debugging function globally available
+window.debugTiming = debugRecognitionTiming;
+
+const betterInstructionTexts = {
+    fr: '📢 Cliquez sur "Commencer", attendez le compte à rebours ET le message "PARLEZ MAINTENANT", puis dictez section par section. ⏰ Attendez bien que l\'écoute soit prête !',
+    en: '📢 Click "Start", wait for countdown AND "SPEAK NOW" message, then dictate section by section. ⏰ Wait until listening is fully ready!',
+    de: '📢 Klicken Sie auf "Start", warten Sie auf den Countdown UND die Nachricht "SPRECHEN SIE JETZT", dann diktieren Sie Abschnitt für Abschnitt. ⏰ Warten Sie, bis das Zuhören bereit ist!',
+    es: '📢 Haga clic en "Comenzar", espere la cuenta atrás Y el mensaje "HABLE AHORA", luego dicte sección por sección. ⏰ ¡Espere hasta que la escucha esté lista!',
+    it: '📢 Fai clic su "Inizia", aspetta il conto alla rovescia E il messaggio "PARLA ORA", poi detta sezione per sezione. ⏰ Aspetta che l\'ascolto sia pronto!',
+    pt: '📢 Clique em "Iniciar", aguarde a contagem regressiva E a mensagem "FALE AGORA", depois dite seção por seção. ⏰ Aguarde até que a escuta esteja pronta!'
+};
 
 
     document.documentElement.lang = currentLang;
@@ -563,23 +636,25 @@ function ensureCleanStart() {
     
     // Create elements for the countdown overlay - with better cleanup
     const countdownOverlay = document.createElement('div');
-    countdownOverlay.className = 'countdown-overlay';
-    countdownOverlay.id = 'mainCountdownOverlay'; // Add unique ID
-    countdownOverlay.style.cssText = `
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        color: white;
-        font-size: 2em;
-    `;
+countdownOverlay.className = 'countdown-overlay';
+countdownOverlay.id = 'mainCountdownOverlay';
+countdownOverlay.style.cssText = `
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: white;
+    font-size: 2em;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+`;
     
     const countdownText = document.createElement('div');
     countdownText.id = 'countdownText';
@@ -1140,25 +1215,95 @@ function ensureCleanStart() {
     
         // FIXED: onstart handler with consistent state management
         recognitionInstance.onstart = function() {
-            console.log('=== SPEECH RECOGNITION STARTED ===');
-            console.log('Recognition started at:', new Date().toISOString());
-            
-            // FIXED: Clear local timeout variable instead of window.recognitionStartupTimeout
-            if (recognitionStartupTimeout) {
-                clearTimeout(recognitionStartupTimeout);
-                recognitionStartupTimeout = null;
+    console.log('=== SPEECH RECOGNITION STARTED ===');
+    console.log('Recognition started at:', new Date().toISOString());
+    console.log('Template mode:', templateMode);
+    
+    // Clear timeout since recognition started successfully
+    if (recognitionStartupTimeout) {
+        clearTimeout(recognitionStartupTimeout);
+        recognitionStartupTimeout = null;
+    }
+    
+    // Clear the starting flag
+    isStarting = false;
+    
+    const t = translations[currentLang] || translations.fr;
+    
+    // ENHANCED: Different timing for template mode vs normal mode
+    if (templateMode) {
+        // Template mode needs more time for recognition to be fully ready
+        console.log('Template mode - showing preparation message');
+        
+        // Show "Getting ready" message first
+        countdownText.textContent = t.gettingReady || 'Préparation...';
+        countdownText.style.fontSize = '2.5em';
+        countdownText.style.color = '#f39c12'; // Orange color
+        countdownText.style.animation = 'pulse 1s infinite';
+        countdownNumber.style.display = 'none';
+        
+        // After 1.5 seconds, show "SPEAK NOW"
+        setTimeout(() => {
+            if (isRecording || isStarting) { // Only continue if still active
+                countdownText.textContent = t.speakNow || 'PARLEZ MAINTENANT';
+                countdownText.style.fontSize = '3em';
+                countdownText.style.color = '#4CAF50'; // Green color
+                countdownText.style.animation = 'speakNowPulse 1s infinite';
+                
+                // Keep "SPEAK NOW" visible for 3 seconds in template mode
+                setTimeout(() => {
+                    if (isRecording || isStarting) { // Only continue if still active
+                        // Hide overlay and enable UI
+                        countdownOverlay.style.display = 'none';
+                        resetCountdownStyles();
+                        enableRecordingButtons();
+                        showRecordingIndicator();
+                        
+                        console.log('Template mode: Speech recognition fully ready and UI enabled');
+                    }
+                }, 3000); // Show "SPEAK NOW" for 3 seconds in template mode
             }
-            
-            // Clear the starting flag and hide countdown
-            isStarting = false;
-            countdownOverlay.style.display = 'none';
-            countdownNumber.style.display = 'block';
-            
-            // IMPORTANT: Update button states
-            enableRecordingButtons();
-            
-            console.log('Speech recognition is now active and listening');
-        };
+        }, 1500); // Wait 1.5 seconds before showing "SPEAK NOW"
+        
+    } else {
+        // Normal mode - quicker timing
+        console.log('Normal mode - showing speak now message');
+        
+        countdownText.textContent = t.speakNow || 'PARLEZ MAINTENANT';
+        countdownText.style.fontSize = '3em';
+        countdownText.style.color = '#4CAF50';
+        countdownText.style.animation = 'speakNowPulse 1s infinite';
+        countdownNumber.style.display = 'none';
+        
+        // Shorter delay for normal mode
+        setTimeout(() => {
+            if (isRecording || isStarting) {
+                countdownOverlay.style.display = 'none';
+                resetCountdownStyles();
+                enableRecordingButtons();
+                showRecordingIndicator();
+                
+                console.log('Normal mode: Speech recognition ready and UI enabled');
+            }
+        }, 1500); // Shorter delay for normal mode
+    }
+};
+
+function resetCountdownStyles() {
+    // Reset styles for next time
+    countdownText.style.fontSize = '2em';
+    countdownText.style.color = 'white';
+    countdownText.style.animation = 'none';
+    countdownNumber.style.display = 'block';
+}
+
+function showRecordingIndicator() {
+    // Show recording indicator
+    const recordingIndicator = document.getElementById('recordingIndicator');
+    if (recordingIndicator) {
+        recordingIndicator.classList.add('active');
+    }
+}
         
         // Handle recognition results
         recognitionInstance.onresult = function(event) {
@@ -1384,23 +1529,14 @@ function ensureCleanStart() {
     function startWithCountdown() {
     console.log('=== PRODUCTION DEBUG START ===');
     console.log('Current URL:', window.location.href);
-    console.log('Protocol:', window.location.protocol);
-    console.log('User Agent:', navigator.userAgent);
-    console.log('Secure Context:', window.isSecureContext);
-    
-    // Check Web Speech API availability
-    console.log('SpeechRecognition available:', 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
-    
-    // Check media devices
-    console.log('MediaDevices available:', !!navigator.mediaDevices);
-    console.log('getUserMedia available:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+    console.log('Template mode:', templateMode);
     
     const t = translations[currentLang] || translations.fr;
     
     // Ensure clean state before starting
     resetRecognitionState();
     
-    // Check microphone access first with detailed logging
+    // Check microphone access first
     checkMicrophoneAccess().then(hasAccess => {
         console.log('Microphone access check result:', hasAccess);
         
@@ -1444,23 +1580,12 @@ function ensureCleanStart() {
                 return;
             }
 
-            if (hasUsedSpeechBefore) {
-    console.log("Speech has been used before - skipping countdown");
-    isRecording = true;
-    
-    try {
-        recognition.start();
-        enableRecordingButtons();
-    } catch (error) {
-        console.error('Error starting recognition without countdown:', error);
-        resetButtons();
-    }
-    return;
-}
+            // FIXED: Always show countdown in template mode to help users know when to speak
+            // Only skip countdown for normal transcription mode after first use
+            const shouldShowCountdown = templateMode || !hasUsedSpeechBefore;
             
-            // MODIFIED: Skip countdown if speech has been used before
-            if (hasUsedSpeechBefore) {
-                console.log("Speech has been used before - skipping countdown");
+            if (!shouldShowCountdown) {
+                console.log("Normal mode, speech used before - skipping countdown");
                 isRecording = true;
                 
                 try {
@@ -1473,115 +1598,49 @@ function ensureCleanStart() {
                 return;
             }
             
-            // Normal countdown for first start only
+            // Show countdown (always for template mode, first time for normal mode)
             isStarting = true;
-hasUsedSpeechBefore = true; // Set flag to skip countdown next time
+            if (!templateMode) {
+                hasUsedSpeechBefore = true; // Only set flag for normal mode
+            }
             
-            // MODIFIED: Change countdown from 3 to 2 seconds
+            // Enhanced countdown display
             countdownText.textContent = t.countdown;
-            countdownNumber.textContent = '2';
+            countdownText.style.fontSize = '2.5em';
+            countdownText.style.fontWeight = 'bold';
+            countdownText.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
             
-            // Show overlay
+            countdownNumber.textContent = '3';
+            countdownNumber.style.fontSize = '8em';
+            countdownNumber.style.fontWeight = 'bold';
+            countdownNumber.style.color = '#ff6b35';
+            countdownNumber.style.textShadow = '4px 4px 8px rgba(0,0,0,0.5)';
+            
+            // Show overlay with improved visibility
             countdownOverlay.style.display = 'flex';
+            countdownOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)'; // More opaque
             
-            // MODIFIED: Start countdown with 2 seconds instead of 3
-            let count = 2;
+            // Start countdown with 3 seconds for better user preparation
+            let count = 3;
             const countdownInterval = setInterval(() => {
                 count--;
-                countdownNumber.textContent = count.toString();
-                
-                if (count === 0) {
+                if (count > 0) {
+                    countdownNumber.textContent = count.toString();
+                    // Change color as countdown progresses
+                    if (count === 2) countdownNumber.style.color = '#f39c12';
+                    if (count === 1) countdownNumber.style.color = '#e74c3c';
+                } else {
                     clearInterval(countdownInterval);
                     
                     // Update to "Getting ready..." message
-                    countdownText.textContent = t.gettingReady || "Préparation...";
+                    countdownText.textContent = t.gettingReady || "Getting ready...";
+                    countdownText.style.fontSize = '2em';
                     countdownNumber.style.display = 'none';
                     
-                    // FIXED: Better Android compatibility for speech recognition startup
-                    console.log('Attempting to start speech recognition...');
-                    
-                    // Set a timeout to handle cases where recognition never starts (Android fix)
-                    recognitionStartupTimeout = setTimeout(() => {
-                        console.error('Speech recognition failed to start within timeout period');
-                        isStarting = false;
-                        countdownOverlay.style.display = 'none';
-                        countdownNumber.style.display = 'block';
-                        resetButtons();
-                        
-                        const errorMessages = {
-                            fr: 'Impossible de démarrer la reconnaissance vocale. Veuillez réessayer.',
-                            en: 'Unable to start speech recognition. Please try again.'
-                        };
-                        const lang = currentLang || 'fr';
-                        showNotification(errorMessages[lang] || errorMessages['fr'], 'error');
-                    }, 10000);
-                    
-                    // Try to start recognition with enhanced error handling
-                    try {
-                        console.log('Calling recognition.start()...');
-                        recognition.start();
-                        
-                        // Don't set isRecording to true yet - wait for onstart event
-                        console.log('recognition.start() called successfully');
-                        
-                        // Add an additional check after a short delay
-                        setTimeout(() => {
-                            // If we haven't received onstart event yet, try to detect if recognition is actually running
-                            if (isStarting && !isRecording) {
-                                console.warn('Recognition may not have started properly - no onstart event received');
-                                
-                                // Try to trigger a manual state check
-                                if (recognition) {
-                                    try {
-                                        // Some browsers might already be recording without firing onstart
-                                        // Force enable buttons if we detect this condition
-                                        console.log('Forcing button state update due to missing onstart event');
-                                        isStarting = false;
-                                        isRecording = true;
-                                        countdownOverlay.style.display = 'none';
-                                        countdownNumber.style.display = 'block';
-                                        enableRecordingButtons();
-                                        
-                                        // Clear the timeout since we're handling it manually
-                                        if (recognitionStartupTimeout) {
-                                            clearTimeout(recognitionStartupTimeout);
-                                            recognitionStartupTimeout = null;
-                                        }
-                                    } catch (e) {
-                                        console.error('Error in fallback handler:', e);
-                                    }
-                                }
-                            }
-                        }, 2000); // Check after 2 seconds
-                        
-                    } catch (startError) {
-                        console.error('Error starting recognition:', startError);
-                        
-                        // Clear the timeout since we got an immediate error
-                        if (recognitionStartupTimeout) {
-                            clearTimeout(recognitionStartupTimeout);
-                            recognitionStartupTimeout = null;
-                        }
-                        
-                        // Reset state
-                        isStarting = false;
-                        isRecording = false;
-                        countdownOverlay.style.display = 'none';
-                        countdownNumber.style.display = 'block';
-                        resetButtons();
-                        
-                        // Show specific error message
-                        const startErrorMessages = {
-                            fr: 'Erreur lors du démarrage de la reconnaissance vocale. Veuillez vérifier vos paramètres.',
-                            en: 'Error starting speech recognition. Please check your settings.',
-                            de: 'Fehler beim Starten der Spracherkennung. Überprüfen Sie Ihre Einstellungen.',
-                            es: 'Error al iniciar el reconocimiento de voz. Verifique su configuración.',
-                            it: 'Errore nell\'avvio del riconoscimento vocale. Controlla le impostazioni.',
-                            pt: 'Erro ao iniciar o reconhecimento de voz. Verifique suas configurações.'
-                        };
-                        const lang = currentLang || 'fr';
-                        showNotification(startErrorMessages[lang] || startErrorMessages['fr'], 'error');
-                    }
+                    // Add a preparation delay before starting recognition
+                    setTimeout(() => {
+                        startSpeechRecognitionWithFeedback();
+                    }, 500); // Small delay to ensure user is ready
                 }
             }, 1000);
             
@@ -1590,29 +1649,76 @@ hasUsedSpeechBefore = true; // Set flag to skip countdown next time
             resetButtons();
             isStarting = false;
             countdownOverlay.style.display = 'none';
-            
-            // Clear any pending timeout
-            if (recognitionStartupTimeout) {
-                clearTimeout(recognitionStartupTimeout);
-                recognitionStartupTimeout = null;
-            }
-            
-            // Show error message
-            const generalErrorMessages = {
-                fr: 'Une erreur est survenue lors de l\'initialisation. Veuillez réessayer.',
-                en: 'An error occurred during initialization. Please try again.',
-                de: 'Bei der Initialisierung ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.',
-                es: 'Ocurrió un error durante la inicialización. Inténtelo de nuevo.',
-                it: 'Si è verificato un errore durante l\'inizializzazione. Riprova.',
-                pt: 'Ocorreu um erro durante a inicialização. Tente novamente.'
-            };
-            const lang = currentLang || 'fr';
-            showNotification(generalErrorMessages[lang] || generalErrorMessages['fr'], 'error');
+            showErrorNotification(error);
         }
     }).catch(error => {
         console.error('Microphone access check failed:', error);
         resetButtons();
     });
+}
+
+
+//Separate function to start recognition with better feedback
+function startSpeechRecognitionWithFeedback() {
+    const t = translations[currentLang] || translations.fr;
+    
+    // Set a timeout to handle cases where recognition never starts
+    recognitionStartupTimeout = setTimeout(() => {
+        console.error('Speech recognition failed to start within timeout period');
+        isStarting = false;
+        countdownOverlay.style.display = 'none';
+        countdownNumber.style.display = 'block';
+        resetButtons();
+        
+        const errorMessages = {
+            fr: 'Impossible de démarrer la reconnaissance vocale. Veuillez réessayer.',
+            en: 'Unable to start speech recognition. Please try again.',
+            de: 'Spracherkennung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.',
+            es: 'No se pudo iniciar el reconocimiento de voz. Inténtelo de nuevo.',
+            it: 'Impossibile avviare il riconoscimento vocale. Riprova.',
+            pt: 'Não foi possível iniciar o reconhecimento de voz. Tente novamente.'
+        };
+        const lang = currentLang || 'fr';
+        showNotification(errorMessages[lang] || errorMessages['fr'], 'error');
+    }, 10000);
+    
+    // Try to start recognition
+    try {
+        console.log('Calling recognition.start()...');
+        recognition.start();
+        console.log('recognition.start() called successfully');
+        
+    } catch (startError) {
+        console.error('Error starting recognition:', error);
+        handleRecognitionStartError(startError);
+    }
+}
+
+function handleRecognitionStartError(error) {
+    // Clear the timeout since we got an immediate error
+    if (recognitionStartupTimeout) {
+        clearTimeout(recognitionStartupTimeout);
+        recognitionStartupTimeout = null;
+    }
+    
+    // Reset state
+    isStarting = false;
+    isRecording = false;
+    countdownOverlay.style.display = 'none';
+    countdownNumber.style.display = 'block';
+    resetButtons();
+    
+    // Show specific error message
+    const startErrorMessages = {
+        fr: 'Erreur lors du démarrage de la reconnaissance vocale. Veuillez vérifier vos paramètres.',
+        en: 'Error starting speech recognition. Please check your settings.',
+        de: 'Fehler beim Starten der Spracherkennung. Überprüfen Sie Ihre Einstellungen.',
+        es: 'Error al iniciar el reconocimiento de voz. Verifique su configuración.',
+        it: 'Errore nell\'avvio del riconoscimento vocale. Controlla le impostazioni.',
+        pt: 'Erro ao iniciar o reconhecimento de voz. Verifique suas configurações.'
+    };
+    const lang = currentLang || 'fr';
+    showNotification(startErrorMessages[lang] || startErrorMessages['fr'], 'error');
 }
 
     // Function to process template transcript with improved section detection
@@ -1795,209 +1901,375 @@ hasUsedSpeechBefore = true; // Set flag to skip countdown next time
     }
 
     // Function to create template sections - UPDATED to make all content areas editable
-    function createTemplateSections(templateType) {
-        templateMode = true;
-        selectedTemplate = templateType;
-        
-        // Clear section content
-        Object.keys(sectionContent).forEach(key => {
-            sectionContent[key] = '';
-        });
-        
-        const t = translations[currentLang];
-        let templateHTML = '';
-        
-        // Helper function to create section header with clear button
-        function createSectionHeader(sectionId, title) {
-    return `
-        <div class="section-header-container">
-            <div id="section-${sectionId}" class="section-header" data-section="${sectionId}">[${title.replace(':', '')}]</div>
-            <button type="button" id="clear-${sectionId}" class="clear-section-btn" data-section="${sectionId}">${t.clearSection}</button>
-        </div>
+    // Complete createTemplateSections function with all improvements
+function createTemplateSections(templateType) {
+    console.log('Creating template sections for:', templateType);
+    
+    templateMode = true;
+    selectedTemplate = templateType;
+    
+    // Clear section content
+    Object.keys(sectionContent).forEach(key => {
+        sectionContent[key] = '';
+    });
+    
+    const t = translations[currentLang] || translations.fr;
+    let templateHTML = '';
+    
+    // Helper function to create section header with clear button
+    function createSectionHeader(sectionId, title) {
+        return `
+            <div class="section-header-container">
+                <div id="section-${sectionId}" class="section-header" data-section="${sectionId}">[${title.replace(':', '')}]</div>
+                <button type="button" id="clear-${sectionId}" class="clear-section-btn" data-section="${sectionId}">${t.clearSection || 'Clear'}</button>
+            </div>
+        `;
+    }
+    
+    // Template sections HTML generation based on template type
+    switch(templateType) {
+        case 'consultation':
+            templateHTML = `
+                ${createSectionHeader('reason', t.consultationReason)}
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder="Décrivez le motif de la consultation..."></div>
+                
+                ${createSectionHeader('history', t.consultationHistory)}
+                <div id="history-content" class="section-content" data-section="history" contenteditable="true" placeholder="Antécédents médicaux du patient..."></div>
+                
+                ${createSectionHeader('exam', t.consultationExam)}
+                <div id="exam-content" class="section-content" data-section="exam" contenteditable="true" placeholder="Résultats de l'examen clinique..."></div>
+                
+                ${createSectionHeader('conclusion', t.consultationConclusion)}
+                <div id="conclusion-content" class="section-content" data-section="conclusion" contenteditable="true" placeholder="Diagnostic et recommandations..."></div>
+            `;
+            currentSection = 'reason';
+            break;
+            
+        case 'specialist':
+            templateHTML = `
+                ${createSectionHeader('specialty', t.specialistSpecialty)}
+                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true" placeholder="Spécialité médicale..."></div>
+                
+                ${createSectionHeader('reason', t.specialistReason)}
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder="Motif de la consultation spécialisée..."></div>
+                
+                ${createSectionHeader('additionalExams', t.specialistExams)}
+                <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true" placeholder="Examens complémentaires réalisés..."></div>
+                
+                ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
+                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true" placeholder="Diagnostic du spécialiste..."></div>
+                
+                ${createSectionHeader('recommendations', t.specialistRecommendations)}
+                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true" placeholder="Recommandations et traitement..."></div>
+            `;
+            currentSection = 'specialty';
+            break;
+            
+        case 'surgery':
+            templateHTML = `
+                ${createSectionHeader('specialty', t.specialistSpecialty)}
+                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true" placeholder="Spécialité chirurgicale..."></div>
+                
+                ${createSectionHeader('reason', t.specialistReason)}
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder="Indication chirurgicale..."></div>
+                
+                ${createSectionHeader('additionalExams', t.specialistExams)}
+                <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true" placeholder="Examens préopératoires..."></div>
+                
+                ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
+                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true" placeholder="Diagnostic chirurgical..."></div>
+                
+                ${createSectionHeader('recommendations', t.specialistRecommendations)}
+                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true" placeholder="Suites opératoires et recommandations..."></div>
+            `;
+            currentSection = 'specialty';
+            break;
+            
+        case 'prescription':
+            templateHTML = `
+                ${createSectionHeader('specialty', t.specialistSpecialty)}
+                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true" placeholder="Spécialité médicale..."></div>
+                
+                ${createSectionHeader('reason', t.specialistReason)}
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder="Motif de la prescription..."></div>
+                
+                ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
+                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true" placeholder="Diagnostic..."></div>
+                
+                ${createSectionHeader('recommendations', t.specialistRecommendations)}
+                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true" placeholder="Prescription et posologie..."></div>
+            `;
+            currentSection = 'specialty';
+            break;
+            
+        default:
+            console.error('Unknown template type:', templateType);
+            return;
+    }
+    
+    // Hide the original textarea
+    transcriptionText.style.display = 'none';
+    
+    // Create template container
+    const templateContainer = document.createElement('div');
+    templateContainer.id = 'template-container';
+    templateContainer.className = 'template-container';
+    
+    // Create and add instruction banner
+    const templateInstruction = document.createElement('div');
+    templateInstruction.className = 'template-instruction';
+    templateInstruction.style.cssText = `
+        background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        border: 2px solid #1976d2;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+        color: #1976d2;
+        text-align: center;
+        font-size: 1.1em;
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+        animation: slideInDown 0.5s ease-out;
     `;
-}
+    
+    // Instruction text based on language
+    const lang = currentLang || 'fr';
+    const instructionTexts = {
+        fr: '📢 Cliquez sur "Commencer", attendez le compte à rebours, puis dictez section par section. Dites le nom de la section pour changer (ex: "motif", "antécédents", "examen", "conclusion")',
+        en: '📢 Click "Start", wait for countdown, then dictate section by section. Say the section name to switch (e.g. "reason", "history", "examination", "conclusion")',
+        de: '📢 Klicken Sie auf "Start", warten Sie auf den Countdown und diktieren Sie dann Abschnitt für Abschnitt. Sagen Sie den Abschnittsnamen zum Wechseln',
+        es: '📢 Haga clic en "Comenzar", espere la cuenta atrás, luego dicte sección por sección. Diga el nombre de la sección para cambiar',
+        it: '📢 Fai clic su "Inizia", aspetta il conto alla rovescia, poi detta sezione per sezione. Pronuncia il nome della sezione per cambiare',
+        pt: '📢 Clique em "Iniciar", aguarde a contagem regressiva, depois dite seção por seção. Diga o nome da seção para mudar'
+    };
+    
+    templateInstruction.innerHTML = `
+        <div style="margin-bottom: 10px;">${instructionTexts[lang] || instructionTexts['fr']}</div>
+        <div style="font-size: 0.9em; opacity: 0.8;">💡 ${lang === 'fr' ? 'Section actuelle surlignée en bleu' : 'Current section highlighted in blue'}</div>
+    `;
+    
+    // Set the HTML content
+    templateContainer.appendChild(templateInstruction);
+    templateContainer.innerHTML += templateHTML;
+    
+    // Add the template container to the transcription area
+    const transcriptionContainer = document.querySelector('.transcription-container');
+    transcriptionContainer.appendChild(templateContainer);
+    
+    // Create template action buttons
+    const existingGenerateBtn = document.getElementById('generateWordBtn');
+    const existingExitBtn = document.getElementById('exitTemplateBtn');
+    
+    // Remove existing buttons if they exist
+    if (existingGenerateBtn) existingGenerateBtn.remove();
+    if (existingExitBtn) existingExitBtn.remove();
+    
+    // Find the quit button to insert template buttons after it
+    const quitButton = document.getElementById('quitButton');
+    
+    // Create Generate Word button
+    const generateWordBtn = document.createElement('button');
+    generateWordBtn.type = 'button';
+    generateWordBtn.id = 'generateWordBtn';
+    generateWordBtn.className = 'btn action-btn';
+    generateWordBtn.style.backgroundColor = '#69B578';
+    generateWordBtn.style.marginLeft = '0.5rem';
+    generateWordBtn.innerHTML = `
+        <svg class="icon" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+            <path d="M14 8V2l6 6h-6z"/>
+            <path d="M5 12.5h14M5 16.5h14M5 8.5h8"/>
+        </svg>
+        <span class="btn-text">${t.generateButton || 'Generate Word file'}</span>
+    `;
+    
+    // Create Exit Template button
+    const exitTemplateBtn = document.createElement('button');
+    exitTemplateBtn.type = 'button';
+    exitTemplateBtn.id = 'exitTemplateBtn';
+    exitTemplateBtn.className = 'btn action-btn';
+    exitTemplateBtn.style.backgroundColor = '#d32f2f';
+    exitTemplateBtn.style.marginLeft = '0.5rem';
+    exitTemplateBtn.innerHTML = `
+        <svg class="icon" viewBox="0 0 24 24">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+        </svg>
+        <span class="btn-text">${t.exitTemplate || 'Exit template'}</span>
+    `;
+    
+    // Insert the buttons after the quit button
+    if (quitButton && quitButton.parentNode) {
+        quitButton.insertAdjacentElement('afterend', generateWordBtn);
+        generateWordBtn.insertAdjacentElement('afterend', exitTemplateBtn);
+    }
+    
+    // Add event listeners to template action buttons
+    generateWordBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Generate Word button clicked');
         
-        // Template sections HTML generation based on template type - Making all content divs contenteditable
-        switch(templateType) {
-            case 'consultation':
-                templateHTML = `
-                    ${createSectionHeader('reason', t.consultationReason)}
-                    <div id="reason-content" class="section-content" data-section="reason" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('history', t.consultationHistory)}
-                    <div id="history-content" class="section-content" data-section="history" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('exam', t.consultationExam)}
-                    <div id="exam-content" class="section-content" data-section="exam" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('conclusion', t.consultationConclusion)}
-                    <div id="conclusion-content" class="section-content" data-section="conclusion" contenteditable="true"></div>
-                `;
-                currentSection = 'reason';
-                break;
-                
-            case 'specialist':
-                templateHTML = `
-                    ${createSectionHeader('specialty', t.specialistSpecialty)}
-                    <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('reason', t.specialistReason)}
-                    <div id="reason-content" class="section-content" data-section="reason" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('additionalExams', t.specialistExams)}
-                    <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
-                    <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('recommendations', t.specialistRecommendations)}
-                    <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true"></div>
-                `;
-                currentSection = 'specialty';
-                break;
-                
-            case 'surgery':
-                templateHTML = `
-                    ${createSectionHeader('specialty', t.specialistSpecialty)}
-                    <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('reason', t.specialistReason)}
-                    <div id="reason-content" class="section-content" data-section="reason" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('additionalExams', t.specialistExams)}
-                    <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
-                    <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('recommendations', t.specialistRecommendations)}
-                    <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true"></div>
-                `;
-                currentSection = 'specialty';
-                break;
-                
-            case 'prescription':
-                templateHTML = `
-                    ${createSectionHeader('specialty', t.specialistSpecialty)}
-                    <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('reason', t.specialistReason)}
-                    <div id="reason-content" class="section-content" data-section="reason" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
-                    <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true"></div>
-                    
-                    ${createSectionHeader('recommendations', t.specialistRecommendations)}
-                    <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true"></div>
-                `;
-                currentSection = 'specialty';
-                break;
+        // Update section content from the editable divs before generating document
+        updateSectionContentFromDOM();
+        
+        // Check if there's any content
+        const hasContent = Object.values(sectionContent).some(content => content.trim().length > 0);
+        if (!hasContent) {
+            const noContentMessages = {
+                fr: 'Veuillez ajouter du contenu avant de générer le document.',
+                en: 'Please add content before generating the document.',
+                de: 'Bitte fügen Sie Inhalt hinzu, bevor Sie das Dokument generieren.',
+                es: 'Por favor, agregue contenido antes de generar el documento.',
+                it: 'Aggiungi contenuto prima di generare il documento.',
+                pt: 'Adicione conteúdo antes de gerar o documento.'
+            };
+            alert(noContentMessages[lang] || noContentMessages['fr']);
+            return;
         }
         
-        // Set the HTML content
-        transcriptionText.style.display = 'none';
-        const templateContainer = document.createElement('div');
-        templateContainer.id = 'template-container';
-        templateContainer.className = 'template-container';
-        templateContainer.innerHTML = templateHTML;
+        generateWordDocument(templateType);
+    });
+    
+    exitTemplateBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Exit template button clicked');
         
-        // Add the template container to the transcription area
-        const transcriptionContainer = document.querySelector('.transcription-container');
-        transcriptionContainer.appendChild(templateContainer);
+        const confirmMessages = {
+            fr: 'Voulez-vous vraiment quitter le mode modèle ? Le contenu sera perdu.',
+            en: 'Do you really want to exit template mode? Content will be lost.',
+            de: 'Möchten Sie den Vorlagenmodus wirklich verlassen? Der Inhalt geht verloren.',
+            es: '¿Realmente quiere salir del modo plantilla? El contenido se perderá.',
+            it: 'Vuoi davvero uscire dalla modalità modello? Il contenuto andrà perso.',
+            pt: 'Você realmente quer sair do modo modelo? O conteúdo será perdido.'
+        };
         
-        // Find the quit button to insert template buttons after it
-        const quitButton = document.getElementById('quitButton');
-        
-        // Create template action buttons
-        const generateWordBtn = document.createElement('button');
-generateWordBtn.type = 'button'; // Add this line
-generateWordBtn.id = 'generateWordBtn';
-generateWordBtn.className = 'btn action-btn';
-generateWordBtn.innerHTML = `
-    <svg class="icon" viewBox="0 0 24 24">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-        <path d="M14 8V2l6 6h-6z"/>
-        <path d="M5 12.5h14M5 16.5h14M5 8.5h8"/>
-    </svg>
-    <span class="btn-text">${t.generateButton}</span>
-`;
-
-const exitTemplateBtn = document.createElement('button');
-exitTemplateBtn.type = 'button'; // Add this line
-exitTemplateBtn.id = 'exitTemplateBtn';
-exitTemplateBtn.className = 'btn action-btn';
-exitTemplateBtn.innerHTML = `
-    <svg class="icon" viewBox="0 0 24 24">
-        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
-    </svg>
-    <span class="btn-text">${t.exitTemplate}</span>
-`;
-        
-        // Apply styles to the buttons
-        generateWordBtn.style.backgroundColor = '#69B578';
-        exitTemplateBtn.style.backgroundColor = '#d32f2f';
-        
-        // Insert the buttons after the quit button
-        if (quitButton && quitButton.parentNode) {
-            // Insert after quit button
-            quitButton.insertAdjacentElement('afterend', generateWordBtn);
-            generateWordBtn.insertAdjacentElement('afterend', exitTemplateBtn);
-        }
-        
-        // Add event listeners to buttons
-        generateWordBtn.addEventListener('click', () => {
-            // Update section content from the editable divs before generating document
-            updateSectionContentFromDOM();
-            generateWordDocument(templateType);
-        });
-        
-        exitTemplateBtn.addEventListener('click', () => {
+        if (confirm(confirmMessages[lang] || confirmMessages['fr'])) {
             exitTemplateMode();
+        }
+    });
+    
+    // Add click event listeners to section headers for navigation
+    document.querySelectorAll('.section-header').forEach(element => {
+        element.addEventListener('click', () => {
+            const section = element.dataset.section;
+            if (section) {
+                selectSection(section);
+                console.log('Section selected via header click:', section);
+            }
         });
-        
-        // Add click event listeners to section headers and content areas
-        document.querySelectorAll('.section-header').forEach(element => {
-            element.addEventListener('click', () => {
-                const section = element.dataset.section;
-                if (section) {
-                    selectSection(section);
-                }
-            });
-        });
-        
-        // Add event listeners to clear section buttons
-        document.querySelectorAll('.clear-section-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent click from selecting the section
-                const section = button.dataset.section;
-                if (section) {
+    });
+    
+    // Add event listeners to clear section buttons
+    document.querySelectorAll('.clear-section-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent click from selecting the section
+            const section = button.dataset.section;
+            if (section) {
+                const confirmMessages = {
+                    fr: `Effacer le contenu de cette section ?`,
+                    en: `Clear this section's content?`,
+                    de: `Inhalt dieses Abschnitts löschen?`,
+                    es: `¿Borrar el contenido de esta sección?`,
+                    it: `Cancellare il contenuto di questa sezione?`,
+                    pt: `Limpar o conteúdo desta seção?`
+                };
+                
+                if (confirm(confirmMessages[lang] || confirmMessages['fr'])) {
                     clearSection(section);
+                    console.log('Section cleared:', section);
                 }
-            });
+            }
+        });
+    });
+    
+    // Add event listeners for editable content areas
+    document.querySelectorAll('.section-content').forEach(contentElement => {
+        // Update the sectionContent object when user manually edits
+        contentElement.addEventListener('input', () => {
+            const section = contentElement.dataset.section;
+            if (section) {
+                sectionContent[section] = contentElement.textContent.trim();
+                console.log(`Section ${section} updated via manual edit:`, sectionContent[section].substring(0, 50) + '...');
+            }
         });
         
-        // Add event listeners for editable content synchronization
-        document.querySelectorAll('.section-content').forEach(contentElement => {
-            // Update the sectionContent object when user edits the content div
-            contentElement.addEventListener('input', () => {
-                const section = contentElement.dataset.section;
-                if (section) {
-                    sectionContent[section] = contentElement.textContent.trim();
+        // Handle click to focus and select section
+        contentElement.addEventListener('click', () => {
+            const section = contentElement.dataset.section;
+            if (section) {
+                selectSection(section);
+                console.log('Section selected via content click:', section);
+            }
+        });
+        
+        // Handle focus event
+        contentElement.addEventListener('focus', () => {
+            const section = contentElement.dataset.section;
+            if (section) {
+                selectSection(section);
+                console.log('Section focused:', section);
+            }
+        });
+        
+        // Add placeholder behavior for contenteditable divs
+        const placeholder = contentElement.getAttribute('placeholder');
+        if (placeholder) {
+            // Set initial placeholder
+            if (!contentElement.textContent.trim()) {
+                contentElement.classList.add('empty');
+                contentElement.setAttribute('data-placeholder', placeholder);
+            }
+            
+            // Handle placeholder display
+            contentElement.addEventListener('focus', () => {
+                if (contentElement.classList.contains('empty')) {
+                    contentElement.classList.remove('empty');
                 }
             });
             
-            // Handle click to focus the editable area
-            contentElement.addEventListener('click', () => {
-                const section = contentElement.dataset.section;
-                if (section) {
-                    selectSection(section);
+            contentElement.addEventListener('blur', () => {
+                if (!contentElement.textContent.trim()) {
+                    contentElement.classList.add('empty');
                 }
             });
-        });
-        
-        // Highlight the initial section
-        selectSection(currentSection);
-    }
+        }
+    });
+    
+    // Add CSS for placeholder behavior
+    const placeholderStyle = document.createElement('style');
+    placeholderStyle.textContent = `
+        .section-content.empty:before {
+            content: attr(data-placeholder);
+            color: #999;
+            font-style: italic;
+            pointer-events: none;
+        }
+        .section-content.empty:focus:before {
+            display: none;
+        }
+    `;
+    document.head.appendChild(placeholderStyle);
+    
+    // Highlight the initial section and provide visual feedback
+    selectSection(currentSection);
+    
+    // Show template mode notification
+    const templateMessages = {
+        fr: `Mode modèle activé: ${templateType}. Commencez par "${currentSection}".`,
+        en: `Template mode activated: ${templateType}. Start with "${currentSection}".`,
+        de: `Vorlagenmodus aktiviert: ${templateType}. Beginnen Sie mit "${currentSection}".`,
+        es: `Modo plantilla activado: ${templateType}. Comience con "${currentSection}".`,
+        it: `Modalità modello attivata: ${templateType}. Inizia con "${currentSection}".`,
+        pt: `Modo modelo ativado: ${templateType}. Comece com "${currentSection}".`
+    };
+    
+    showNotification(templateMessages[lang] || templateMessages['fr'], 'info');
+    
+    console.log('Template sections created successfully for:', templateType);
+    console.log('Current section set to:', currentSection);
+    console.log('Available sections:', Object.keys(sectionContent));
+}
     
     // Function to handle selecting sections based on click
     function selectSection(section) {
@@ -2070,6 +2342,8 @@ exitTemplateBtn.innerHTML = `
         Object.keys(sectionContent).forEach(key => {
             sectionContent[key] = '';
         });
+
+        
     }
 
     // Event listeners for control buttons

@@ -580,6 +580,277 @@
                 opacity: 1;
             }
         }
+
+        .countdown-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(26, 95, 122, 0.8));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.countdown-overlay.show {
+    display: flex;
+}
+
+/* Countdown text styling */
+#countdownText {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Countdown number styling */
+#countdownNumber {
+    font-size: 8em;
+    font-weight: 900;
+    color: #ff6b35;
+    text-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+    margin-bottom: 20px;
+    animation: scaleIn 0.5s ease-out;
+}
+
+/* Pulse animation for "SPEAK NOW" */
+@keyframes pulse {
+    0% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+    50% { 
+        transform: scale(1.1); 
+        opacity: 0.8; 
+    }
+    100% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+}
+
+/* Scale in animation for countdown numbers */
+@keyframes scaleIn {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Fade in animation for overlay */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(10px);
+    }
+}
+
+/* Enhanced recording indicator */
+.recording-indicator {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    font-weight: 700;
+    border-radius: 25px;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    animation: recordingPulse 2s infinite;
+}
+
+.recording-indicator.active {
+    display: flex;
+}
+
+/* Enhanced recording dot */
+.recording-dot {
+    width: 16px;
+    height: 16px;
+    background-color: white;
+    border-radius: 50%;
+    animation: dotPulse 1.5s infinite;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Recording pulse animation */
+@keyframes recordingPulse {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+    }
+    50% { 
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
+    }
+}
+
+/* Dot pulse animation */
+@keyframes dotPulse {
+    0%, 100% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.3; 
+        transform: scale(0.8);
+    }
+}
+
+/* Template instruction styling */
+.template-instruction {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border: 2px solid #1976d2;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    color: #1976d2;
+    text-align: center;
+    font-size: 1.1em;
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+    animation: slideInDown 0.5s ease-out;
+}
+
+/* Slide in animation for instructions */
+@keyframes slideInDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Enhanced speak now styling */
+.speak-now-indicator {
+    color: #4CAF50 !important;
+    font-size: 3.5em !important;
+    font-weight: 900 !important;
+    text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.8) !important;
+    animation: speakNowPulse 1s infinite !important;
+}
+
+@keyframes speakNowPulse {
+    0%, 100% { 
+        transform: scale(1);
+        color: #4CAF50;
+    }
+    50% { 
+        transform: scale(1.1);
+        color: #66BB6A;
+    }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    #countdownText {
+        font-size: 2em;
+        margin-bottom: 20px;
+    }
+    
+    #countdownNumber {
+        font-size: 6em;
+        margin-bottom: 15px;
+    }
+    
+    .template-instruction {
+        padding: 1rem;
+        font-size: 1em;
+    }
+    
+    .recording-indicator {
+        padding: 0.5rem 1rem;
+        font-size: 0.9em;
+    }
+}
+
+/* High contrast mode for accessibility */
+@media (prefers-high-contrast: high) {
+    .countdown-overlay {
+        background: black;
+        backdrop-filter: none;
+    }
+    
+    #countdownText {
+        color: white;
+        text-shadow: none;
+        border: 2px solid white;
+        padding: 10px;
+    }
+    
+    #countdownNumber {
+        color: yellow;
+        text-shadow: none;
+        border: 3px solid yellow;
+        padding: 20px;
+    }
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .countdown-overlay,
+    #countdownNumber,
+    .recording-indicator,
+    .recording-dot,
+    .template-instruction {
+        animation: none;
+    }
+    
+    .pulse,
+    .speak-now-indicator {
+        animation: none !important;
+    }
+}
+
+/* Enhanced button states for better feedback */
+.control-btn.recording {
+    background-color: #e74c3c !important;
+    color: white !important;
+    box-shadow: 0 0 20px rgba(231, 76, 60, 0.5) !important;
+    animation: buttonRecordingPulse 2s infinite !important;
+}
+
+@keyframes buttonRecordingPulse {
+    0%, 100% { 
+        box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+    }
+    50% { 
+        box-shadow: 0 0 30px rgba(231, 76, 60, 0.8);
+    }
+}
+
+        
     </style>
 </head>
 <body>
