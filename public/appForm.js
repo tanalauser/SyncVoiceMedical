@@ -1675,13 +1675,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function updateSectionContentFromDOM() {
-        document.querySelectorAll('.section-content').forEach(element => {
-            const section = element.dataset.section;
-            if (section) {
-                sectionContent[section] = element.textContent.trim();
-            }
-        });
-    }
+    document.querySelectorAll('.section-content').forEach(element => {
+        const section = element.dataset.section;
+        if (section) {
+            sectionContent[section] = element.textContent.trim();
+        }
+    });
+}
 
     function highlightSection(section) {
         document.querySelectorAll('.section-content, .section-header').forEach(el => {
@@ -1759,60 +1759,256 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Function to create template sections
     function createTemplateSections(templateType) {
-        console.log('Creating template sections for:', templateType);
+    console.log('Creating template sections for:', templateType);
+    
+    templateMode = true;
+    selectedTemplate = templateType;
+    
+    // Clear section content
+    Object.keys(sectionContent).forEach(key => {
+        sectionContent[key] = '';
+    });
+    
+    const t = translations[currentLang] || translations.fr;
+    let templateHTML = '';
+    
+    // Helper function to create section header with clear button
+    function createSectionHeader(sectionId, title) {
+        return `
+            <div class="section-header-container">
+                <div id="section-${sectionId}" class="section-header" data-section="${sectionId}">[${title.replace(':', '')}]</div>
+                <button type="button" id="clear-${sectionId}" class="clear-section-btn" data-section="${sectionId}">${t.clearSection || 'Clear'}</button>
+            </div>
+        `;
+    }
+    
+    // Template sections HTML generation based on template type
+    switch(templateType) {
+        case 'consultation':
+            templateHTML = `
+                ${createSectionHeader('reason', t.consultationReason)}
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true"></div>
+                
+                ${createSectionHeader('history', t.consultationHistory)}
+                <div id="history-content" class="section-content" data-section="history" contenteditable="true"></div>
+                
+                ${createSectionHeader('exam', t.consultationExam)}
+                <div id="exam-content" class="section-content" data-section="exam" contenteditable="true"></div>
+                
+                ${createSectionHeader('conclusion', t.consultationConclusion)}
+                <div id="conclusion-content" class="section-content" data-section="conclusion" contenteditable="true"></div>
+            `;
+            currentSection = 'reason';
+            break;
+            
+        case 'specialist':
+            templateHTML = `
+                ${createSectionHeader('specialty', t.specialistSpecialty)}
+                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true"></div>
+                
+                ${createSectionHeader('reason', t.specialistReason)}
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true"></div>
+                
+                ${createSectionHeader('additionalExams', t.specialistExams)}
+                <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true"></div>
+                
+                ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
+                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true"></div>
+                
+                ${createSectionHeader('recommendations', t.specialistRecommendations)}
+                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true"></div>
+            `;
+            currentSection = 'specialty';
+            break;
+            
+        case 'surgery':
+            templateHTML = `
+                ${createSectionHeader('specialty', t.specialistSpecialty)}
+                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true"></div>
+                
+                ${createSectionHeader('reason', t.specialistReason)}
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true"></div>
+                
+                ${createSectionHeader('additionalExams', t.specialistExams)}
+                <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true"></div>
+                
+                ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
+                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true"></div>
+                
+                ${createSectionHeader('recommendations', t.specialistRecommendations)}
+                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true"></div>
+            `;
+            currentSection = 'specialty';
+            break;
+            
+        case 'prescription':
+            templateHTML = `
+                ${createSectionHeader('specialty', t.specialistSpecialty)}
+                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true"></div>
+                
+                ${createSectionHeader('reason', t.specialistReason)}
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true"></div>
+                
+                ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
+                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true"></div>
+                
+                ${createSectionHeader('recommendations', t.specialistRecommendations)}
+                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true"></div>
+            `;
+            currentSection = 'specialty';
+            break;
+            
+        default:
+            console.error('Unknown template type:', templateType);
+            return;
+    }
+    
+    // Set the HTML content
+    transcriptionText.style.display = 'none';
+    const templateContainer = document.createElement('div');
+    templateContainer.id = 'template-container';
+    templateContainer.className = 'template-container';
+    templateContainer.innerHTML = templateHTML;
+    
+    const transcriptionContainer = document.querySelector('.transcription-container');
+    transcriptionContainer.appendChild(templateContainer);
+    
+    // Find the quit button to insert template buttons after it
+    const quitButton = document.getElementById('quitButton');
+    
+    // Create template action buttons
+    const generateWordBtn = document.createElement('button');
+    generateWordBtn.id = 'generateWordBtn';
+    generateWordBtn.className = 'btn action-btn';
+    generateWordBtn.innerHTML = `
+        <svg class="icon" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+            <path d="M14 8V2l6 6h-6z"/>
+            <path d="M5 12.5h14M5 16.5h14M5 8.5h8"/>
+        </svg>
+        <span class="btn-text">${t.generateButton}</span>
+    `;
+    
+    const exitTemplateBtn = document.createElement('button');
+    exitTemplateBtn.id = 'exitTemplateBtn';
+    exitTemplateBtn.className = 'btn action-btn';
+    exitTemplateBtn.innerHTML = `
+        <svg class="icon" viewBox="0 0 24 24">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+        </svg>
+        <span class="btn-text">${t.exitTemplate}</span>
+    `;
+    
+    // Apply styles to the buttons
+    generateWordBtn.style.backgroundColor = '#69B578';
+    exitTemplateBtn.style.backgroundColor = '#d32f2f';
+    
+    // Insert the buttons after the quit button
+    if (quitButton && quitButton.parentNode) {
+        quitButton.insertAdjacentElement('afterend', generateWordBtn);
+        generateWordBtn.insertAdjacentElement('afterend', exitTemplateBtn);
+    }
+    
+    // Add event listeners to buttons
+    generateWordBtn.addEventListener('click', () => {
+        updateSectionContentFromDOM();
         
-        templateMode = true;
-        selectedTemplate = templateType;
+        // Check if there's any content
+        const hasContent = Object.values(sectionContent).some(content => content.trim().length > 0);
+        if (!hasContent) {
+            const noContentMessages = {
+                fr: 'Veuillez ajouter du contenu avant de générer le document.',
+                en: 'Please add content before generating the document.',
+                de: 'Bitte fügen Sie Inhalt hinzu, bevor Sie das Dokument generieren.',
+                es: 'Por favor, agregue contenido antes de generar el documento.',
+                it: 'Aggiungi contenuto prima di generare il documento.',
+                pt: 'Adicione conteúdo antes de gerar o documento.'
+            };
+            alert(noContentMessages[currentLang] || noContentMessages['fr']);
+            return;
+        }
         
-        Object.keys(sectionContent).forEach(key => {
-            sectionContent[key] = '';
+        generateWordDocument(templateType);
+    });
+    
+    exitTemplateBtn.addEventListener('click', () => {
+        const confirmMessages = {
+            fr: 'Voulez-vous vraiment quitter le mode modèle ? Le contenu sera perdu.',
+            en: 'Do you really want to exit template mode? Content will be lost.',
+            de: 'Möchten Sie den Vorlagenmodus wirklich verlassen? Der Inhalt geht verloren.',
+            es: '¿Realmente quiere salir del modo plantilla? El contenido se perderá.',
+            it: 'Vuoi davvero uscire dalla modalità modello? Il contenuto andrà perso.',
+            pt: 'Você realmente quer sair do modo modelo? O conteúdo será perdido.'
+        };
+        
+        if (confirm(confirmMessages[currentLang] || confirmMessages['fr'])) {
+            exitTemplateMode();
+        }
+    });
+    
+    // Add click event listeners to section headers and content areas
+    document.querySelectorAll('.section-header').forEach(element => {
+        element.addEventListener('click', () => {
+            const section = element.dataset.section;
+            if (section) {
+                selectSection(section);
+                console.log('Section selected via header click:', section);
+            }
+        });
+    });
+    
+    // Add event listeners to clear section buttons
+    document.querySelectorAll('.clear-section-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const section = button.dataset.section;
+            if (section) {
+                const confirmMessages = {
+                    fr: `Effacer le contenu de cette section ?`,
+                    en: `Clear this section's content?`,
+                    de: `Inhalt dieses Abschnitts löschen?`,
+                    es: `¿Borrar el contenido de esta sección?`,
+                    it: `Cancellare il contenuto di questa sezione?`,
+                    pt: `Limpar o conteúdo desta seção?`
+                };
+                
+                if (confirm(confirmMessages[currentLang] || confirmMessages['fr'])) {
+                    clearSection(section);
+                }
+            }
+        });
+    });
+    
+    // Add event listeners for editable content areas
+    document.querySelectorAll('.section-content').forEach(contentElement => {
+        contentElement.addEventListener('input', () => {
+            const section = contentElement.dataset.section;
+            if (section) {
+                sectionContent[section] = contentElement.textContent.trim();
+                console.log(`Section ${section} updated via manual edit`);
+            }
         });
         
-        const t = translations[currentLang] || translations.fr;
-        let templateHTML = '';
+        contentElement.addEventListener('click', () => {
+            const section = contentElement.dataset.section;
+            if (section) {
+                selectSection(section);
+            }
+        });
         
-        function createSectionHeader(sectionId, title) {
-            return `
-                <div class="section-header-container">
-                    <div id="section-${sectionId}" class="section-header" data-section="${sectionId}">[${title.replace(':', '')}]</div>
-                    <button type="button" id="clear-${sectionId}" class="clear-section-btn" data-section="${sectionId}">${t.clearSection || 'Clear'}</button>
-                </div>
-            `;
-        }
-        
-        // Template HTML generation (shortened for space - implement full templates as needed)
-        switch(templateType) {
-            case 'consultation':
-                templateHTML = `
-                    ${createSectionHeader('reason', t.consultationReason)}
-                    <div id="reason-content" class="section-content" data-section="reason" contenteditable="true"></div>
-                    ${createSectionHeader('history', t.consultationHistory)}
-                    <div id="history-content" class="section-content" data-section="history" contenteditable="true"></div>
-                    ${createSectionHeader('exam', t.consultationExam)}
-                    <div id="exam-content" class="section-content" data-section="exam" contenteditable="true"></div>
-                    ${createSectionHeader('conclusion', t.consultationConclusion)}
-                    <div id="conclusion-content" class="section-content" data-section="conclusion" contenteditable="true"></div>
-                `;
-                currentSection = 'reason';
-                break;
-            // Add other template cases as needed
-        }
-        
-        transcriptionText.style.display = 'none';
-        
-        const templateContainer = document.createElement('div');
-        templateContainer.id = 'template-container';
-        templateContainer.className = 'template-container';
-        templateContainer.innerHTML = templateHTML;
-        
-        const transcriptionContainer = document.querySelector('.transcription-container');
-        transcriptionContainer.appendChild(templateContainer);
-        
-        // Add event listeners and functionality here
-        selectSection(currentSection);
-        
-        console.log('Template sections created successfully for:', templateType);
-    }
+        contentElement.addEventListener('focus', () => {
+            const section = contentElement.dataset.section;
+            if (section) {
+                selectSection(section);
+            }
+        });
+    });
+    
+    // Highlight the initial section
+    highlightSection(currentSection);
+    
+    console.log('Template sections created successfully for:', templateType);
+}
     
     function selectSection(section) {
         const currentSectionElement = document.getElementById(`${currentSection}-content`);
