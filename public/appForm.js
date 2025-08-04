@@ -641,28 +641,30 @@ countdownOverlay.id = 'mainCountdownOverlay';
 countdownOverlay.style.cssText = `
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.85);
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     z-index: 9999;
     justify-content: center;
     align-items: center;
     flex-direction: column;
     color: white;
-    font-size: 2em;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    font-size: 1em;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 `;
-    
-    const countdownText = document.createElement('div');
-    countdownText.id = 'countdownText';
-    countdownText.style.marginBottom = '20px';
-    
-    const countdownNumber = document.createElement('div');
-    countdownNumber.id = 'countdownNumber';
-    countdownNumber.style.fontSize = '5em';
+
+const countdownText = document.createElement('div');
+countdownText.id = 'countdownText';
+countdownText.style.marginBottom = '10px';
+
+const countdownNumber = document.createElement('div');
+countdownNumber.id = 'countdownNumber';
+countdownNumber.style.fontSize = '2.5em';
     
     countdownOverlay.appendChild(countdownText);
     countdownOverlay.appendChild(countdownNumber);
@@ -1583,19 +1585,19 @@ function showRecordingIndicator() {
             
             // Enhanced countdown display
             countdownText.textContent = t.countdown;
-            countdownText.style.fontSize = '2.5em';
-            countdownText.style.fontWeight = 'bold';
-            countdownText.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
-            
-            countdownNumber.textContent = '3';
-            countdownNumber.style.fontSize = '8em';
-            countdownNumber.style.fontWeight = 'bold';
-            countdownNumber.style.color = '#ff6b35';
-            countdownNumber.style.textShadow = '4px 4px 8px rgba(0,0,0,0.5)';
+countdownText.style.fontSize = '0.9em';  // Changed from 2.5em
+countdownText.style.fontWeight = '600';   // Changed from bold
+countdownText.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)';  // Smaller shadow
+
+countdownNumber.textContent = '3';
+countdownNumber.style.fontSize = '2.5em';  // Changed from 8em
+countdownNumber.style.fontWeight = '700';   // Changed from bold
+countdownNumber.style.color = '#ff6b35';
+countdownNumber.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';  // Smaller shadow
             
             // Show overlay with improved visibility
-            countdownOverlay.style.display = 'flex';
-            countdownOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)'; // More opaque
+            ccountdownOverlay.style.display = 'flex';
+countdownOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'; // More transparent
             
             // Start countdown with 3 seconds for better user preparation
             let count = 3;
@@ -1611,8 +1613,8 @@ function showRecordingIndicator() {
                     
                     // Update to "Getting ready..." message
                     countdownText.textContent = t.gettingReady || "Getting ready...";
-                    countdownText.style.fontSize = '2em';
-                    countdownNumber.style.display = 'none';
+countdownText.style.fontSize = '0.8em';  // Changed from 2em
+countdownNumber.style.display = 'none';
                     
                     // Add a preparation delay before starting recognition
                     setTimeout(() => {
