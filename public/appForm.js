@@ -501,13 +501,18 @@ function setupInputFieldTracking() {
             console.log('Subject input focused - transcription will go here');
         });
         
-        subjectInput.addEventListener('blur', () => {
-            // Don't immediately clear - give a small delay in case user is just clicking start button
+        // Remove blur handler that was clearing activeInputField too aggressively
+        subjectInput.addEventListener('blur', (e) => {
+            // Only clear if we're not clicking on start/pause/stop buttons
             setTimeout(() => {
-                if (document.activeElement !== startButton) {
+                const clickedElement = e.relatedTarget || document.activeElement;
+                if (clickedElement !== startButton && 
+                    clickedElement !== pauseButton && 
+                    clickedElement !== stopButton &&
+                    !clickedElement?.classList?.contains('control-btn')) {
                     activeInputField = null;
                 }
-            }, 100);
+            }, 200); // Increased delay
         });
     }
     
@@ -518,12 +523,16 @@ function setupInputFieldTracking() {
             console.log('Transcription area focused - transcription will go here');
         });
         
-        transcriptionText.addEventListener('blur', () => {
+        transcriptionText.addEventListener('blur', (e) => {
             setTimeout(() => {
-                if (document.activeElement !== startButton) {
+                const clickedElement = e.relatedTarget || document.activeElement;
+                if (clickedElement !== startButton && 
+                    clickedElement !== pauseButton && 
+                    clickedElement !== stopButton &&
+                    !clickedElement?.classList?.contains('control-btn')) {
                     activeInputField = null;
                 }
-            }, 100);
+            }, 200);
         });
     }
 }
@@ -1886,21 +1895,34 @@ function handleRecognitionStartError(error) {
     }
 
     function updateUIText() {
-        const t = translations[currentLang] || translations.fr;
-        startButton.querySelector('.btn-text').innerHTML = t.speak;
-        pauseButton.querySelector('.btn-text').innerHTML = t.pause;
-        stopButton.querySelector('.btn-text').innerHTML = t.stop;
-        copyButton.querySelector('.btn-text').innerHTML = t.copy;
-        templateButton.querySelector('.btn-text').innerHTML = t.template;
-        quitButton.querySelector('.btn-text').innerHTML = t.quit;
-        clearButton.textContent = t.clearAll;
-        transcriptionText.placeholder = t.placeholder;
-        aiCanMakeMistakesMessage.innerHTML = t.aiCanMakeMistakes;
-        const recordingTextElement = document.getElementById('recordingText');
+    const t = translations[currentLang] || translations.fr;
+    
+    // Button text
+    startButton.querySelector('.btn-text').innerHTML = t.speak;
+    pauseButton.querySelector('.btn-text').innerHTML = t.pause;
+    stopButton.querySelector('.btn-text').innerHTML = t.stop;
+    copyButton.querySelector('.btn-text').innerHTML = t.copy;
+    templateButton.querySelector('.btn-text').innerHTML = t.template;
+    quitButton.querySelector('.btn-text').innerHTML = t.quit;
+    clearButton.textContent = t.clearAll;
+    
+    // Form labels and placeholders
+    document.getElementById('subjectLabel').textContent = t.subjectLabel || 'Subject / Reference:';
+    document.getElementById('subjectInput').placeholder = t.subjectPlaceholder || 'Ex: Consultation on 07/31/2025';
+    document.getElementById('transcriptionLabel').textContent = t.transcriptionLabel || 'Transcription:';
+    transcriptionText.placeholder = t.placeholder;
+    
+    // Title and subtitle
+    document.getElementById('appTitle').textContent = t.appTitle || 'Voice Transcription';
+    document.getElementById('appSubtitle').textContent = t.appSubtitle || 'Start dictating to transcribe your text';
+    
+    // Other messages
+    aiCanMakeMistakesMessage.innerHTML = t.aiCanMakeMistakes;
+    const recordingTextElement = document.getElementById('recordingText');
     if (recordingTextElement) {
         recordingTextElement.textContent = t.recordingInProgress || 'Recording in progress...';
     }
-    }
+}
 
     // Function to create template sections - UPDATED to make all content areas editable
     // Complete createTemplateSections function with all improvements
@@ -2350,8 +2372,12 @@ function createTemplateSections(templateType) {
 
     // Event listeners for control buttons
     startButton.addEventListener('click', () => {
-        startWithCountdown(); // Use countdown function instead of direct start
-    });
+    // If subject input was focused, keep that state
+    if (document.activeElement === subjectInput || activeInputField === 'subject') {
+        activeInputField = 'subject';
+    }
+    startWithCountdown();
+});
 
     pauseButton.addEventListener('click', () => {
         try {
