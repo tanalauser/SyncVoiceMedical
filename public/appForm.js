@@ -1935,52 +1935,72 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Copy button functionality
     copyButton.addEventListener('click', async () => {
-        try {
-            let textToCopy = '';
+    try {
+        let textToCopy = '';
+        
+        if (templateMode) {
+            // If in template mode, collect text from all section content elements
+            // First collect section content from the DOM (in case of user edits)
+            updateSectionContentFromDOM();
             
-            if (templateMode) {
-                updateSectionContentFromDOM();
-                
-                const sections = document.querySelectorAll('.section-content');
-                const sectionTitles = document.querySelectorAll('[id^="section-"]');
-                
-                for (let i = 0; i < sectionTitles.length; i++) {
-                    const title = sectionTitles[i].textContent;
-                    const section = sections[i].dataset.section;
-                    if (section && sectionContent[section].trim()) {
-                        textToCopy += `${title}\n${sectionContent[section]}\n\n`;
-                    }
+            const sections = document.querySelectorAll('.section-content');
+            const sectionTitles = document.querySelectorAll('[id^="section-"]');
+            
+            for (let i = 0; i < sectionTitles.length; i++) {
+                const title = sectionTitles[i].textContent;
+                const section = sections[i].dataset.section;
+                if (section && sectionContent[section].trim()) {
+                    textToCopy += `${title}\n${sectionContent[section]}\n\n`;
                 }
-            } else {
-                textToCopy = transcriptionText.value;
             }
-            
-            await navigator.clipboard.writeText(textToCopy);
-            copyButton.querySelector('.btn-text').innerHTML = t.copied;
-            setTimeout(() => {
-                copyButton.querySelector('.btn-text').innerHTML = t.copy;
-            }, 2000);
-        } catch (err) {
-            console.error('Failed to copy text:', err);
+        } else {
+            // In normal mode, include both subject and transcription
+            const subjectInput = document.getElementById('subjectInput');
+            if (subjectInput && subjectInput.value.trim()) {
+                textToCopy = `${t.subjectLabel || 'Subject / Reference:'} ${subjectInput.value.trim()}\n\n`;
+            }
+            if (transcriptionText.value.trim()) {
+                textToCopy += `${t.transcriptionLabel || 'Transcription:'}\n${transcriptionText.value}`;
+            }
+            // If no content at all, just copy empty string
+            if (!textToCopy) {
+                textToCopy = '';
+            }
         }
-    });
+        
+        await navigator.clipboard.writeText(textToCopy);
+        copyButton.querySelector('.btn-text').innerHTML = t.copied;
+        setTimeout(() => {
+            copyButton.querySelector('.btn-text').innerHTML = t.copy;
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy text:', err);
+    }
+});
 
     // Clear button functionality
     if (clearButton) {
-        clearButton.addEventListener('click', () => {
-            if (templateMode) {
-                document.querySelectorAll('.section-content').forEach(section => {
-                    section.textContent = '';
-                });
-                
-                Object.keys(sectionContent).forEach(key => {
-                    sectionContent[key] = '';
-                });
-            } else {
-                transcriptionText.value = '';
+    clearButton.addEventListener('click', () => {
+        if (templateMode) {
+            // Clear all section content
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.textContent = '';
+            });
+            
+            // Reset section content object
+            Object.keys(sectionContent).forEach(key => {
+                sectionContent[key] = '';
+            });
+        } else {
+            // Clear both subject input and transcription text
+            const subjectInput = document.getElementById('subjectInput');
+            if (subjectInput) {
+                subjectInput.value = '';
             }
-        });
-    }
+            transcriptionText.value = '';
+        }
+    });
+}
 
     // Template button functionality
     templateButton.addEventListener('click', () => {
