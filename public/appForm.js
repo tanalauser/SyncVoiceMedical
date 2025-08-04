@@ -59,7 +59,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             subjectPlaceholder: 'Ex: Consultation du 31/07/2025',
             transcriptionLabel: 'Transcription:',
             transcriptionPlaceholder: 'Le texte transcrit apparaîtra ici...',
-            footerText: 'Tous droits réservés.'
+            footerText: 'Tous droits réservés.',
+            recordingInProgress: 'Enregistrement en cours...'
         },
         en: {
             speakNow: 'Speak now',
@@ -113,7 +114,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             subjectPlaceholder: 'Ex: Consultation on 07/31/2025',
             transcriptionLabel: 'Transcription:',
             transcriptionPlaceholder: 'Transcribed text will appear here...',
-            footerText: 'All rights reserved.'
+            footerText: 'All rights reserved.',
+            recordingInProgress: 'Recording in progress...'
         },
         de: {
             speakNow: 'Sprich jetzt',
@@ -167,7 +169,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         subjectPlaceholder: 'Beispiel: Beratung am 31.07.2025',
         transcriptionLabel: 'Transkription:',
         transcriptionPlaceholder: 'Der transkribierte Text erscheint hier...',
-        footerText: 'Alle Rechte vorbehalten.'
+        footerText: 'Alle Rechte vorbehalten.',
+        recordingInProgress: 'Aufnahme läuft...'
         },
         es: {
             speakNow: 'Habla ahora',
@@ -221,7 +224,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         subjectPlaceholder: 'Ej: Consulta del 31/07/2025',
         transcriptionLabel: 'Transcripción:',
         transcriptionPlaceholder: 'El texto transcrito aparecerá aquí...',
-        footerText: 'Todos los derechos reservados.'
+        footerText: 'Todos los derechos reservados.',
+        recordingInProgress: 'Grabación en curso...'
         },
         it: {
             speakNow: 'Parla ora',
@@ -275,7 +279,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         subjectPlaceholder: 'Es: Consultazione del 31/07/2025',
         transcriptionLabel: 'Trascrizione:',
         transcriptionPlaceholder: 'Il testo trascritto apparirà qui...',
-        footerText: 'Tutti i diritti riservati.'
+        footerText: 'Tutti i diritti riservati.',
+        recordingInProgress: 'Registrazione in corso...'
         },
         pt: {
             speakNow: 'Fale agora',
@@ -329,7 +334,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         subjectPlaceholder: 'Ex: Consulta de 31/07/2025',
         transcriptionLabel: 'Transcrição:',
         transcriptionPlaceholder: 'O texto transcrito aparecerá aqui...',
-        footerText: 'Todos os direitos reservados.'
+        footerText: 'Todos os direitos reservados.',
+        recordingInProgress: 'Gravação em andamento...'
         }
     };
 
@@ -1277,10 +1283,22 @@ function resetCountdownStyles() {
 }
 
 function showRecordingIndicator() {
-    // Show recording indicator
     const recordingIndicator = document.getElementById('recordingIndicator');
     if (recordingIndicator) {
         recordingIndicator.classList.add('active');
+        // Update the text to current language
+        const t = translations[currentLang] || translations.fr;
+        const recordingTextElement = document.getElementById('recordingText');
+        if (recordingTextElement) {
+            recordingTextElement.textContent = t.recordingInProgress || 'Recording in progress...';
+        }
+    }
+}
+
+function hideRecordingIndicator() {
+    const recordingIndicator = document.getElementById('recordingIndicator');
+    if (recordingIndicator) {
+        recordingIndicator.classList.remove('active');
     }
 }
         
@@ -1596,7 +1614,7 @@ countdownNumber.style.color = '#ff6b35';
 countdownNumber.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';  // Smaller shadow
             
             // Show overlay with improved visibility
-            ccountdownOverlay.style.display = 'flex';
+            countdownOverlay.style.display = 'flex';
 countdownOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'; // More transparent
             
             // Start countdown with 3 seconds for better user preparation
@@ -1851,12 +1869,13 @@ function handleRecognitionStartError(error) {
 
     // Reset button states
     function resetButtons() {
-        startButton.disabled = false;
-        pauseButton.disabled = true;
-        stopButton.disabled = true;
-        startButton.classList.remove('recording');
-        isRecording = false; // FIXED: Use individual variable consistently
-    }
+    startButton.disabled = false;
+    pauseButton.disabled = true;
+    stopButton.disabled = true;
+    startButton.classList.remove('recording');
+    isRecording = false;
+    hideRecordingIndicator(); 
+}
 
     function enableRecordingButtons() {
         startButton.disabled = true;
@@ -1877,6 +1896,10 @@ function handleRecognitionStartError(error) {
         clearButton.textContent = t.clearAll;
         transcriptionText.placeholder = t.placeholder;
         aiCanMakeMistakesMessage.innerHTML = t.aiCanMakeMistakes;
+        const recordingTextElement = document.getElementById('recordingText');
+    if (recordingTextElement) {
+        recordingTextElement.textContent = t.recordingInProgress || 'Recording in progress...';
+    }
     }
 
     // Function to create template sections - UPDATED to make all content areas editable
