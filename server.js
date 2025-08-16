@@ -1400,30 +1400,79 @@ async function handleSubscriptionChange(subscription) {
 }
 
 // Email template
+// Email template
 const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = false) => {
     const t = messages[lang] || messages.fr;
     
-    const downloadSection = downloadIntent ? `
-        <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); border: 1px solid #2196F3; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-            <h3 style="color: #1565C0; margin-top: 0;">📥 ${lang === 'fr' ? 'Téléchargez votre application desktop' : 'Download your desktop application'}</h3>
-            <p style="color: #1565C0; margin-bottom: 15px;">
-                ${lang === 'fr' 
-                    ? 'Votre application SyncVoice Medical pour Windows est prête à être téléchargée.'
-                    : 'Your SyncVoice Medical application for Windows is ready to download.'
-                }
-            </p>
-            <a href="${BASE_URL}/api/download-desktop?lang=${lang}&email=${encodeURIComponent(user.email)}&code=${user.activationCode}&source=email"
-               style="display: inline-block; background-color: #296396; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; font-weight: bold; margin: 10px 0;">
-                ${lang === 'fr' ? '⬇️ Télécharger pour Windows' : '⬇️ Download for Windows'}
-            </a>
-            <p style="color: #666; font-size: 12px; margin-bottom: 0;">
-                ${lang === 'fr' 
-                    ? 'Système requis: Windows 10 ou supérieur'
-                    : 'System requirements: Windows 10 or higher'
-                }
-            </p>
+    // ALWAYS show both options - web and desktop
+    const optionsSection = `
+        <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); border: 1px solid #2196F3; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h3 style="color: #1565C0; margin-top: 0; text-align: center;">
+                ${lang === 'fr' ? '🎯 Choisissez votre méthode de travail' : '🎯 Choose your work method'}
+            </h3>
+            
+            <!-- Option 1: Web Platform -->
+            <div style="background: white; border-radius: 8px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="color: #296396; margin: 0 0 10px 0;">
+                    🌐 ${lang === 'fr' ? 'Option 1: Plateforme Web' : 'Option 1: Web Platform'}
+                </h4>
+                <p style="color: #666; margin: 10px 0;">
+                    ${lang === 'fr' 
+                        ? 'Accédez à SyncVoice Medical depuis n\'importe quel navigateur. Idéal pour une utilisation immédiate sans installation.'
+                        : 'Access SyncVoice Medical from any browser. Ideal for immediate use without installation.'
+                    }
+                </p>
+                <div style="text-align: center; margin: 15px 0;">
+                    <a href="${activationLink}"
+                       style="display: inline-block; background-color: #69B578; color: white; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold;">
+                        ${lang === 'fr' ? '🚀 Lancer la plateforme web' : '🚀 Launch web platform'}
+                    </a>
+                </div>
+                <p style="color: #999; font-size: 12px; margin: 5px 0; text-align: center;">
+                    ${lang === 'fr' 
+                        ? 'Fonctionne avec Chrome, Edge, Safari'
+                        : 'Works with Chrome, Edge, Safari'
+                    }
+                </p>
+            </div>
+            
+            <!-- Option 2: Desktop Application -->
+            <div style="background: white; border-radius: 8px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="color: #296396; margin: 0 0 10px 0;">
+                    💻 ${lang === 'fr' ? 'Option 2: Application Bureau' : 'Option 2: Desktop Application'}
+                </h4>
+                <p style="color: #666; margin: 10px 0;">
+                    ${lang === 'fr' 
+                        ? 'Téléchargez l\'application Windows pour une intégration directe avec Word, Excel, PowerPoint. Transcription instantanée avec Ctrl+Shift+D.'
+                        : 'Download the Windows application for direct integration with Word, Excel, PowerPoint. Instant transcription with Ctrl+Shift+D.'
+                    }
+                </p>
+                <div style="text-align: center; margin: 15px 0;">
+                    <a href="${BASE_URL}/api/download-desktop?lang=${lang}&email=${encodeURIComponent(user.email)}&code=${user.activationCode}&source=email"
+                       style="display: inline-block; background-color: #296396; color: white; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold;">
+                        ${lang === 'fr' ? '⬇️ Télécharger pour Windows' : '⬇️ Download for Windows'}
+                    </a>
+                </div>
+                <p style="color: #999; font-size: 12px; margin: 5px 0; text-align: center;">
+                    ${lang === 'fr' 
+                        ? 'Windows 10 ou supérieur • 200 MB'
+                        : 'Windows 10 or higher • 200 MB'
+                    }
+                </p>
+            </div>
+            
+            <!-- Important Note about Activation Code -->
+            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 12px; margin-top: 15px;">
+                <p style="margin: 0; color: #856404; font-size: 14px; text-align: center;">
+                    <strong>⚠️ ${lang === 'fr' ? 'Important' : 'Important'}:</strong><br>
+                    ${lang === 'fr' 
+                        ? 'Votre code d\'activation <strong style="font-family: monospace; font-size: 16px; color: #296396;">' + user.activationCode + '</strong> fonctionne pour les DEUX options.<br>Conservez-le précieusement !'
+                        : 'Your activation code <strong style="font-family: monospace; font-size: 16px; color: #296396;">' + user.activationCode + '</strong> works for BOTH options.<br>Keep it safe!'
+                    }
+                </p>
+            </div>
         </div>
-    ` : '';
+    `;
     
     return `
     <!DOCTYPE html>
@@ -1449,32 +1498,52 @@ const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = 
                 </p>
                 
                 <p style="margin: 20px 0; color: #666666; line-height: 1.6;">
-                    ${t.thankyou}<br>
-                    ${t.clickToActivate}
+                    ${t.thankyou}
                 </p>
                 
-                <!-- Activation Button -->
+                <!-- Activation Code Display -->
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="${activationLink}"
-                       style="display: inline-block; background-color: #69B578; color: white; text-decoration: none; padding: 20px 30px; border-radius: 8px; font-family: monospace; font-size: 24px; font-weight: bold; box-shadow: 0 4px 12px rgba(105, 181, 120, 0.3);">
-                        ${user.activationCode}
-                    </a>
+                    <p style="color: #666; margin-bottom: 10px; font-size: 16px;">
+                        ${t.codeLabel}
+                    </p>
+                    <div style="display: inline-block; background-color: #f8f9fa; border: 2px solid #69B578; padding: 20px 30px; border-radius: 8px;">
+                        <span style="font-family: monospace; font-size: 32px; font-weight: bold; color: #296396; letter-spacing: 3px;">
+                            ${user.activationCode}
+                        </span>
+                    </div>
                 </div>
                 
-                <!-- Download Section (if download intent) -->
-                ${downloadSection}
+                <!-- Options Section (ALWAYS SHOWN) -->
+                ${optionsSection}
                 
-                <!-- Instructions -->
+                <!-- Quick Start Guide -->
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="color: #296396; margin-top: 0;">
-                        ${lang === 'fr' ? '🚀 Comment commencer:' : '🚀 How to get started:'}
+                        ${lang === 'fr' ? '🚀 Guide de démarrage rapide' : '🚀 Quick Start Guide'}
                     </h3>
-                    <ol style="color: #666; line-height: 1.6; margin: 0; padding-left: 20px;">
-                        <li>${lang === 'fr' ? 'Cliquez sur le code d\'activation ci-dessus' : 'Click on the activation code above'}</li>
-                        ${downloadIntent ? `<li>${lang === 'fr' ? 'Téléchargez et installez l\'application desktop' : 'Download and install the desktop application'}</li>` : ''}
-                        <li>${lang === 'fr' ? 'Entrez vos identifiants dans l\'application' : 'Enter your credentials in the application'}</li>
-                        <li>${lang === 'fr' ? 'Commencez à transcrire!' : 'Start transcribing!'}</li>
-                    </ol>
+                    
+                    <div style="margin: 15px 0;">
+                        <strong style="color: #69B578;">
+                            ${lang === 'fr' ? 'Pour la plateforme web:' : 'For web platform:'}
+                        </strong>
+                        <ol style="color: #666; margin: 5px 0; padding-left: 20px;">
+                            <li>${lang === 'fr' ? 'Cliquez sur "Lancer la plateforme web"' : 'Click "Launch web platform"'}</li>
+                            <li>${lang === 'fr' ? 'Votre compte sera automatiquement activé' : 'Your account will be automatically activated'}</li>
+                            <li>${lang === 'fr' ? 'Commencez à transcrire immédiatement' : 'Start transcribing immediately'}</li>
+                        </ol>
+                    </div>
+                    
+                    <div style="margin: 15px 0;">
+                        <strong style="color: #296396;">
+                            ${lang === 'fr' ? 'Pour l\'application bureau:' : 'For desktop application:'}
+                        </strong>
+                        <ol style="color: #666; margin: 5px 0; padding-left: 20px;">
+                            <li>${lang === 'fr' ? 'Cliquez sur "Télécharger pour Windows"' : 'Click "Download for Windows"'}</li>
+                            <li>${lang === 'fr' ? 'Installez l\'application' : 'Install the application'}</li>
+                            <li>${lang === 'fr' ? 'Entrez votre email et le code d\'activation ci-dessus' : 'Enter your email and the activation code above'}</li>
+                            <li>${lang === 'fr' ? 'Utilisez Ctrl+Shift+D dans n\'importe quel logiciel' : 'Use Ctrl+Shift+D in any software'}</li>
+                        </ol>
+                    </div>
                 </div>
                 
                 <!-- Support -->
@@ -1482,8 +1551,8 @@ const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = 
                     <p style="margin: 0; color: #856404;">
                         <strong>${lang === 'fr' ? '💡 Besoin d\'aide?' : '💡 Need help?'}</strong><br>
                         ${lang === 'fr' 
-                            ? 'Contactez notre support: support@syncvoicemedical.com'
-                            : 'Contact our support: support@syncvoicemedical.com'
+                            ? 'Support technique: support@syncvoicemedical.com'
+                            : 'Technical support: support@syncvoicemedical.com'
                         }
                     </p>
                 </div>
@@ -1496,8 +1565,8 @@ const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = 
                 </p>
                 <p style="margin: 10px 0 0 0; color: #999; font-size: 12px;">
                     ${lang === 'fr' 
-                        ? 'Cet email a été envoyé car vous vous êtes inscrit sur SyncVoice Medical.'
-                        : 'This email was sent because you signed up for SyncVoice Medical.'
+                        ? 'Cet email a été envoyé suite à votre inscription sur SyncVoice Medical.'
+                        : 'This email was sent following your registration on SyncVoice Medical.'
                     }
                 </p>
             </div>
