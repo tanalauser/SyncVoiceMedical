@@ -9,134 +9,9 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <style>
-        /* Desktop Client Section Styles */
-        .desktop-client-section {
-            background: linear-gradient(135deg, #f0f7ff 0%, #e8f2ff 100%);
-            border-radius: 12px;
-            padding: 2.5rem;
-            margin: 3rem 0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .desktop-client-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .desktop-client-title {
-            color: #1a5f7a;
-            font-size: 1.8rem;
-            margin-bottom: 1rem;
-            font-weight: 600;
-        }
-
-        .desktop-client-subtitle {
-            color: #555;
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
-        }
-
-        .desktop-features {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .desktop-feature {
-            flex: 1;
-            min-width: 200px;
-            text-align: center;
-            padding: 1rem;
-        }
-
-        .desktop-feature-icon {
-            width: 48px;
-            height: 48px;
-            margin: 0 auto 1rem;
-            background: #1a5f7a;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .desktop-feature-icon svg {
-            width: 24px;
-            height: 24px;
-            fill: white;
-        }
-
-        .desktop-feature h5 {
-            color: #1a5f7a;
-            margin-bottom: 0.5rem;
-            font-size: 1.1rem;
-        }
-
-        .desktop-feature p {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .download-section {
-            text-align: center;
-            margin-top: 2rem;
-        }
-
-        .download-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem 2rem;
-            background: #1a5f7a;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .download-btn:hover {
-            background: #164d63;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .download-btn svg {
-            width: 24px;
-            height: 24px;
-            fill: white;
-        }
-
-        .system-requirements {
-            margin-top: 1.5rem;
-            font-size: 0.85rem;
-            color: #666;
-            text-align: center;
-        }
-
-        @media (max-width: 768px) {
-            .desktop-client-section {
-                padding: 1.5rem;
-            }
-
-            .desktop-features {
-                flex-direction: column;
-            }
-
-            .desktop-client-title {
-                font-size: 1.4rem;
-            }
-        }
-    </style>
 </head>
 <body>
     <div class="hero">
-        
         <div class="wrapper">
             <nav class="nav">
                 <div class="logo">
@@ -159,95 +34,178 @@
             </nav>
 
             <div class="content-section">
-                <h1 class="title">TRANSCRIVEZ EN DIRECT VOS COMPTES RENDUS MEDICAUX AVEC L'AIDE DE L'IA.</h1>
-                <p class="subtitle">Convertissez en direct votre voix en texte.<br>Dictées illimitées.</p>
+                <h1 class="title">TRANSCRIVEZ VOS COMPTES RENDUS MÉDICAUX AVEC L'IA - WEB OU BUREAU</h1>
+                <p class="subtitle">Choisissez votre méthode préférée:<br><strong>Plateforme web en temps réel</strong> ou <strong>Application bureau hors ligne</strong></p>
 
-                <div class="plans">
-                    <div class="plan">
-                        <div class="plan-header">
-                            <h3>Essayez gratuitement pendant 7 jours</h3>
+                <!-- Version Selection Section -->
+                <div class="version-selection">
+                    <h2 class="version-title">Choisissez Votre Version</h2>
+                    
+                    <div class="versions">
+                        <!-- Web Platform -->
+                        <div class="version-card web-version">
+                            <div class="version-header">
+                                <div class="version-icon">🌐</div>
+                                <h3>Plateforme Web</h3>
+                                <p class="version-description">Transcription en temps réel dans votre navigateur</p>
+                            </div>
+                            
+                            <div class="plans-container">
+                                <div class="plan">
+                                    <div class="plan-header">
+                                        <h4>Essai Gratuit</h4>
+                                        <p>7 jours gratuits</p>
+                                    </div>
+                                    <div class="plan-footer">
+                                        <a href="form.html?plan=free&lang=fr" class="btn btn-secondary" data-version="free">Essayer Gratuitement</a>
+                                    </div>
+                                </div>
+                                
+                                <div class="plan">
+                                    <div class="plan-header">
+                                        <h4>Abonnement</h4>
+                                        <div class="price">25 € TTC / mois</div>
+                                        <p>Arrêtez quand vous voulez</p>
+                                    </div>
+                                    <div class="plan-footer">
+                                        <a href="form.html?plan=paid&lang=fr" class="btn btn-primary" data-version="paid">Commencer Maintenant</a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="plan-footer">
-                            <a href="form.html?plan=free&lang=fr" class="btn" data-version="free">Commencez</a>
-                        </div>
-                    </div>
 
-                    <div class="plan">
-                        <div class="plan-header">
-                            <h3>Achetez, arrêtez quand vous voulez.</h3>
-                            <div class="price">25 € TTC / mois</div>
-                        </div>
-                        <div class="plan-footer">
-                            <a href="form.html?plan=paid&lang=fr" class="btn" data-version="paid">Commencez</a>
+                        <!-- Desktop Application -->
+                        <div class="version-card desktop-version">
+                            <div class="version-header">
+                                <div class="version-icon">💻</div>
+                                <h3>Application Bureau</h3>
+                                <p class="version-description">Intégration directe avec Word, Excel, PowerPoint</p>
+                            </div>
+                            
+                            <div class="desktop-highlight">
+                                <div class="highlight-feature">
+                                    <div class="feature-icon">⚡</div>
+                                    <div class="feature-text">
+                                        <strong>Placez votre curseur dans n'importe quel logiciel</strong><br>
+                                        Word, Excel, PowerPoint, ou tout autre éditeur
+                                    </div>
+                                </div>
+                                <div class="highlight-feature">
+                                    <div class="feature-icon">🎤</div>
+                                    <div class="feature-text">
+                                        <strong>Appuyez sur Ctrl+Shift+D et parlez</strong><br>
+                                        La transcription apparaît directement dans votre document
+                                    </div>
+                                </div>
+                                <div class="highlight-feature">
+                                    <div class="feature-icon">🔒</div>
+                                    <div class="feature-text">
+                                        <strong>100% Hors ligne et sécurisé</strong><br>
+                                        Aucune donnée ne quitte votre ordinateur
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="desktop-download">
+                                <button class="download-btn" id="downloadBtn" type="button">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                                    </svg>
+                                    <span id="downloadBtnText">Télécharger pour Windows</span>
+                                </button>
+                                <p class="system-requirements" id="systemRequirements">
+                                    Nécessite Windows 10 ou supérieur • 200 MB d'espace disque
+                                </p>
+                                <p class="subscription-note">
+                                    <em>Abonnement requis après installation</em>
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="features">
-                    <h4>Il suffit de:</h4>
-                    <ul>
-                        <li>vous connecter à notre plateforme.</li>
-                        <li>taper votre code (Accès direct tant que vous être en ligne avec la plateforme.)</li>
-                        <li>Parler</li>
-                        <li>Copier le texte et coller.</li>
-                    </ul>
-                    <p>Le texte précis sera produit. Copiez et collez.</p>
-                    <p>Aucun téléchargement ni installation de logiciel dans votre ordinateur. Partagez le document avec vos collègues par email.</p>
+                <!-- Comparison Table -->
+                <div class="comparison-section">
+                    <h3 class="comparison-title">Comparaison des Versions</h3>
+                    <div class="comparison-table-container">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th class="feature-col">Fonctionnalité</th>
+                                    <th class="web-col">🌐 Plateforme Web</th>
+                                    <th class="desktop-col">💻 Application Bureau</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Connexion Internet</strong></td>
+                                    <td class="required">Requise</td>
+                                    <td class="not-required">Non requise</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Installation</strong></td>
+                                    <td class="advantage">Aucune</td>
+                                    <td>Windows uniquement</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sécurité des Données</strong></td>
+                                    <td>Cloud sécurisé</td>
+                                    <td class="advantage">Local sur votre PC</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Intégration Logiciels</strong></td>
+                                    <td>Copier/coller requis</td>
+                                    <td class="advantage">Directe (Word, Excel, etc.)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Accès</strong></td>
+                                    <td class="advantage">Tout navigateur</td>
+                                    <td>Bureau uniquement</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Vitesse</strong></td>
+                                    <td>Dépend de la connexion</td>
+                                    <td class="advantage">Traitement local rapide</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <!-- Desktop Client Section -->
-                <div class="desktop-client-section" id="desktopClientSection">
-                    <div class="desktop-client-header">
-                        <h2 class="desktop-client-title" id="desktopClientTitle">Application de Bureau SyncVoice Medical</h2>
-                        <p class="desktop-client-subtitle" id="desktopClientSubtitle">Travaillez hors ligne avec notre application de bureau Windows</p>
-                    </div>
-
-                    <div class="desktop-features">
-                        <div class="desktop-feature">
-                            <div class="desktop-feature-icon">
-                                <svg viewBox="0 0 24 24">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                </svg>
-                            </div>
-                            <h5 id="offlineFeatureTitle">Utilisation Hors Ligne</h5>
-                            <p id="offlineFeatureDesc">Transcrivez sans connexion internet</p>
-                        </div>
-                        <div class="desktop-feature">
-                            <div class="desktop-feature-icon">
-                                <svg viewBox="0 0 24 24">
-                                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
-                                </svg>
-                            </div>
-                            <h5 id="securityFeatureTitle">Sécurité Renforcée</h5>
-                            <p id="securityFeatureDesc">Vos données restent sur votre ordinateur</p>
-                        </div>
-                        <div class="desktop-feature">
-                            <div class="desktop-feature-icon">
-                                <svg viewBox="0 0 24 24">
-                                    <path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                                </svg>
-                            </div>
-                            <h5 id="performanceFeatureTitle">Performance Optimale</h5>
-                            <p id="performanceFeatureDesc">Transcription rapide et précise</p>
+                <!-- Features Sections -->
+                <div class="features-sections">
+                    <!-- Web Platform Features -->
+                    <div class="features-group">
+                        <h4 class="features-title">🌐 Fonctionnalités Plateforme Web</h4>
+                        <div class="features-content">
+                            <ul class="features-list">
+                                <li>Connectez-vous à notre plateforme depuis n'importe quel navigateur</li>
+                                <li>Saisissez votre code d'activation</li>
+                                <li>Parlez directement dans l'interface</li>
+                                <li>Copiez et collez le texte transcrit</li>
+                            </ul>
+                            <p>Idéal pour un accès rapide depuis n'importe où. Partagez facilement vos documents par email avec vos collègues.</p>
                         </div>
                     </div>
 
-                    <div class="download-section">
-    <button class="download-btn" id="downloadBtn" type="button">
-        <svg viewBox="0 0 24 24">
-            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-        </svg>
-        <span id="downloadBtnText">Télécharger pour Windows</span>
-    </button>
-    <p class="system-requirements" id="systemRequirements">
-        Nécessite Windows 10 ou supérieur • 200 MB d'espace disque
-    </p>
-</div>
+                    <!-- Desktop Application Features -->
+                    <div class="features-group">
+                        <h4 class="features-title">💻 Fonctionnalités Application Bureau</h4>
+                        <div class="features-content">
+                            <ul class="features-list">
+                                <li><strong>Ouvrez Word, Excel, PowerPoint ou tout autre éditeur</strong></li>
+                                <li><strong>Placez votre curseur où vous voulez taper</strong></li>
+                                <li><strong>Appuyez sur Ctrl+Shift+D</strong></li>
+                                <li><strong>Parlez - la transcription apparaît instantanément</strong></li>
+                            </ul>
+                            <p><strong>Avantage majeur :</strong> Transcription directe dans vos logiciels habituels sans interruption de workflow. Fonctionne avec tous les éditeurs de texte.</p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Browser Support Table -->
                 <div class="browser-support-section">
-                    <h4 class="browser-support-title">Compatibilité des navigateurs pour la reconnaissance vocale</h4>
+                    <h4 class="browser-support-title">Compatibilité des navigateurs pour la reconnaissance vocale (Plateforme Web)</h4>
                     <div class="table-container">
                         <table class="browser-support-table">
                             <thead>
@@ -286,7 +244,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="browser-note">Pour une expérience optimale, nous recommandons l'utilisation de Chrome, Edge ou Opera.</p>
+                    <p class="browser-note">Pour une expérience optimale avec la plateforme web, nous recommandons l'utilisation de Chrome, Edge ou Opera.</p>
                 </div>
             </div>
         </div>
