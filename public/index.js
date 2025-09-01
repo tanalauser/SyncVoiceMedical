@@ -745,32 +745,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     async function detectLanguage() {
-        console.log('🔍 Starting comprehensive language detection...');
-        
-        if (urlLang && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(urlLang)) {
-            console.log(`✅ Using URL language parameter: ${urlLang}`);
-            return urlLang;
-        }
-        
-        // Always prioritize geolocation to detect current country
-        try {
-            const geoResult = await Promise.race([
-                detectCountryLanguage(),
-                new Promise(resolve => setTimeout(() => resolve(null), 4000))
-            ]);
-            
-            if (geoResult && geoResult.language) {
-                console.log(`✅ Using geolocation language: ${geoResult.language} (from ${geoResult.source})`);
-                return geoResult.language;
-            }
-        } catch (error) {
-            console.log('❌ Geolocation detection failed:', error.message);
-        }
-        
-        const browserLang = detectBrowserLanguage();
-        console.log(`✅ Using browser language: ${browserLang}`);
-        return browserLang;
-    }
 
     // Enhanced content update function
     function updateContent(lang) {
