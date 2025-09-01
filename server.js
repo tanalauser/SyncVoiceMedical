@@ -1978,119 +1978,184 @@ wss.on('connection', (ws, req) => {
                     break;
                     
                 case 'audioComplete':
-                    if (!connection.authenticated) {
-                        return;
-                    }
-                    
-                    if (data.language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(data.language)) {
-                        connection.language = data.language;
-                    }
-                    
-                    try {
-                        let audioBuffer = null;
-                        
-                        if (data.audio && typeof data.audio === 'string') {
-                            audioBuffer = Buffer.from(data.audio, 'base64');
-                        } else {
-                            ws.send(JSON.stringify({
-                                type: 'transcriptionError',
-                                message: 'No audio data provided'
-                            }));
-                            return;
-                        }
-                        
-                        if (!audioBuffer || audioBuffer.length < 100) {
-                            ws.send(JSON.stringify({
-                                type: 'transcriptionResult',
-                                transcript: '',
-                                isFinal: true,
-                                message: 'Audio too short or empty'
-                            }));
-                            return;
-                        }
-                        
-                        if (!process.env.DEEPGRAM_API_KEY) {
-                            setTimeout(() => {
-                                ws.send(JSON.stringify({
-                                    type: 'transcriptionResult',
-                                    transcript: `Test transcription from ${connection.language} at ${new Date().toLocaleTimeString()}`,
-                                    isFinal: true,
-                                    source: 'test'
-                                }));
-                            }, 1000);
-                            return;
-                        }
-                        
-                        const deepgramLanguage = mapLanguageForDeepgram(connection.language);
-                        
-                        let contentType = 'audio/wav';
-                        let deepgramParams = `model=general&punctuate=true&smart_format=true&language=${deepgramLanguage}`;
-                        
-                        if (data.mimeType) {
-                            if (data.mimeType.includes('webm')) {
-                                contentType = 'audio/webm';
-                            } else if (data.mimeType.includes('wav')) {
-                                contentType = 'audio/wav';
-                                deepgramParams += '&encoding=linear16&sample_rate=16000&channels=1';
-                            } else if (data.mimeType.includes('mp3')) {
-                                contentType = 'audio/mp3';
-                            } else if (data.mimeType.includes('ogg')) {
-                                contentType = 'audio/ogg';
-                            }
-                        }
-                        
-                        const deepgramUrl = `https://api.deepgram.com/v1/listen?${deepgramParams}`;
-                        
-                        const response = await axios.post(deepgramUrl, audioBuffer, {
-                            headers: {
-                                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
-                                'Content-Type': contentType
-                            },
-                            timeout: 30000,
-                            maxContentLength: 50 * 1024 * 1024,
-                            maxBodyLength: 50 * 1024 * 1024
-                        });
-                        
-                        let transcript = '';
-                        try {
-                            const results = response.data?.results;
-                            if (results && results.channels && results.channels[0] && 
-                                results.channels[0].alternatives && results.channels[0].alternatives[0]) {
-                                transcript = results.channels[0].alternatives[0].transcript || '';
-                            }
-                        } catch (extractError) {
-                            logger.error('Error extracting transcript:', extractError.message);
-                        }
-                        
-                        if (transcript && transcript.trim()) {
-                            ws.send(JSON.stringify({
-                                type: 'transcriptionResult',
-                                transcript: transcript.trim(),
-                                isFinal: true,
-                                source: 'deepgram',
-                                language: deepgramLanguage,
-                                confidence: response.data?.results?.channels?.[0]?.alternatives?.[0]?.confidence || null
-                            }));
-                        } else {
-                            ws.send(JSON.stringify({
-                                type: 'transcriptionResult',
-                                transcript: '',
-                                isFinal: true,
-                                source: 'deepgram',
-                                language: deepgramLanguage,
-                                message: 'No speech detected in audio'
-                            }));
-                        }
-                        
-                    } catch (error) {
-                        logger.error('Audio processing error:', error.message);
-                        ws.send(JSON.stringify({
-                            type: 'transcriptionError',
-                            message: `Transcription failed: ${error.message}`,
-                            source: 'server'
-                        }));
-                    }
-                    break;
+    if (!connection.authenticated) {
+        return;
+    }
+    
+    if (data.language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(data.language)) {
+        connection.language = data.language;
+    }
+    
+    try {
+        let audioBuffer = null;
+        
+        if (data.audio && typeof data.audio === 'string') {
+            audioBuffer = Buffer.from(data.audio, 'base64');
+        } else {
+            ws.send(JSON.stringify({
+                type: 'transcriptionError',
+                message: 'No audio data provided'
+            }));
+            return;
+        }
+        
+        // Enhanced logging for debugging
+        logger.info(`Audio received from desktop client:`, {
+            bufferSize: audioBuffer.length,
+            mimeType: data.mimeType,
+            language: connection.language,
+            email: connection.email
+        });
+        
+        if (!audioBuffer || audioBuffer.length < 100) {
+            ws.send(JSON.stringify({
+                type: 'transcriptionResult',
+                transcript: '',
+                isFinal: true,
+                message: 'Audio too short or empty'
+            }));
+            return;
+        }
+        
+        if (!process.env.DEEPGRAM_API_KEY) {
+            logger.error('Deepgram API key not configured');
+            ws.send(JSON.stringify({
+                type: 'transcriptionError',
+                message: 'Transcription service not configured'
+            }));
+            return;
+        }
+        
+        const deepgramLanguage = mapLanguageForDeepgram(connection.language);
+        
+        // CRITICAL FIX: Properly handle WebM/Opus format from desktop client
+        let contentType = 'audio/webm';
+        let deepgramParams = `model=general&punctuate=true&smart_format=true&language=${deepgramLanguage}`;
+        
+        // Add specific handling for desktop client audio
+        if (data.mimeType) {
+            if (data.mimeType.includes('webm')) {
+                contentType = 'audio/webm';
+                // Add specific encoding for WebM/Opus
+                deepgramParams += '&encoding=opus';
+            } else if (data.mimeType.includes('wav')) {
+                contentType = 'audio/wav';
+                deepgramParams += '&encoding=linear16&sample_rate=16000&channels=1';
+            } else if (data.mimeType.includes('mp3')) {
+                contentType = 'audio/mp3';
+            } else if (data.mimeType.includes('ogg')) {
+                contentType = 'audio/ogg';
+            }
+        }
+        
+        // Add detect_language if needed
+        if (deepgramLanguage === 'en') {
+            // For English, try with detect_language as fallback
+            deepgramParams += '&detect_language=true';
+        }
+        
+        const deepgramUrl = `https://api.deepgram.com/v1/listen?${deepgramParams}`;
+        
+        logger.info('Sending to Deepgram:', {
+            url: deepgramUrl,
+            contentType: contentType,
+            bufferSize: audioBuffer.length,
+            language: deepgramLanguage
+        });
+        
+        const response = await axios.post(deepgramUrl, audioBuffer, {
+            headers: {
+                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+                'Content-Type': contentType
+            },
+            timeout: 30000,
+            maxContentLength: 50 * 1024 * 1024,
+            maxBodyLength: 50 * 1024 * 1024
+        });
+        
+        logger.info('Deepgram response received:', {
+            hasResults: !!response.data?.results,
+            channels: response.data?.results?.channels?.length,
+            status: response.status
+        });
+        
+        let transcript = '';
+        try {
+            const results = response.data?.results;
+            if (results && results.channels && results.channels[0] && 
+                results.channels[0].alternatives && results.channels[0].alternatives[0]) {
+                transcript = results.channels[0].alternatives[0].transcript || '';
+                
+                // Log detected language if available
+                if (results.channels[0].detected_language) {
+                    logger.info('Deepgram detected language:', results.channels[0].detected_language);
+                }
+            }
+            
+            // Additional debug logging
+            if (!transcript) {
+                logger.warn('No transcript extracted from Deepgram response:', {
+                    fullResponse: JSON.stringify(response.data, null, 2)
+                });
+            }
+        } catch (extractError) {
+            logger.error('Error extracting transcript:', extractError.message);
+        }
+        
+        if (transcript && transcript.trim()) {
+            logger.info(`✅ Transcription successful: "${transcript.substring(0, 50)}..."`);
+            ws.send(JSON.stringify({
+                type: 'transcriptionResult',
+                transcript: transcript.trim(),
+                isFinal: true,
+                source: 'deepgram',
+                language: deepgramLanguage,
+                confidence: response.data?.results?.channels?.[0]?.alternatives?.[0]?.confidence || null
+            }));
+        } else {
+            logger.warn('Empty transcript returned from Deepgram');
+            
+            // Send debug info to client
+            ws.send(JSON.stringify({
+                type: 'transcriptionResult',
+                transcript: '',
+                isFinal: true,
+                source: 'deepgram',
+                language: deepgramLanguage,
+                message: 'No speech detected in audio',
+                debug: {
+                    audioSize: audioBuffer.length,
+                    contentType: contentType,
+                    language: deepgramLanguage
+                }
+            }));
+        }
+        
+    } catch (error) {
+        logger.error('Audio processing error:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+        
+        // More detailed error message
+        let errorMessage = 'Transcription failed: ';
+        if (error.response?.data?.err_msg) {
+            errorMessage += error.response.data.err_msg;
+        } else if (error.response?.data?.message) {
+            errorMessage += error.response.data.message;
+        } else {
+            errorMessage += error.message;
+        }
+        
+        ws.send(JSON.stringify({
+            type: 'transcriptionError',
+            message: errorMessage,
+            source: 'server',
+            details: error.response?.data
+        }));
+    }
+    break;
                     
                 case 'stopTranscription':
                     if (!connection.authenticated) {

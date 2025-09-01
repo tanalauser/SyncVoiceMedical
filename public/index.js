@@ -752,16 +752,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             return urlLang;
         }
         
-        try {
-            const storedLang = localStorage.getItem('selectedLanguage');
-            if (storedLang && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(storedLang)) {
-                console.log(`✅ Using stored language preference: ${storedLang}`);
-                return storedLang;
-            }
-        } catch (e) {
-            console.log('⚠️ Cannot access localStorage:', e.message);
-        }
-        
+        // Always prioritize geolocation to detect current country
         try {
             const geoResult = await Promise.race([
                 detectCountryLanguage(),

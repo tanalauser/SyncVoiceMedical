@@ -254,7 +254,7 @@ label[for="language-select"] {
 .feature-text strong {
     color: #1a5f7a;
     display: block;
-    margin-bottom: 0.25rem;
+    margin-bottom: -0.9rem;
 }
 
 /* Desktop Download Section */
