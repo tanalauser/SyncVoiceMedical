@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const urlLang = urlParams.get('lang');
     console.log('🔗 URL Language Parameter:', urlLang);
 
-    // Get all DOM elements - UPDATED to include new elements
+    // Get all DOM elements - INCLUDING HIGHLIGHT FEATURES
     const elements = {
         title: document.querySelector('.title'),
         subtitle: document.querySelector('.subtitle'),
@@ -35,6 +35,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         webVersionDesc: document.querySelector('.web-version .version-description'),
         desktopVersionTitle: document.querySelector('.desktop-version h3'),
         desktopVersionDesc: document.querySelector('.desktop-version .version-description'),
+        // Desktop highlight features elements - THESE ARE CRITICAL
+        highlightFeature1Title: document.getElementById('highlight-feature-1-title'),
+        highlightFeature1Desc: document.getElementById('highlight-feature-1-desc'),
+        highlightFeature2Title: document.getElementById('highlight-feature-2-title'),
+        highlightFeature2Desc: document.getElementById('highlight-feature-2-desc'),
+        highlightFeature3Title: document.getElementById('highlight-feature-3-title'),
+        highlightFeature3Desc: document.getElementById('highlight-feature-3-desc'),
         // Comparison table elements
         comparisonTitle: document.querySelector('.comparison-title'),
         comparisonTable: document.querySelector('.comparison-table'),
@@ -54,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         subscriptionNote: document.querySelector('.subscription-note')
     };
 
-    // Enhanced translation definitions
+    // Enhanced translation definitions WITH HIGHLIGHT FEATURES
     const translations = {
         fr: {
             title: "TRANSCRIVEZ VOS COMPTES RENDUS MÉDICAUX AVEC L'IA - WEB OU BUREAU",
@@ -66,7 +73,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             webVersionTitle: "Plateforme Web",
             webVersionDesc: "Transcription en temps réel dans votre navigateur",
             desktopVersionTitle: "Application Bureau",
-            desktopVersionDesc: "Intégration directe avec Word, Excel, PowerPoint",
+            desktopVersionDesc: "Intégration directe avec logiciel médical, Word, Excel, etc.",
+            // Desktop highlight features
+            highlightFeature1Title: "Placez votre curseur dans n'importe quel logiciel",
+            highlightFeature1Desc: "Logiciel médical, Word, Excel, PowerPoint, etc.",
+            highlightFeature2Title: "Appuyez sur Ctrl+Shift+D et parlez",
+            highlightFeature2Desc: "La transcription apparaît directement dans votre document.",
+            highlightFeature3Title: "100% Hors ligne et sécurisé",
+            highlightFeature3Desc: "Aucune donnée ne quitte votre ordinateur.",
             // Plans
             freePlanTitle: "Essai Gratuit",
             freePlanDesc: "7 jours gratuits",
@@ -115,13 +129,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 "Copiez et collez le texte transcrit"
             ],
             desktopFeatures: [
-                "Ouvrez Word, Excel, PowerPoint ou tout autre éditeur",
-                "Placez votre curseur où vous voulez taper",
-                "Appuyez sur Ctrl+Shift+D",
-                "Parlez - la transcription apparaît instantanément"
+                "<strong>Ouvrez Word, Excel, PowerPoint ou tout autre éditeur</strong>",
+                "<strong>Placez votre curseur où vous voulez taper</strong>",
+                "<strong>Appuyez sur Ctrl+Shift+D</strong>",
+                "<strong>Parlez - la transcription apparaît instantanément</strong>"
             ],
             webFeaturesDesc: "Idéal pour un accès rapide depuis n'importe où. Partagez facilement vos documents par email avec vos collègues.",
-            desktopFeaturesDesc: "Avantage majeur : Transcription directe dans vos logiciels habituels sans interruption de workflow. Fonctionne avec tous les éditeurs de texte.",
+            desktopFeaturesDesc: "<strong>Avantage majeur :</strong> Transcription directe dans vos logiciels habituels sans interruption de workflow. Fonctionne avec tous les éditeurs de texte.",
             // Desktop download
             downloadBtnText: "Télécharger pour Windows",
             systemRequirements: "Nécessite Windows 10 ou supérieur • 200 MB d'espace disque",
@@ -158,7 +172,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             webVersionTitle: "Web Platform",
             webVersionDesc: "Real-time transcription in your browser",
             desktopVersionTitle: "Desktop Application",
-            desktopVersionDesc: "Direct integration with Word, Excel, PowerPoint",
+            desktopVersionDesc: "Direct integration with medical software, Word, Excel, etc.",
+            // Desktop highlight features
+            highlightFeature1Title: "Place your cursor in any software",
+            highlightFeature1Desc: "Medical software, Word, Excel, PowerPoint, etc.",
+            highlightFeature2Title: "Press Ctrl+Shift+D and speak",
+            highlightFeature2Desc: "Transcription appears directly in your document.",
+            highlightFeature3Title: "100% Offline and secure",
+            highlightFeature3Desc: "No data leaves your computer.",
             // Plans
             freePlanTitle: "Free Trial",
             freePlanDesc: "7 days free",
@@ -207,13 +228,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 "Copy and paste the transcribed text"
             ],
             desktopFeatures: [
-                "Open Word, Excel, PowerPoint or any other editor",
-                "Place your cursor where you want to type",
-                "Press Ctrl+Shift+D",
-                "Speak - transcription appears instantly"
+                "<strong>Open Word, Excel, PowerPoint or any other editor</strong>",
+                "<strong>Place your cursor where you want to type</strong>",
+                "<strong>Press Ctrl+Shift+D</strong>",
+                "<strong>Speak - transcription appears instantly</strong>"
             ],
             webFeaturesDesc: "Ideal for quick access from anywhere. Easily share your documents via email with colleagues.",
-            desktopFeaturesDesc: "Major advantage: Direct transcription in your usual software without workflow interruption. Works with all text editors.",
+            desktopFeaturesDesc: "<strong>Major advantage:</strong> Direct transcription in your usual software without workflow interruption. Works with all text editors.",
             // Desktop download
             downloadBtnText: "Download for Windows",
             systemRequirements: "Requires Windows 10 or higher • 200 MB disk space",
@@ -250,7 +271,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             webVersionTitle: "Web-Plattform",
             webVersionDesc: "Echtzeit-Transkription in Ihrem Browser",
             desktopVersionTitle: "Desktop-Anwendung",
-            desktopVersionDesc: "Direkte Integration mit Word, Excel, PowerPoint",
+            desktopVersionDesc: "Direkte Integration mit medizinischer Software, Word, Excel, etc.",
+            // Desktop highlight features
+            highlightFeature1Title: "Platzieren Sie Ihren Cursor in beliebiger Software",
+            highlightFeature1Desc: "Medizinische Software, Word, Excel, PowerPoint, etc.",
+            highlightFeature2Title: "Drücken Sie Ctrl+Shift+D und sprechen",
+            highlightFeature2Desc: "Die Transkription erscheint direkt in Ihrem Dokument.",
+            highlightFeature3Title: "100% Offline und sicher",
+            highlightFeature3Desc: "Keine Daten verlassen Ihren Computer.",
             // Plans
             freePlanTitle: "Kostenlose Testversion",
             freePlanDesc: "7 Tage kostenlos",
@@ -299,13 +327,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 "Kopieren und fügen Sie den transkribierten Text ein"
             ],
             desktopFeatures: [
-                "Öffnen Sie Word, Excel, PowerPoint oder einen anderen Editor",
-                "Platzieren Sie Ihren Cursor dort, wo Sie tippen möchten",
-                "Drücken Sie Ctrl+Shift+D",
-                "Sprechen Sie - die Transkription erscheint sofort"
+                "<strong>Öffnen Sie Word, Excel, PowerPoint oder einen anderen Editor</strong>",
+                "<strong>Platzieren Sie Ihren Cursor dort, wo Sie tippen möchten</strong>",
+                "<strong>Drücken Sie Ctrl+Shift+D</strong>",
+                "<strong>Sprechen Sie - die Transkription erscheint sofort</strong>"
             ],
             webFeaturesDesc: "Ideal für schnellen Zugriff von überall. Teilen Sie Ihre Dokumente einfach per E-Mail mit Kollegen.",
-            desktopFeaturesDesc: "Großer Vorteil: Direkte Transkription in Ihrer gewohnten Software ohne Workflow-Unterbrechung. Funktioniert mit allen Texteditoren.",
+            desktopFeaturesDesc: "<strong>Großer Vorteil:</strong> Direkte Transkription in Ihrer gewohnten Software ohne Workflow-Unterbrechung. Funktioniert mit allen Texteditoren.",
             // Desktop download
             downloadBtnText: "Für Windows herunterladen",
             systemRequirements: "Benötigt Windows 10 oder höher • 200 MB Speicherplatz",
@@ -342,7 +370,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             webVersionTitle: "Plataforma Web",
             webVersionDesc: "Transcripción en tiempo real en su navegador",
             desktopVersionTitle: "Aplicación de Escritorio",
-            desktopVersionDesc: "Integración directa con Word, Excel, PowerPoint",
+            desktopVersionDesc: "Integración directa con software médico, Word, Excel, etc.",
+            // Desktop highlight features
+            highlightFeature1Title: "Coloque su cursor en cualquier software",
+            highlightFeature1Desc: "Software médico, Word, Excel, PowerPoint, etc.",
+            highlightFeature2Title: "Presione Ctrl+Shift+D y hable",
+            highlightFeature2Desc: "La transcripción aparece directamente en su documento.",
+            highlightFeature3Title: "100% Sin conexión y seguro",
+            highlightFeature3Desc: "Ningún dato sale de su computadora.",
             // Plans
             freePlanTitle: "Prueba Gratuita",
             freePlanDesc: "7 días gratis",
@@ -391,13 +426,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 "Copie y pegue el texto transcrito"
             ],
             desktopFeatures: [
-                "Abra Word, Excel, PowerPoint o cualquier otro editor",
-                "Coloque su cursor donde quiera escribir",
-                "Presione Ctrl+Shift+D",
-                "Hable - la transcripción aparece al instante"
+                "<strong>Abra Word, Excel, PowerPoint o cualquier otro editor</strong>",
+                "<strong>Coloque su cursor donde quiera escribir</strong>",
+                "<strong>Presione Ctrl+Shift+D</strong>",
+                "<strong>Hable - la transcripción aparece al instante</strong>"
             ],
             webFeaturesDesc: "Ideal para acceso rápido desde cualquier lugar. Comparta fácilmente sus documentos por email con colegas.",
-            desktopFeaturesDesc: "Ventaja principal: Transcripción directa en su software habitual sin interrumpir el flujo de trabajo. Funciona con todos los editores de texto.",
+            desktopFeaturesDesc: "<strong>Ventaja principal:</strong> Transcripción directa en su software habitual sin interrumpir el flujo de trabajo. Funciona con todos los editores de texto.",
             // Desktop download
             downloadBtnText: "Descargar para Windows",
             systemRequirements: "Requiere Windows 10 o superior • 200 MB de espacio en disco",
@@ -434,7 +469,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             webVersionTitle: "Piattaforma Web",
             webVersionDesc: "Trascrizione in tempo reale nel tuo browser",
             desktopVersionTitle: "Applicazione Desktop",
-            desktopVersionDesc: "Integrazione diretta con Word, Excel, PowerPoint",
+            desktopVersionDesc: "Integrazione diretta con software medico, Word, Excel, ecc.",
+            // Desktop highlight features
+            highlightFeature1Title: "Posiziona il cursore in qualsiasi software",
+            highlightFeature1Desc: "Software medico, Word, Excel, PowerPoint, ecc.",
+            highlightFeature2Title: "Premi Ctrl+Shift+D e parla",
+            highlightFeature2Desc: "La trascrizione appare direttamente nel tuo documento.",
+            highlightFeature3Title: "100% Offline e sicuro",
+            highlightFeature3Desc: "Nessun dato lascia il tuo computer.",
             // Plans
             freePlanTitle: "Prova Gratuita",
             freePlanDesc: "7 giorni gratis",
@@ -467,7 +509,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 secureCloud: "Cloud sicuro",
                 localPC: "Locale sul tuo PC",
                 copyPaste: "Copia/incolla richiesto",
-                direct: "Diretta (Word, Excel, etc.)",
+                direct: "Diretta (Word, Excel, ecc.)",
                 anyBrowser: "Qualsiasi browser",
                 desktopOnly: "Solo desktop",
                 dependsConnection: "Dipende dalla connessione",
@@ -483,13 +525,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 "Copia e incolla il testo trascritto"
             ],
             desktopFeatures: [
-                "Apri Word, Excel, PowerPoint o qualsiasi altro editor",
-                "Posiziona il cursore dove vuoi digitare",
-                "Premi Ctrl+Shift+D",
-                "Parla - la trascrizione appare istantaneamente"
+                "<strong>Apri Word, Excel, PowerPoint o qualsiasi altro editor</strong>",
+                "<strong>Posiziona il cursore dove vuoi digitare</strong>",
+                "<strong>Premi Ctrl+Shift+D</strong>",
+                "<strong>Parla - la trascrizione appare istantaneamente</strong>"
             ],
             webFeaturesDesc: "Ideale per accesso rapido da qualsiasi luogo. Condividi facilmente i tuoi documenti via email con i colleghi.",
-            desktopFeaturesDesc: "Vantaggio principale: Trascrizione diretta nel tuo software abituale senza interruzioni del flusso di lavoro. Funziona con tutti gli editor di testo.",
+            desktopFeaturesDesc: "<strong>Vantaggio principale:</strong> Trascrizione diretta nel tuo software abituale senza interruzioni del flusso di lavoro. Funziona con tutti gli editor di testo.",
             // Desktop download
             downloadBtnText: "Scarica per Windows",
             systemRequirements: "Richiede Windows 10 o superiore • 200 MB di spazio su disco",
@@ -526,7 +568,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             webVersionTitle: "Plataforma Web",
             webVersionDesc: "Transcrição em tempo real no seu navegador",
             desktopVersionTitle: "Aplicação Desktop",
-            desktopVersionDesc: "Integração direta com Word, Excel, PowerPoint",
+            desktopVersionDesc: "Integração direta com software médico, Word, Excel, etc.",
+            // Desktop highlight features
+            highlightFeature1Title: "Posicione seu cursor em qualquer software",
+            highlightFeature1Desc: "Software médico, Word, Excel, PowerPoint, etc.",
+            highlightFeature2Title: "Pressione Ctrl+Shift+D e fale",
+            highlightFeature2Desc: "A transcrição aparece diretamente no seu documento.",
+            highlightFeature3Title: "100% Offline e seguro",
+            highlightFeature3Desc: "Nenhum dado sai do seu computador.",
             // Plans
             freePlanTitle: "Teste Gratuito",
             freePlanDesc: "7 dias grátis",
@@ -575,13 +624,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 "Copie e cole o texto transcrito"
             ],
             desktopFeatures: [
-                "Abra Word, Excel, PowerPoint ou qualquer outro editor",
-                "Posicione seu cursor onde quer digitar",
-                "Pressione Ctrl+Shift+D",
-                "Fale - a transcrição aparece instantaneamente"
+                "<strong>Abra Word, Excel, PowerPoint ou qualquer outro editor</strong>",
+                "<strong>Posicione seu cursor onde quer digitar</strong>",
+                "<strong>Pressione Ctrl+Shift+D</strong>",
+                "<strong>Fale - a transcrição aparece instantaneamente</strong>"
             ],
             webFeaturesDesc: "Ideal para acesso rápido de qualquer lugar. Compartilhe facilmente seus documentos por email com colegas.",
-            desktopFeaturesDesc: "Vantagem principal: Transcrição direta no seu software habitual sem interrupção do fluxo de trabalho. Funciona com todos os editores de texto.",
+            desktopFeaturesDesc: "<strong>Vantagem principal:</strong> Transcrição direta no seu software habitual sem interrupção do fluxo de trabalho. Funciona com todos os editores de texto.",
             // Desktop download
             downloadBtnText: "Baixar para Windows",
             systemRequirements: "Requer Windows 10 ou superior • 200 MB de espaço em disco",
@@ -610,7 +659,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     };
 
-    // Country to language mapping (same as before)
+    // Country to language mapping
     const countryToLanguage = {
         'FR': 'fr', 'BE': 'fr', 'CH': 'fr', 'CA': 'fr', 'LU': 'fr', 'MC': 'fr',
         'BF': 'fr', 'BJ': 'fr', 'CD': 'fr', 'CI': 'fr', 'GA': 'fr', 'GN': 'fr',
@@ -655,7 +704,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Language detection functions (same as before)
+    // Language detection functions
     async function detectCountryLanguage() {
         console.log('🌍 Starting geolocation detection...');
         
@@ -724,7 +773,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function detectBrowserLanguage() {
-        console.log('🌍 Starting browser language detection...');
+        console.log('🌐 Starting browser language detection...');
         
         const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
         const langCode = browserLang.split('-')[0];
@@ -745,8 +794,34 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     async function detectLanguage() {
+        console.log('🔍 Starting comprehensive language detection...');
+        
+        if (urlLang && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(urlLang)) {
+            console.log(`✅ Using URL language parameter: ${urlLang}`);
+            return urlLang;
+        }
+        
+        // Always prioritize geolocation to detect current country
+        try {
+            const geoResult = await Promise.race([
+                detectCountryLanguage(),
+                new Promise(resolve => setTimeout(() => resolve(null), 4000))
+            ]);
+            
+            if (geoResult && geoResult.language) {
+                console.log(`✅ Using geolocation language: ${geoResult.language} (from ${geoResult.source})`);
+                return geoResult.language;
+            }
+        } catch (error) {
+            console.log('❌ Geolocation detection failed:', error.message);
+        }
+        
+        const browserLang = detectBrowserLanguage();
+        console.log(`✅ Using browser language: ${browserLang}`);
+        return browserLang;
+    }
 
-    // Enhanced content update function
+    // Enhanced content update function - INCLUDING HIGHLIGHT FEATURES
     function updateContent(lang) {
         console.log('🎨 Updating page content for language:', lang);
         
@@ -768,6 +843,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (elements.webVersionDesc) elements.webVersionDesc.textContent = content.webVersionDesc;
         if (elements.desktopVersionTitle) elements.desktopVersionTitle.textContent = content.desktopVersionTitle;
         if (elements.desktopVersionDesc) elements.desktopVersionDesc.textContent = content.desktopVersionDesc;
+
+        // UPDATE DESKTOP HIGHLIGHT FEATURES - THIS IS CRITICAL
+        if (elements.highlightFeature1Title) elements.highlightFeature1Title.textContent = content.highlightFeature1Title;
+        if (elements.highlightFeature1Desc) elements.highlightFeature1Desc.textContent = content.highlightFeature1Desc;
+        if (elements.highlightFeature2Title) elements.highlightFeature2Title.textContent = content.highlightFeature2Title;
+        if (elements.highlightFeature2Desc) elements.highlightFeature2Desc.textContent = content.highlightFeature2Desc;
+        if (elements.highlightFeature3Title) elements.highlightFeature3Title.textContent = content.highlightFeature3Title;
+        if (elements.highlightFeature3Desc) elements.highlightFeature3Desc.textContent = content.highlightFeature3Desc;
 
         // Update plans
         if (elements.freePlanTitle) elements.freePlanTitle.textContent = content.freePlanTitle;
@@ -867,16 +950,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         if (freeButton) {
             freeButton.textContent = content.freeButton;
-            const url = new URL(freeButton.href);
+            const url = new URL(freeButton.href, window.location.origin);
             url.searchParams.set('lang', lang);
-            freeButton.href = url.toString();
+            freeButton.href = url.pathname + url.search;
         }
         
         if (paidButton) {
             paidButton.textContent = content.paidButton;
-            const url = new URL(paidButton.href);
+            const url = new URL(paidButton.href, window.location.origin);
             url.searchParams.set('lang', lang);
-            paidButton.href = url.toString();
+            paidButton.href = url.pathname + url.search;
         }
 
         // Update desktop download section
@@ -933,13 +1016,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             elements.browserNote.textContent = content.browserNote;
         }
 
-        // Store language preference
-        try {
-            localStorage.setItem('selectedLanguage', lang);
-            console.log('💾 Saved language preference:', lang);
-        } catch (e) {
-            console.log('💾 Could not save language preference:', e.message);
-        }
+        // DO NOT STORE LANGUAGE PREFERENCE - THIS IS THE FIX
+        // Remove localStorage saving to always use geolocation
         
         // Update document language
         document.documentElement.lang = lang;
@@ -982,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // LOGIN BUTTON FUNCTIONALITY
     if (elements.loginBtn) {
         elements.loginBtn.addEventListener('click', function() {
-            const currentLang = elements.languageSelect.value || detectedLanguage;
+            const currentLang = elements.languageSelect ? elements.languageSelect.value : detectedLanguage;
             window.location.href = `login.html?lang=${currentLang}`;
         });
     }
@@ -992,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (downloadBtn) {
         downloadBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            const currentLang = elements.languageSelect.value || detectedLanguage;
+            const currentLang = elements.languageSelect ? elements.languageSelect.value : detectedLanguage;
             handleDesktopDownload(currentLang);
         });
     }
