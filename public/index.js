@@ -160,7 +160,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Download protection messages
             downloadRequiresRegistration: "Pour télécharger l'application bureau, vous devez d'abord vous inscrire.",
             downloadConfirm: "Rediriger vers l'inscription ?",
-            downloadingText: "Téléchargement en cours..."
+            downloadingText: "Téléchargement en cours...",
+            // Pricing section
+            pricingMainTitle: "Un Abonnement = Web + Bureau",
+            pricingSubtitle: "Profitez des deux versions sans frais supplémentaires",
+            trialTitle: "Essai Gratuit",
+            trialPrice: "0 €",
+            trialDuration: "7 jours",
+            trialFeature1: "✓ Plateforme Web complète",
+            trialFeature2: "✓ Application Bureau Windows",
+            trialFeature3: "✓ Sans carte bancaire",
+            trialFeature4: "✓ Annulation automatique",
+            trialButton: "Essayer Gratuitement",
+            popularBadge: "POPULAIRE",
+            subscriptionTitle: "Abonnement Complet",
+            subscriptionPrice: "25 €",
+            subscriptionDuration: "TTC / mois",
+            subscriptionFeature1: "✓ Plateforme Web illimitée",
+            subscriptionFeature2: "✓ Application Bureau Windows",
+            subscriptionFeature3: "✓ Mises à jour incluses",
+            subscriptionFeature4: "✓ Support prioritaire",
+            subscriptionFeature5: "✓ Résiliable à tout moment",
+            subscriptionButton: "Commencer Maintenant",
+            valuePropositionText: "<strong>Pourquoi payer deux fois ?</strong> Avec SyncVoice Medical, un seul abonnement vous donne accès à la plateforme web ET à l'application bureau. Utilisez celle qui convient le mieux à chaque situation.",
+            whatYouGetTitle: "Ce Que Vous Obtenez",
+            includedBadge: "INCLUS"
         },
         en: {
             title: "TRANSCRIBE YOUR MEDICAL REPORTS WITH AI - WEB OR DESKTOP",
@@ -259,7 +283,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Download protection messages
             downloadRequiresRegistration: "To download the desktop application, you must first register.",
             downloadConfirm: "Redirect to registration?",
-            downloadingText: "Downloading..."
+            downloadingText: "Downloading...",
+            // Pricing section
+            pricingMainTitle: "One Subscription = Web + Desktop",
+            pricingSubtitle: "Enjoy both versions at no extra cost",
+            trialTitle: "Free Trial",
+            trialPrice: "£0",
+            trialDuration: "7 days",
+            trialFeature1: "✓ Full Web Platform",
+            trialFeature2: "✓ Windows Desktop Application",
+            trialFeature3: "✓ No credit card required",
+            trialFeature4: "✓ Automatic cancellation",
+            trialButton: "Try Free",
+            popularBadge: "POPULAR",
+            subscriptionTitle: "Complete Subscription",
+            subscriptionPrice: "£25",
+            subscriptionDuration: "VAT incl. / month",
+            subscriptionFeature1: "✓ Unlimited Web Platform",
+            subscriptionFeature2: "✓ Windows Desktop Application",
+            subscriptionFeature3: "✓ Updates included",
+            subscriptionFeature4: "✓ Priority support",
+            subscriptionFeature5: "✓ Cancel anytime",
+            subscriptionButton: "Start Now",
+            valuePropositionText: "<strong>Why pay twice?</strong> With SyncVoice Medical, one subscription gives you access to both the web platform AND desktop application. Use whichever suits each situation best.",
+            whatYouGetTitle: "What You Get",
+            includedBadge: "INCLUDED"
         },
         de: {
             title: "TRANSKRIBIEREN SIE IHRE MEDIZINISCHEN BERICHTE MIT KI - WEB ODER DESKTOP",
@@ -358,7 +406,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Download protection messages
             downloadRequiresRegistration: "Um die Desktop-Anwendung herunterzuladen, müssen Sie sich zuerst registrieren.",
             downloadConfirm: "Zur Registrierung weiterleiten?",
-            downloadingText: "Wird heruntergeladen..."
+            downloadingText: "Wird heruntergeladen...",
+            // Pricing section
+            pricingMainTitle: "Ein Abonnement = Web + Desktop",
+            pricingSubtitle: "Nutzen Sie beide Versionen ohne zusätzliche Kosten",
+            trialTitle: "Kostenlose Testversion",
+            trialPrice: "0 €",
+            trialDuration: "7 Tage",
+            trialFeature1: "✓ Vollständige Web-Plattform",
+            trialFeature2: "✓ Windows Desktop-Anwendung",
+            trialFeature3: "✓ Keine Kreditkarte erforderlich",
+            trialFeature4: "✓ Automatische Kündigung",
+            trialButton: "Kostenlos Testen",
+            popularBadge: "BELIEBT",
+            subscriptionTitle: "Komplettabonnement",
+            subscriptionPrice: "25 €",
+            subscriptionDuration: "inkl. MwSt. / Monat",
+            subscriptionFeature1: "✓ Unbegrenzte Web-Plattform",
+            subscriptionFeature2: "✓ Windows Desktop-Anwendung",
+            subscriptionFeature3: "✓ Updates inklusive",
+            subscriptionFeature4: "✓ Prioritäts-Support",
+            subscriptionFeature5: "✓ Jederzeit kündbar",
+            subscriptionButton: "Jetzt Starten",
+            valuePropositionText: "<strong>Warum zweimal bezahlen?</strong> Mit SyncVoice Medical erhalten Sie mit einem Abonnement Zugang zur Web-Plattform UND Desktop-Anwendung. Nutzen Sie, was am besten zur jeweiligen Situation passt.",
+            whatYouGetTitle: "Was Sie Erhalten",
+            includedBadge: "INKLUSIVE"
         },
         es: {
             title: "TRANSCRIBA SUS INFORMES MÉDICOS CON IA - WEB O ESCRITORIO",
@@ -457,7 +529,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Download protection messages
             downloadRequiresRegistration: "Para descargar la aplicación de escritorio, primero debe registrarse.",
             downloadConfirm: "¿Redirigir al registro?",
-            downloadingText: "Descargando..."
+            downloadingText: "Descargando...",
+            // Pricing section
+            pricingMainTitle: "Una Suscripción = Web + Escritorio",
+            pricingSubtitle: "Disfrute de ambas versiones sin costo adicional",
+            trialTitle: "Prueba Gratuita",
+            trialPrice: "0 €",
+            trialDuration: "7 días",
+            trialFeature1: "✓ Plataforma Web completa",
+            trialFeature2: "✓ Aplicación de Escritorio Windows",
+            trialFeature3: "✓ Sin tarjeta de crédito",
+            trialFeature4: "✓ Cancelación automática",
+            trialButton: "Probar Gratis",
+            popularBadge: "POPULAR",
+            subscriptionTitle: "Suscripción Completa",
+            subscriptionPrice: "25 €",
+            subscriptionDuration: "IVA incl. / mes",
+            subscriptionFeature1: "✓ Plataforma Web ilimitada",
+            subscriptionFeature2: "✓ Aplicación de Escritorio Windows",
+            subscriptionFeature3: "✓ Actualizaciones incluidas",
+            subscriptionFeature4: "✓ Soporte prioritario",
+            subscriptionFeature5: "✓ Cancele cuando quiera",
+            subscriptionButton: "Comenzar Ahora",
+            valuePropositionText: "<strong>¿Por qué pagar dos veces?</strong> Con SyncVoice Medical, una suscripción le da acceso a la plataforma web Y la aplicación de escritorio. Use la que mejor se adapte a cada situación.",
+            whatYouGetTitle: "Lo Que Obtiene",
+            includedBadge: "INCLUIDO"
         },
         it: {
             title: "TRASCRIVI I TUOI REFERTI MEDICI CON IA - WEB O DESKTOP",
@@ -556,7 +652,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Download protection messages
             downloadRequiresRegistration: "Per scaricare l'applicazione desktop, devi prima registrarti.",
             downloadConfirm: "Reindirizzare alla registrazione?",
-            downloadingText: "Scaricando..."
+            downloadingText: "Scaricando...",
+            // Pricing section
+            pricingMainTitle: "Un Abbonamento = Web + Desktop",
+            pricingSubtitle: "Goditi entrambe le versioni senza costi aggiuntivi",
+            trialTitle: "Prova Gratuita",
+            trialPrice: "0 €",
+            trialDuration: "7 giorni",
+            trialFeature1: "✓ Piattaforma Web completa",
+            trialFeature2: "✓ Applicazione Desktop Windows",
+            trialFeature3: "✓ Nessuna carta di credito",
+            trialFeature4: "✓ Cancellazione automatica",
+            trialButton: "Prova Gratis",
+            popularBadge: "POPOLARE",
+            subscriptionTitle: "Abbonamento Completo",
+            subscriptionPrice: "25 €",
+            subscriptionDuration: "IVA incl. / mese",
+            subscriptionFeature1: "✓ Piattaforma Web illimitata",
+            subscriptionFeature2: "✓ Applicazione Desktop Windows",
+            subscriptionFeature3: "✓ Aggiornamenti inclusi",
+            subscriptionFeature4: "✓ Supporto prioritario",
+            subscriptionFeature5: "✓ Cancella quando vuoi",
+            subscriptionButton: "Inizia Ora",
+            valuePropositionText: "<strong>Perché pagare due volte?</strong> Con SyncVoice Medical, un abbonamento ti dà accesso alla piattaforma web E all'applicazione desktop. Usa quella più adatta a ogni situazione.",
+            whatYouGetTitle: "Cosa Ottieni",
+            includedBadge: "INCLUSO"
         },
         pt: {
             title: "TRANSCREVA SEUS RELATÓRIOS MÉDICOS COM IA - WEB OU DESKTOP",
@@ -655,7 +775,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Download protection messages
             downloadRequiresRegistration: "Para baixar a aplicação desktop, você deve primeiro se registrar.",
             downloadConfirm: "Redirecionar para o registro?",
-            downloadingText: "Baixando..."
+            downloadingText: "Baixando...",
+            // Pricing section
+            pricingMainTitle: "Uma Assinatura = Web + Desktop",
+            pricingSubtitle: "Desfrute de ambas as versões sem custo adicional",
+            trialTitle: "Teste Gratuito",
+            trialPrice: "0 €",
+            trialDuration: "7 dias",
+            trialFeature1: "✓ Plataforma Web completa",
+            trialFeature2: "✓ Aplicação Desktop Windows",
+            trialFeature3: "✓ Sem cartão de crédito",
+            trialFeature4: "✓ Cancelamento automático",
+            trialButton: "Testar Grátis",
+            popularBadge: "POPULAR",
+            subscriptionTitle: "Assinatura Completa",
+            subscriptionPrice: "25 €",
+            subscriptionDuration: "IVA incl. / mês",
+            subscriptionFeature1: "✓ Plataforma Web ilimitada",
+            subscriptionFeature2: "✓ Aplicação Desktop Windows",
+            subscriptionFeature3: "✓ Atualizações incluídas",
+            subscriptionFeature4: "✓ Suporte prioritário",
+            subscriptionFeature5: "✓ Cancele quando quiser",
+            subscriptionButton: "Começar Agora",
+            valuePropositionText: "<strong>Por que pagar duas vezes?</strong> Com SyncVoice Medical, uma assinatura dá acesso à plataforma web E à aplicação desktop. Use a que melhor se adequa a cada situação.",
+            whatYouGetTitle: "O Que Você Obtém",
+            includedBadge: "INCLUÍDO"
         }
     };
 
@@ -773,7 +917,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     function detectBrowserLanguage() {
-        console.log('🌐 Starting browser language detection...');
+        console.log('🌍 Starting browser language detection...');
         
         const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
         const langCode = browserLang.split('-')[0];
@@ -1026,6 +1170,88 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (elements.languageSelect) {
             elements.languageSelect.value = lang;
             console.log('🔄 Updated language selector to:', lang);
+        }
+
+        // UPDATE PRICING SECTION ELEMENTS - CRITICAL FIX
+        if (document.getElementById('pricing-main-title')) {
+            document.getElementById('pricing-main-title').textContent = content.pricingMainTitle;
+        }
+        if (document.getElementById('pricing-subtitle')) {
+            document.getElementById('pricing-subtitle').textContent = content.pricingSubtitle;
+        }
+        if (document.getElementById('trial-title')) {
+            document.getElementById('trial-title').textContent = content.trialTitle;
+        }
+        if (document.getElementById('trial-price')) {
+            document.getElementById('trial-price').textContent = content.trialPrice;
+        }
+        if (document.getElementById('trial-duration')) {
+            document.getElementById('trial-duration').textContent = content.trialDuration;
+        }
+        if (document.getElementById('trial-feature-1')) {
+            document.getElementById('trial-feature-1').textContent = content.trialFeature1;
+        }
+        if (document.getElementById('trial-feature-2')) {
+            document.getElementById('trial-feature-2').textContent = content.trialFeature2;
+        }
+        if (document.getElementById('trial-feature-3')) {
+            document.getElementById('trial-feature-3').textContent = content.trialFeature3;
+        }
+        if (document.getElementById('trial-feature-4')) {
+            document.getElementById('trial-feature-4').textContent = content.trialFeature4;
+        }
+        if (document.getElementById('trial-button')) {
+            const trialBtn = document.getElementById('trial-button');
+            trialBtn.textContent = content.trialButton;
+            const url = new URL(trialBtn.href, window.location.origin);
+            url.searchParams.set('lang', lang);
+            trialBtn.href = url.pathname + url.search;
+        }
+        if (document.getElementById('popular-badge')) {
+            document.getElementById('popular-badge').textContent = content.popularBadge;
+        }
+        if (document.getElementById('subscription-title')) {
+            document.getElementById('subscription-title').textContent = content.subscriptionTitle;
+        }
+        if (document.getElementById('subscription-price')) {
+            document.getElementById('subscription-price').textContent = content.subscriptionPrice;
+        }
+        if (document.getElementById('subscription-duration')) {
+            document.getElementById('subscription-duration').textContent = content.subscriptionDuration;
+        }
+        if (document.getElementById('subscription-feature-1')) {
+            document.getElementById('subscription-feature-1').textContent = content.subscriptionFeature1;
+        }
+        if (document.getElementById('subscription-feature-2')) {
+            document.getElementById('subscription-feature-2').textContent = content.subscriptionFeature2;
+        }
+        if (document.getElementById('subscription-feature-3')) {
+            document.getElementById('subscription-feature-3').textContent = content.subscriptionFeature3;
+        }
+        if (document.getElementById('subscription-feature-4')) {
+            document.getElementById('subscription-feature-4').textContent = content.subscriptionFeature4;
+        }
+        if (document.getElementById('subscription-feature-5')) {
+            document.getElementById('subscription-feature-5').textContent = content.subscriptionFeature5;
+        }
+        if (document.getElementById('subscription-button')) {
+            const subBtn = document.getElementById('subscription-button');
+            subBtn.textContent = content.subscriptionButton;
+            const url = new URL(subBtn.href, window.location.origin);
+            url.searchParams.set('lang', lang);
+            subBtn.href = url.pathname + url.search;
+        }
+        if (document.getElementById('value-proposition-text')) {
+            document.getElementById('value-proposition-text').innerHTML = content.valuePropositionText;
+        }
+        if (document.getElementById('what-you-get-title')) {
+            document.getElementById('what-you-get-title').textContent = content.whatYouGetTitle;
+        }
+        if (document.getElementById('included-badge-web')) {
+            document.getElementById('included-badge-web').textContent = content.includedBadge;
+        }
+        if (document.getElementById('included-badge-desktop')) {
+            document.getElementById('included-badge-desktop').textContent = content.includedBadge;
         }
     }
 
