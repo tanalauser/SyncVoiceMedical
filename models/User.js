@@ -73,18 +73,18 @@ const userSchema = new mongoose.Schema({
         required: true
     },
     validationStartDate: {
-    type: Date,
-    default: Date.now,
-    required: true
-},
-validationEndDate: {
-    type: Date,
-    required: true,  // Always required
-    default: function() {
-        // Default to 7 days from now (for free users)
-        return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    }
-},
+        type: Date,
+        default: Date.now,
+        required: true
+    },
+    validationEndDate: {
+        type: Date,
+        required: true,  // Always required
+        default: function() {
+            // Default to 7 days from now (for free users)
+            return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        }
+    },
     
     // Subscription Details
     version: {
@@ -131,6 +131,30 @@ validationEndDate: {
         default: false
     },
     
+    // Email Unsubscribe Management
+    emailUnsubscribed: {
+        type: Boolean,
+        default: false
+    },
+    emailUnsubscribedAt: {
+        type: Date
+    },
+    unsubscribeReason: {
+        type: String,
+        enum: ['too_frequent', 'not_relevant', 'never_signed_up', 'other'],
+        required: false
+    },
+    emailPreferences: {
+        type: Object,
+        default: {
+            product_updates: true,
+            tips_tutorials: true,
+            special_offers: true,
+            account_notifications: true,  // Can't be disabled
+            billing_notifications: true   // Can't be disabled
+        }
+    },
+    
     // System Fields
     language: {
         type: String,
@@ -146,12 +170,12 @@ validationEndDate: {
     },
     lastLoginAt: {
         type: Date
-    }
+    },
 }, {
-    timestamps: true
+    timestamps: true,
 });
 
-// Methods
+// Existing Methods
 userSchema.methods.isCodeExpired = function() {
     return new Date() > this.activationCodeExpiry;
 };
@@ -169,6 +193,47 @@ userSchema.methods.daysUntilExpiration = function() {
     
     const days = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
     return days > 0 ? days : 0;
+};
+
+// New Email Management Methods
+userSchema.methods.canReceiveMarketingEmails = function() {
+    return !this.emailUnsubscribed;
+};
+
+userSchema.methods.canReceiveEmailType = function(emailType) {
+    // If user is completely unsubscribed, no marketing emails
+    if (this.emailUnsubscribed) {
+        return false;
+    }
+    
+    // Always allow transactional emails
+    if (['account_notifications', 'billing_notifications'].includes(emailType)) {
+        return true;
+    }
+    
+    // Check specific preferences for marketing emails
+    return this.emailPreferences && this.emailPreferences[emailType] !== false;
+};
+
+userSchema.methods.unsubscribeFromAll = function(reason) {
+    this.emailUnsubscribed = true;
+    this.emailUnsubscribedAt = new Date();
+    if (reason) {
+        this.unsubscribeReason = reason;
+    }
+    return this.save();
+};
+
+userSchema.methods.updateEmailPreferences = function(preferences) {
+    // Merge new preferences with existing ones
+    this.emailPreferences = {
+        ...this.emailPreferences,
+        ...preferences,
+        // Ensure transactional emails can't be disabled
+        account_notifications: true,
+        billing_notifications: true
+    };
+    return this.save();
 };
 
 module.exports = mongoose.model('User', userSchema);
