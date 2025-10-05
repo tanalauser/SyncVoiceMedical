@@ -1,0 +1,7 @@
+﻿services:
+  - type: web
+    name: syncvoicemedical
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    staticPublishPath: ./public

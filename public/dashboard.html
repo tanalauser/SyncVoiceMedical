@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html id="htmlLang" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Tableau de bord</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="languageDetection.js"></script>
+    <style>
+        .dashboard-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .welcome-title {
+            font-size: 2rem;
+            color: #1a5f7a;
+            margin-bottom: 1rem;
+        }
+        
+        .user-name {
+            color: #69B578;
+            font-weight: bold;
+        }
+        
+        .welcome-subtitle {
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .choice-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .choice-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .choice-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+            border-color: #69B578;
+        }
+        
+        .choice-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f7f1;
+            border-radius: 50%;
+        }
+        
+        .choice-icon svg {
+            width: 50px;
+            height: 50px;
+            fill: #69B578;
+        }
+        
+        .choice-title {
+            font-size: 1.5rem;
+            color: #1a5f7a;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+        
+        .choice-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .choice-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #69B578;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+        
+        .choice-button:hover {
+            background: #5aa469;
+        }
+        
+        .account-button {
+            background: #296396;
+        }
+        
+        .account-button:hover {
+            background: #1e4a73;
+        }
+        
+        .logout-section {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .logout-link {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .logout-link:hover {
+            color: #dc3545;
+            text-decoration: underline;
+        }
+        
+        /* Status indicator */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #e8f5e9;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+            
+            .choice-container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .welcome-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <a href="index.html" class="logo">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+                <span>SyncVoice Medical</span>
+            </a>
+        </nav>
+
+        <div class="dashboard-container">
+            <div class="welcome-section">
+                <h1 class="welcome-title">
+                    <span id="welcomeText">Bienvenue,</span> 
+                    <span class="user-name" id="userName">Utilisateur</span>
+                </h1>
+                <p class="welcome-subtitle" id="subtitleText">Que souhaitez-vous faire aujourd'hui ?</p>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Connexion active</span>
+                </div>
+            </div>
+
+            <div class="choice-container">
+                <!-- Account Card -->
+                <div class="choice-card" onclick="goToAccount()">
+                    <div class="choice-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                        </svg>
+                    </div>
+                    <h2 class="choice-title" id="accountTitle">Mon Compte</h2>
+                    <p class="choice-description" id="accountDesc">
+                        Consultez vos informations personnelles, votre code d'activation et gérez votre abonnement
+                    </p>
+                    <a href="#" class="choice-button account-button" id="accountButton">Accéder au compte</a>
+                </div>
+
+                <!-- App Card -->
+                <div class="choice-card" onclick="goToApp()">
+                    <div class="choice-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                    </div>
+                    <h2 class="choice-title" id="appTitle">Application</h2>
+                    <p class="choice-description" id="appDesc">
+                        Accédez à l'application de transcription vocale médicale SyncVoice
+                    </p>
+                    <a href="#" class="choice-button" id="appButton">Lancer l'application</a>
+                </div>
+            </div>
+
+            <div class="logout-section">
+                <a href="#" class="logout-link" id="logoutLink" onclick="logout(event)">Se déconnecter</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Translations
+    const translations = {
+        fr: {
+            pageTitle: 'Tableau de bord',
+            welcome: 'Bienvenue,',
+            subtitle: 'Que souhaitez-vous faire aujourd\'hui ?',
+            statusActive: 'Connexion active',
+            accountTitle: 'Mon Compte',
+            accountDesc: 'Consultez vos informations personnelles, votre code d\'activation et gérez votre abonnement',
+            accountButton: 'Accéder au compte',
+            appTitle: 'Application',
+            appDesc: 'Accédez à l\'application de transcription vocale médicale SyncVoice',
+            appButton: 'Lancer l\'application',
+            logout: 'Se déconnecter'
+        },
+        en: {
+            pageTitle: 'Dashboard',
+            welcome: 'Welcome,',
+            subtitle: 'What would you like to do today?',
+            statusActive: 'Active connection',
+            accountTitle: 'My Account',
+            accountDesc: 'View your personal information, activation code and manage your subscription',
+            accountButton: 'Access account',
+            appTitle: 'Application',
+            appDesc: 'Access the SyncVoice medical voice transcription application',
+            appButton: 'Launch application',
+            logout: 'Logout'
+        },
+        de: {
+            pageTitle: 'Dashboard',
+            welcome: 'Willkommen,',
+            subtitle: 'Was möchten Sie heute tun?',
+            statusActive: 'Aktive Verbindung',
+            accountTitle: 'Mein Konto',
+            accountDesc: 'Sehen Sie Ihre persönlichen Informationen, Aktivierungscode und verwalten Sie Ihr Abonnement',
+            accountButton: 'Zum Konto',
+            appTitle: 'Anwendung',
+            appDesc: 'Greifen Sie auf die medizinische Sprachtranskriptionsanwendung SyncVoice zu',
+            appButton: 'Anwendung starten',
+            logout: 'Abmelden'
+        },
+        es: {
+            pageTitle: 'Panel de control',
+            welcome: 'Bienvenido,',
+            subtitle: '¿Qué le gustaría hacer hoy?',
+            statusActive: 'Conexión activa',
+            accountTitle: 'Mi Cuenta',
+            accountDesc: 'Consulte su información personal, código de activación y gestione su suscripción',
+            accountButton: 'Acceder a la cuenta',
+            appTitle: 'Aplicación',
+            appDesc: 'Acceda a la aplicación de transcripción de voz médica SyncVoice',
+            appButton: 'Iniciar aplicación',
+            logout: 'Cerrar sesión'
+        },
+        it: {
+            pageTitle: 'Dashboard',
+            welcome: 'Benvenuto,',
+            subtitle: 'Cosa vorresti fare oggi?',
+            statusActive: 'Connessione attiva',
+            accountTitle: 'Il mio Account',
+            accountDesc: 'Visualizza le tue informazioni personali, il codice di attivazione e gestisci il tuo abbonamento',
+            accountButton: 'Accedi all\'account',
+            appTitle: 'Applicazione',
+            appDesc: 'Accedi all\'applicazione di trascrizione vocale medica SyncVoice',
+            appButton: 'Avvia applicazione',
+            logout: 'Esci'
+        },
+        pt: {
+            pageTitle: 'Painel de controle',
+            welcome: 'Bem-vindo,',
+            subtitle: 'O que você gostaria de fazer hoje?',
+            statusActive: 'Conexão ativa',
+            accountTitle: 'Minha Conta',
+            accountDesc: 'Veja suas informações pessoais, código de ativação e gerencie sua assinatura',
+            accountButton: 'Acessar conta',
+            appTitle: 'Aplicativo',
+            appDesc: 'Acesse o aplicativo de transcrição de voz médica SyncVoice',
+            appButton: 'Iniciar aplicativo',
+            logout: 'Sair'
+        }
+    };
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+        // Get language
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'fr';
+        const t = translations[lang] || translations.fr;
+        
+        // Update page text
+        document.title = `SyncVoice Medical - ${t.pageTitle}`;
+        document.getElementById('welcomeText').textContent = t.welcome;
+        document.getElementById('subtitleText').textContent = t.subtitle;
+        document.getElementById('statusText').textContent = t.statusActive;
+        document.getElementById('accountTitle').textContent = t.accountTitle;
+        document.getElementById('accountDesc').textContent = t.accountDesc;
+        document.getElementById('accountButton').textContent = t.accountButton;
+        document.getElementById('appTitle').textContent = t.appTitle;
+        document.getElementById('appDesc').textContent = t.appDesc;
+        document.getElementById('appButton').textContent = t.appButton;
+        document.getElementById('logoutLink').textContent = t.logout;
+        
+        // Check session
+        const userEmail = sessionStorage.getItem('userEmail');
+        const userId = sessionStorage.getItem('userId');
+        const userInfo = JSON.parse(sessionStorage.getItem('userInfo') || '{}');
+        
+        if (!userEmail || !userId) {
+            // No session, redirect to login
+            window.location.href = `login.html?lang=${lang}`;
+            return;
+        }
+        
+        // Display user name
+        const userName = userInfo.firstName || userEmail.split('@')[0];
+        document.getElementById('userName').textContent = userName;
+    });
+
+    // Navigation functions
+    function goToAccount() {
+        const lang = new URLSearchParams(window.location.search).get('lang') || 'fr';
+        window.location.href = `account.html?lang=${lang}`;
+    }
+
+    function goToApp() {
+        const lang = new URLSearchParams(window.location.search).get('lang') || 'fr';
+        const userEmail = sessionStorage.getItem('userEmail');
+        window.location.href = `appForm.html?lang=${lang}&email=${encodeURIComponent(userEmail)}`;
+    }
+
+    function logout(event) {
+        event.preventDefault();
+        const lang = new URLSearchParams(window.location.search).get('lang') || 'fr';
+        sessionStorage.clear();
+        window.location.href = `index.html?lang=${lang}`;
+    }
+    </script>
+</body>
+</html>

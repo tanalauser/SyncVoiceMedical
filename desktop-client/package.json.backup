@@ -1,0 +1,28 @@
+﻿{
+  "name": "syncvoicemedical-desktop",
+  "version": "1.0.0",
+  "description": "SyncVoice Medical Desktop Client",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "dist": "electron-builder --win"
+  },
+  "author": "SyncVoice Medical",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.syncvoicemedical.desktop",
+    "productName": "SyncVoice Medical",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    }
+  }
+}

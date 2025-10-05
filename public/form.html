@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html id="htmlLang" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">SyncVoice Medical - Formulaire</title>
+    <link rel="stylesheet" href="form.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <script src="languageDetection.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <a href="#" class="logo">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+            </a>
+        </nav>
+
+        <main class="form-container">
+            <h1 id="formTitle">Veuillez remplir les champs ci-dessous pour obtenir votre code d'activation.</h1>
+            
+            <form id="registrationForm" class="registration-form">
+                <div class="button-container">
+                    <a href="index.html" id="returnBtn" class="return-btn" aria-label="Return to homepage">Retour</a>
+                </div>
+
+                <div class="form-group">
+                    <label for="prenom" id="prenomLabel">Prénom :</label>
+                    <input type="text" id="prenom" name="prenom" required aria-required="true"
+                        data-fr="prenom" 
+                        data-en="firstName"
+                        data-de="vorname"
+                        data-es="nombre"
+                        data-it="nome"
+                        data-pt="nome">
+                </div>
+                
+                <div class="form-group">
+                    <label for="nom" id="nomLabel">Nom :</label>
+                    <input type="text" id="nom" name="nom" required aria-required="true"
+                        data-fr="nom"
+                        data-en="lastName"
+                        data-de="nachname"
+                        data-es="apellido"
+                        data-it="cognome"
+                        data-pt="sobrenome">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" id="emailLabel">Email :</label>
+                    <input type="email" id="email" name="email" required aria-required="true">
+                </div>
+
+                <!-- Password Fields - Always visible for authentication -->
+                <div class="form-group">
+                    <label for="password" id="passwordLabel">Mot de passe :</label>
+                    <input type="password" id="password" name="password" required aria-required="true" minlength="8"
+                        data-fr="motDePasse"
+                        data-en="password"
+                        data-de="passwort"
+                        data-es="contraseña"
+                        data-it="password"
+                        data-pt="senha">
+                    <div class="password-help" id="passwordHelp">Au moins 8 caractères</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword" id="confirmPasswordLabel">Confirmer le mot de passe :</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required aria-required="true" minlength="8"
+                        data-fr="confirmerMotDePasse"
+                        data-en="confirmPassword"
+                        data-de="passwortBestaetigen"
+                        data-es="confirmarContraseña"
+                        data-it="confermaPassword"
+                        data-pt="confirmarSenha">
+                    <div class="password-match-message" id="passwordMatchMessage"></div>
+                </div>
+                
+                <!-- Paid version fields in a single container -->
+                <div class="paid-only-fields hidden">
+                    <div class="form-group">
+                        <label for="societe" id="societeLabel">Société :</label>
+                        <input type="text" id="societe" name="societe"
+                            data-fr="societe"
+                            data-en="company"
+                            data-de="firma"
+                            data-es="empresa"
+                            data-it="azienda"
+                            data-pt="empresa">
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="adresse" id="adresseLabel">Adresse :</label>
+                        <input type="text" id="adresse" name="adresse"
+                            data-fr="adresse"
+                            data-en="address"
+                            data-de="adresse"
+                            data-es="direccion"
+                            data-it="indirizzo"
+                            data-pt="endereco">
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="adresseSuite" id="adresseSuiteLabel">Adresse (suite) :</label>
+                        <input type="text" id="adresseSuite" name="adresseSuite"
+                            data-fr="adresseSuite"
+                            data-en="addressContinued"
+                            data-de="adresseFortsetzung"
+                            data-es="direccionContinuacion"
+                            data-it="indirizzoContinuazione"
+                            data-pt="enderecoContinuacao">
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="codePostal" id="codePostalLabel">Code Postal :</label>
+                        <input type="text" id="codePostal" name="codePostal"
+                            data-fr="codePostal"
+                            data-en="postalCode"
+                            data-de="postleitzahl"
+                            data-es="codigoPostal"
+                            data-it="codicePostale"
+                            data-pt="codigoPostal">
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="ville" id="villeLabel">Ville :</label>
+                        <input type="text" id="ville" name="ville"
+                            data-fr="ville"
+                            data-en="city"
+                            data-de="stadt"
+                            data-es="ciudad"
+                            data-it="citta"
+                            data-pt="cidade">
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="pays" id="paysLabel">Pays :</label>
+                        <input type="text" id="pays" name="pays"
+                            data-fr="pays"
+                            data-en="country"
+                            data-de="land"
+                            data-es="pais"
+                            data-it="paese"
+                            data-pt="pais">
+                    </div>
+                </div>
+
+                <div class="terms-section">
+                    <div class="terms-link">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'%3E%3C/path%3E%3Cpolyline points='14 2 14 8 20 8'%3E%3C/polyline%3E%3Cline x1='16' y1='13' x2='8' y2='13'%3E%3C/line%3E%3Cline x1='16' y1='17' x2='8' y2='17'%3E%3C/line%3E%3Cpolyline points='10 9 9 9 8 9'%3E%3C/polyline%3E%3C/svg%3E" alt="Terms icon">
+                        <a href="#" id="termsLink" aria-label="View Terms and Conditions">Cliquez ici pour les Conditions Générales</a>
+                    </div>
+                
+                    <div class="checkbox-group">
+                        <label for="termsAccept" class="checkbox-label">
+                            <input type="checkbox" id="termsAccept" name="termsAccept" required aria-required="true">
+                            <span id="termsAcceptLabel">J'ai lu et accepté les conditions générales</span>
+                        </label>
+                    </div>
+                    
+                    <div id="proceedMessage" class="proceed-message" role="alert"></div>
+                    
+                    <p id="termsConfirmation" class="terms-confirmation"></p>
+                
+                    <div class="checkbox-group paid-only-fields hidden">
+                        <label for="autoRenewal" class="checkbox-label">
+                            <input type="checkbox" id="autoRenewal" name="autoRenewal">
+                            <span id="autoRenewalLabel">Je souhaite le renouvellement automatique</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="payment-element-container" class="paid-only-fields hidden">
+                    <div class="payment-header">
+                        <div class="payment-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="5" width="20" height="14" rx="2" />
+                                <line x1="2" y1="10" x2="22" y2="10" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="payment-title" id="paymentTitle">Paiement Sécurisé</h3>
+                            <p class="payment-subtitle" id="paymentSubtitle">Vos informations de paiement sont sécurisées</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card-container">
+                        <div id="payment-element" class="payment-element">
+                            <!-- Stripe Payment Element will be mounted here -->
+                        </div>
+                        <div id="card-errors" class="card-errors" role="alert"></div>
+                    </div>
+                    
+                    <div class="payment-summary">
+                        <div class="payment-detail">
+                            <span id="subscriptionLabel">Abonnement mensuel</span>
+                            <span>25,00 €</span>
+                        </div>
+                        <div class="payment-total">
+                            <span id="totalLabel">Total</span>
+                            <span>25,00 €</span>
+                        </div>
+                    </div>
+                    
+                    <div class="payment-badges">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSIzMiI+PHBhdGggZmlsbD0iIzI1MmEzMiIgZD0iTTQ0IDBoNGEwIDAgMCAwIDEgMCAwdjIzYTQgNCAwIDAgMS00IDRIMGEwIDAgMCAwIDEgMCAwVjRhNCA0IDAgMCAxIDQtNGg0MHoiIG9wYWNpdHk9Ii4wNyIvPjxwYXRoIGQ9Ik0xNi43MiAxNi4wMzFoLTMuMjk1bDIuMDMtNSAzLjQyOSA4LjdoLTIuMTYzbC0uODI2LTIuMTc1ek0zOSAxOS43MzFoLTIuMjNsMS4xMjgtMi45MDRoLTIuNTgybDEuMTI4LTIuOTA0aDIuNTgybDEuMTI4LTIuOTA0SDQzbC0xLjEyOCAyLjkwNGgyLjU4MWwtMS4xMjYgMi45MDRoLTIuNTgybC0xLjEyOCAyLjkwNGgtLjAwMXpNMjYgOS43MzFsLTEuNSA0SDI4bC0uNSAxLjVoLTMuNWwtMSAyLjVoLTJsMS0yLjVoLTJsMSAyLjVoLTJsLTEgMi41aC0ybDEtMi41aC0yLjVsLjUgNWgyLjVsLTEuNSA0SDIwbC0uNSAxLjVoLTMuNWwxIDIuNWgyMGwzLTV6IiBmaWxsPSIjNmE2YzZmIi8+PC9zdmc+" alt="Stripe" class="payment-badge">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCA0OCAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iI0YzRjRGNiIvPgo8cGF0aCBkPSJNMzAgMTguNUgxOEMxNi42MTkzIDE4LjUgMTUuNSAxNy4zODA3IDE1LjUgMTZDMTUuNSAxNC42MTkzIDE2LjYxOTMgMTMuNSAxOCAxMy41SDMwQzMxLjM4MDcgMTMuNSAzMi41IDE0LjYxOTMgMzIuNSAxNkMzMi41IDE3LjM4MDcgMzEuMzgwNyAxOC41IDMwIDE4LjVaIiBzdHJva2U9IiM2QTZDNkYiIHN0cm9rZS13aWR0aD0iMi41Ii8+CjxwYXRoIGQ9Ik0yNyAxM1YxOSIgc3Ryb2tlPSIjNkE2QzZGIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8L3N2Zz4K" alt="Card" class="payment-badge">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCA0OCAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iI0YzRjRGNiIvPgo8cGF0aCBkPSJNMTggMTMuNUgzMEMzMS4zODA3IDEzLjUgMzIuNSAxNC42MTkzIDMyLjUgMTZDMzIuNSAxNy4zODA3IDMxLjM4MDcgMTguNSAzMCAxOC41SDE4QzE2LjYxOTMgMTguNSAxNS41IDE3LjM4MDcgMTUuNSAxNkMxNS41IDE0LjYxOTMgMTYuNjE5MyAxMy41IDE4IDEzLjVaIiBzdHJva2U9IiM2QTZDNkYiIHN0cm9rZS13aWR0aD0iMi41Ii8+Cjwvc3ZnPgo=" alt="Secure" class="payment-badge">
+                    </div>
+                </div>
+
+                <!-- Submit button outside any paid-only-fields container -->
+                <button type="submit" class="submit-btn" id="submitButton">
+                    Veuillez envoyer mon code d'activation pour 7 jours à l'adresse email ci-dessus.
+                </button>
+            </form>
+        </main>
+    </div>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="form.js"></script>
+    
+    <script>
+    // Password validation and form handling
+    document.addEventListener('DOMContentLoaded', function() {
+        const submitButton = document.getElementById('submitButton');
+        const form = document.getElementById('registrationForm');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const passwordMatchMessage = document.getElementById('passwordMatchMessage');
+        
+        // Password validation translations
+        const passwordMessages = {
+            fr: {
+                tooShort: 'Le mot de passe doit contenir au moins 8 caractères',
+                noMatch: 'Les mots de passe ne correspondent pas',
+                match: 'Les mots de passe correspondent ✓',
+                helpText: 'Au moins 8 caractères'
+            },
+            en: {
+                tooShort: 'Password must be at least 8 characters long',
+                noMatch: 'Passwords do not match',
+                match: 'Passwords match ✓',
+                helpText: 'At least 8 characters'
+            },
+            de: {
+                tooShort: 'Das Passwort muss mindestens 8 Zeichen lang sein',
+                noMatch: 'Passwörter stimmen nicht überein',
+                match: 'Passwörter stimmen überein ✓',
+                helpText: 'Mindestens 8 Zeichen'
+            },
+            es: {
+                tooShort: 'La contraseña debe tener al menos 8 caracteres',
+                noMatch: 'Las contraseñas no coinciden',
+                match: 'Las contraseñas coinciden ✓',
+                helpText: 'Al menos 8 caracteres'
+            },
+            it: {
+                tooShort: 'La password deve avere almeno 8 caratteri',
+                noMatch: 'Le password non corrispondono',
+                match: 'Le password corrispondono ✓',
+                helpText: 'Almeno 8 caratteri'
+            },
+            pt: {
+                tooShort: 'A senha deve ter pelo menos 8 caracteres',
+                noMatch: 'As senhas não coincidem',
+                match: 'As senhas coincidem ✓',
+                helpText: 'Pelo menos 8 caracteres'
+            }
+        };
+
+        // Get current language (you may need to adjust this based on your language detection)
+        const currentLang = document.documentElement.lang || 'fr';
+        const messages = passwordMessages[currentLang] || passwordMessages.fr;
+
+        // Update password help text
+        const passwordHelp = document.getElementById('passwordHelp');
+        if (passwordHelp) {
+            passwordHelp.textContent = messages.helpText;
+        }
+
+        // Password validation function
+        function validatePasswords() {
+            const passwordValue = password.value;
+            const confirmPasswordValue = confirmPassword.value;
+            
+            // Clear previous styling
+            password.classList.remove('error', 'success');
+            confirmPassword.classList.remove('error', 'success');
+            passwordMatchMessage.classList.remove('error', 'success');
+            
+            // Check password length
+            if (passwordValue.length > 0 && passwordValue.length < 8) {
+                password.classList.add('error');
+                passwordMatchMessage.textContent = messages.tooShort;
+                passwordMatchMessage.classList.add('error');
+                return false;
+            }
+            
+            // Check if passwords match
+            if (passwordValue.length >= 8 && confirmPasswordValue.length >= 8) {
+                if (passwordValue === confirmPasswordValue) {
+                    password.classList.add('success');
+                    confirmPassword.classList.add('success');
+                    passwordMatchMessage.textContent = messages.match;
+                    passwordMatchMessage.classList.add('success');
+                    return true;
+                } else {
+                    confirmPassword.classList.add('error');
+                    passwordMatchMessage.textContent = messages.noMatch;
+                    passwordMatchMessage.classList.add('error');
+                    return false;
+                }
+            }
+            
+            // Clear message if fields are empty
+            if (passwordValue.length === 0 && confirmPasswordValue.length === 0) {
+                passwordMatchMessage.textContent = '';
+            }
+            
+            return passwordValue.length >= 8;
+        }
+
+        // Add event listeners for real-time validation
+        if (password && confirmPassword) {
+            password.addEventListener('input', validatePasswords);
+            confirmPassword.addEventListener('input', validatePasswords);
+        }
+
+        // Form submission handling
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                // Validate passwords before submission
+                if (!validatePasswords()) {
+                    return false;
+                }
+                
+                // If passwords are valid, continue with form submission
+                console.log('Form validation passed, proceeding with submission');
+                
+                // Your existing form submission logic will be handled by form.js
+                // Just dispatch a custom event to indicate validation is complete
+                const validationCompleteEvent = new CustomEvent('passwordValidationComplete', {
+                    detail: { isValid: true }
+                });
+                form.dispatchEvent(validationCompleteEvent);
+            });
+        }
+
+        // Initialize submit button
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('hidden');
+            submitButton.style.display = 'block';
+            console.log('Submit button initialized successfully');
+        }
+        
+        if (form) {
+            console.log('Registration form found and initialized');
+        }
+    });
+    </script>
+</body>
+</html>

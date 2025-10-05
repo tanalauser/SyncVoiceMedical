@@ -1,0 +1,6 @@
+﻿Movies - original/
+node_modules/
+.env
+desktop-client/dist/
+public/downloads/*.exe
+*.exe

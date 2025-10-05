@@ -1,0 +1,33 @@
+{
+  "name": "syncvoice-medical-desktop",
+  "version": "1.0.0",
+  "description": "SyncVoice Medical Desktop Client",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --win"
+  },
+  "keywords": ["medical", "transcription", "voice"],
+  "author": "SyncVoice Medical",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^25.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.syncvoicemedical.desktop",
+    "productName": "SyncVoice Medical Desktop",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon512x512.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

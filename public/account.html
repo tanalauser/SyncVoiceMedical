@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html id="htmlLang" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Mon Compte</title>
+    <link rel="stylesheet" href="form.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="languageDetection.js"></script>
+    <style>
+        .account-details {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .status-active {
+            color: #28a745;
+            font-weight: 600;
+        }
+        .status-expired {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        .activation-code-box {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .activation-code {
+            font-family: monospace;
+            font-size: 2rem;
+            color: #69B578;
+            font-weight: bold;
+            padding: 1rem;
+            background: white;
+            border: 2px solid #69B578;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .activation-code:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(105, 181, 120, 0.3);
+            background: #69B578;
+            color: white;
+        }
+        .launch-app-btn, .upgrade-btn, .desktop-download-btn {
+            background: #69B578;
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+            text-align: center;
+        }
+        .launch-app-btn:hover {
+            background: #5aa469;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .upgrade-btn {
+            background: #f39c12;
+        }
+        .upgrade-btn:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .desktop-download-btn {
+            background: #296396;
+        }
+        .desktop-download-btn:hover {
+            background: #1e4d73;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0.5rem;
+        }
+        .logout-btn:hover {
+            background: #c82333;
+        }
+        .button-group {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        .trial-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            color: #856404;
+        }
+        .trial-warning p {
+            margin: 0;
+            font-weight: 500;
+        }
+        .account-type-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        .badge-trial {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .badge-premium {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <a href="index.html" class="logo">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+            </a>
+            <a href="index.html" id="returnBtn" class="return-btn">Retour</a>
+        </nav>
+
+        <main class="form-container">
+            <h1 id="pageTitle" class="form-title">Mon Compte</h1>
+            
+            <div class="activation-code-box">
+                <h2 id="activationCodeTitle">Votre code d'activation</h2>
+                <p id="activationCodeDesc">Utilisez ce code pour lancer l'application SyncVoice Medical:</p>
+                <a href="#" class="activation-code" id="activationCode">Loading...</a>
+                <div id="trialWarning" class="trial-warning" style="display: none;">
+                    <p id="trialWarningText">⚠️ Votre période d'essai expire dans <span id="daysLeft">0</span> jours</p>
+                </div>
+            </div>
+
+            <div class="account-details" id="accountDetails">
+                <h2 id="detailsTitle">Détails du compte</h2>
+                <div id="detailsContent">
+                    <!-- Details will be loaded dynamically -->
+                </div>
+            </div>
+
+            <div class="button-group">
+                <a href="#" id="launchAppLink" class="launch-app-btn">
+                    <span id="launchAppText">Accéder à l'application</span>
+                </a>
+                <a href="#" id="upgradeLink" class="upgrade-btn" style="display: none;">
+                    <span id="upgradeText">Passer à la version Premium</span>
+                </a>
+                <a href="#" id="desktopDownloadLink" class="desktop-download-btn">
+                    <span id="desktopDownloadText">Télécharger l'application desktop</span>
+                </a>
+                <button id="logoutButton" class="logout-btn">Se déconnecter</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is logged in
+            const userEmail = sessionStorage.getItem('userEmail');
+            const userId = sessionStorage.getItem('userId');
+            
+            if (!userEmail || !userId) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang') || 'fr';
+
+            // Translations
+            const translations = {
+                fr: {
+                    pageTitle: 'Mon Compte',
+                    activationCodeTitle: 'Votre code d\'activation',
+                    activationCodeDesc: 'Utilisez ce code pour lancer l\'application SyncVoice Medical:',
+                    launchAppText: 'Accéder à l\'application',
+                    upgradeText: 'Passer à la version Premium',
+                    desktopDownloadText: 'Télécharger l\'application desktop',
+                    detailsTitle: 'Détails du compte',
+                    firstName: 'Prénom',
+                    lastName: 'Nom',
+                    email: 'Email',
+                    company: 'Société',
+                    address: 'Adresse',
+                    postalCode: 'Code Postal',
+                    city: 'Ville',
+                    country: 'Pays',
+                    startDate: 'Date de début',
+                    endDate: 'Date de fin',
+                    status: 'Statut',
+                    statusActive: 'Actif',
+                    statusExpired: 'Expiré',
+                    daysRemaining: 'Jours restants',
+                    autoRenewal: 'Renouvellement automatique',
+                    accountType: 'Type de compte',
+                    trial: 'Essai gratuit',
+                    premium: 'Premium',
+                    yes: 'Oui',
+                    no: 'Non',
+                    returnButton: 'Retour',
+                    logoutButton: 'Se déconnecter',
+                    loading: 'Chargement...',
+                    error: 'Erreur lors du chargement des données',
+                    trialWarningText: '⚠️ Votre période d\'essai expire dans {days} jours'
+                },
+                en: {
+                    pageTitle: 'My Account',
+                    activationCodeTitle: 'Your Activation Code',
+                    activationCodeDesc: 'Use this code to launch the SyncVoice Medical application:',
+                    launchAppText: 'Access Application',
+                    upgradeText: 'Upgrade to Premium',
+                    desktopDownloadText: 'Download Desktop App',
+                    detailsTitle: 'Account Details',
+                    firstName: 'First Name',
+                    lastName: 'Last Name',
+                    email: 'Email',
+                    company: 'Company',
+                    address: 'Address',
+                    postalCode: 'Postal Code',
+                    city: 'City',
+                    country: 'Country',
+                    startDate: 'Start Date',
+                    endDate: 'End Date',
+                    status: 'Status',
+                    statusActive: 'Active',
+                    statusExpired: 'Expired',
+                    daysRemaining: 'Days Remaining',
+                    autoRenewal: 'Auto Renewal',
+                    accountType: 'Account Type',
+                    trial: 'Free Trial',
+                    premium: 'Premium',
+                    yes: 'Yes',
+                    no: 'No',
+                    returnButton: 'Return',
+                    logoutButton: 'Logout',
+                    loading: 'Loading...',
+                    error: 'Error loading data',
+                    trialWarningText: '⚠️ Your trial expires in {days} days'
+                },
+                de: {
+                    pageTitle: 'Mein Konto',
+                    activationCodeTitle: 'Ihr Aktivierungscode',
+                    activationCodeDesc: 'Verwenden Sie diesen Code, um die SyncVoice Medical-Anwendung zu starten:',
+                    launchAppText: 'Zur Anwendung',
+                    upgradeText: 'Auf Premium upgraden',
+                    desktopDownloadText: 'Desktop-App herunterladen',
+                    detailsTitle: 'Kontodetails',
+                    firstName: 'Vorname',
+                    lastName: 'Nachname',
+                    email: 'E-Mail',
+                    company: 'Unternehmen',
+                    address: 'Adresse',
+                    postalCode: 'Postleitzahl',
+                    city: 'Stadt',
+                    country: 'Land',
+                    startDate: 'Startdatum',
+                    endDate: 'Enddatum',
+                    status: 'Status',
+                    statusActive: 'Aktiv',
+                    statusExpired: 'Abgelaufen',
+                    daysRemaining: 'Verbleibende Tage',
+                    autoRenewal: 'Automatische Verlängerung',
+                    accountType: 'Kontotyp',
+                    trial: 'Kostenlose Testversion',
+                    premium: 'Premium',
+                    yes: 'Ja',
+                    no: 'Nein',
+                    returnButton: 'Zurück',
+                    logoutButton: 'Abmelden',
+                    loading: 'Laden...',
+                    error: 'Fehler beim Laden der Daten',
+                    trialWarningText: '⚠️ Ihre Testversion läuft in {days} Tagen ab'
+                },
+                es: {
+                    pageTitle: 'Mi Cuenta',
+                    activationCodeTitle: 'Su Código de Activación',
+                    activationCodeDesc: 'Use este código para iniciar la aplicación SyncVoice Medical:',
+                    launchAppText: 'Acceder a la Aplicación',
+                    upgradeText: 'Actualizar a Premium',
+                    desktopDownloadText: 'Descargar App de Escritorio',
+                    detailsTitle: 'Detalles de la Cuenta',
+                    firstName: 'Nombre',
+                    lastName: 'Apellido',
+                    email: 'Correo electrónico',
+                    company: 'Empresa',
+                    address: 'Dirección',
+                    postalCode: 'Código Postal',
+                    city: 'Ciudad',
+                    country: 'País',
+                    startDate: 'Fecha de inicio',
+                    endDate: 'Fecha de fin',
+                    status: 'Estado',
+                    statusActive: 'Activo',
+                    statusExpired: 'Expirado',
+                    daysRemaining: 'Días restantes',
+                    autoRenewal: 'Renovación automática',
+                    accountType: 'Tipo de cuenta',
+                    trial: 'Prueba gratuita',
+                    premium: 'Premium',
+                    yes: 'Sí',
+                    no: 'No',
+                    returnButton: 'Volver',
+                    logoutButton: 'Cerrar sesión',
+                    loading: 'Cargando...',
+                    error: 'Error al cargar los datos',
+                    trialWarningText: '⚠️ Su prueba expira en {days} días'
+                },
+                it: {
+                    pageTitle: 'Il mio Account',
+                    activationCodeTitle: 'Il tuo Codice di Attivazione',
+                    activationCodeDesc: 'Usa questo codice per avviare l\'applicazione SyncVoice Medical:',
+                    launchAppText: 'Accedi all\'Applicazione',
+                    upgradeText: 'Passa a Premium',
+                    desktopDownloadText: 'Scarica App Desktop',
+                    detailsTitle: 'Dettagli dell\'Account',
+                    firstName: 'Nome',
+                    lastName: 'Cognome',
+                    email: 'Email',
+                    company: 'Azienda',
+                    address: 'Indirizzo',
+                    postalCode: 'Codice Postale',
+                    city: 'Città',
+                    country: 'Paese',
+                    startDate: 'Data di inizio',
+                    endDate: 'Data di fine',
+                    status: 'Stato',
+                    statusActive: 'Attivo',
+                    statusExpired: 'Scaduto',
+                    daysRemaining: 'Giorni rimanenti',
+                    autoRenewal: 'Rinnovo automatico',
+                    accountType: 'Tipo di account',
+                    trial: 'Prova gratuita',
+                    premium: 'Premium',
+                    yes: 'Sì',
+                    no: 'No',
+                    returnButton: 'Indietro',
+                    logoutButton: 'Esci',
+                    loading: 'Caricamento...',
+                    error: 'Errore nel caricamento dei dati',
+                    trialWarningText: '⚠️ La tua prova scade tra {days} giorni'
+                },
+                pt: {
+                    pageTitle: 'Minha Conta',
+                    activationCodeTitle: 'Seu Código de Ativação',
+                    activationCodeDesc: 'Use este código para iniciar o aplicativo SyncVoice Medical:',
+                    launchAppText: 'Acessar Aplicativo',
+                    upgradeText: 'Atualizar para Premium',
+                    desktopDownloadText: 'Baixar App Desktop',
+                    detailsTitle: 'Detalhes da Conta',
+                    firstName: 'Nome',
+                    lastName: 'Sobrenome',
+                    email: 'Email',
+                    company: 'Empresa',
+                    address: 'Endereço',
+                    postalCode: 'Código Postal',
+                    city: 'Cidade',
+                    country: 'País',
+                    startDate: 'Data de início',
+                    endDate: 'Data de fim',
+                    status: 'Status',
+                    statusActive: 'Ativo',
+                    statusExpired: 'Expirado',
+                    daysRemaining: 'Dias restantes',
+                    autoRenewal: 'Renovação automática',
+                    accountType: 'Tipo de conta',
+                    trial: 'Teste gratuito',
+                    premium: 'Premium',
+                    yes: 'Sim',
+                    no: 'Não',
+                    returnButton: 'Voltar',
+                    logoutButton: 'Sair',
+                    loading: 'Carregando...',
+                    error: 'Erro ao carregar dados',
+                    trialWarningText: '⚠️ Seu teste expira em {days} dias'
+                }
+            };
+
+            // Update content based on language
+            const t = translations[lang] || translations.fr;
+            document.getElementById('htmlLang').lang = lang;
+            document.getElementById('pageTitle').textContent = t.pageTitle;
+            document.getElementById('activationCodeTitle').textContent = t.activationCodeTitle;
+            document.getElementById('activationCodeDesc').textContent = t.activationCodeDesc;
+            document.getElementById('launchAppText').textContent = t.launchAppText;
+            document.getElementById('upgradeText').textContent = t.upgradeText;
+            document.getElementById('desktopDownloadText').textContent = t.desktopDownloadText;
+            document.getElementById('detailsTitle').textContent = t.detailsTitle;
+            document.getElementById('returnBtn').textContent = t.returnButton;
+            document.getElementById('returnBtn').href = `index.html?lang=${lang}`;
+            document.getElementById('logoutButton').textContent = t.logoutButton;
+
+            // Set up navigation links
+            document.getElementById('launchAppLink').href = `appForm.html?lang=${lang}&email=${encodeURIComponent(userEmail)}`;
+            document.getElementById('upgradeLink').href = `form.html?plan=paid&lang=${lang}`;
+            
+            // Desktop download link with credentials
+            const activationCode = sessionStorage.getItem('activationCode') || localStorage.getItem('activationCode');
+            if (activationCode) {
+                document.getElementById('desktopDownloadLink').href = `/api/download-desktop?lang=${lang}&email=${encodeURIComponent(userEmail)}&code=${activationCode}&source=account`;
+            } else {
+                document.getElementById('desktopDownloadLink').href = `success.html?lang=${lang}&download=true&email=${encodeURIComponent(userEmail)}`;
+            }
+
+            // Load user data
+            try {
+                const response = await fetch(`/api/user-details/${userEmail}`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const user = data.user;
+                    
+                    // Store activation code if not already stored
+                    if (user.activationCode && !sessionStorage.getItem('activationCode')) {
+                        sessionStorage.setItem('activationCode', user.activationCode);
+                        localStorage.setItem('activationCode', user.activationCode);
+                    }
+                    
+                    // Display activation code
+                    const activationCodeElement = document.getElementById('activationCode');
+                    activationCodeElement.textContent = user.activationCode;
+
+                    // Set the href for the activation link
+                    const activationUrl = `/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                    activationCodeElement.href = activationUrl;
+
+                    // Add click event for better control
+                    activationCodeElement.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('Navigating to app with activation code:', user.activationCode);
+                        window.location.href = activationUrl;
+                    });
+
+                    // Format dates
+                    const formatDate = (dateString) => {
+                        const date = new Date(dateString);
+                        return date.toLocaleDateString(lang === 'en' ? 'en-US' : `${lang}-${lang.toUpperCase()}`);
+                    };
+
+                    // Calculate status and days remaining
+                    const isExpired = new Date() > new Date(user.validationEndDate);
+                    const daysRemaining = Math.ceil((new Date(user.validationEndDate) - new Date()) / (1000 * 60 * 60 * 24));
+                    
+                    // Show trial warning if applicable
+                    if (user.version === 'free' && !isExpired && daysRemaining <= 7) {
+                        const trialWarning = document.getElementById('trialWarning');
+                        const warningText = document.getElementById('trialWarningText');
+                        trialWarning.style.display = 'block';
+                        warningText.textContent = t.trialWarningText.replace('{days}', daysRemaining);
+                    }
+
+                    // Show upgrade button for trial users
+                    if (user.version === 'free' && !isExpired) {
+                        document.getElementById('upgradeLink').style.display = 'inline-block';
+                    }
+
+                    // Determine account type
+                    const accountType = user.version === 'paid' ? t.premium : t.trial;
+                    const accountBadgeClass = user.version === 'paid' ? 'badge-premium' : 'badge-trial';
+
+                    // Build details HTML
+                    const detailsHTML = `
+                        <div class="detail-row">
+                            <span class="detail-label">${t.accountType}:</span>
+                            <span class="detail-value">
+                                ${accountType}
+                                <span class="account-type-badge ${accountBadgeClass}">${accountType}</span>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.firstName}:</span>
+                            <span class="detail-value">${user.firstName}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.lastName}:</span>
+                            <span class="detail-value">${user.lastName}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.email}:</span>
+                            <span class="detail-value">${user.email}</span>
+                        </div>
+                        ${user.company ? `
+                        <div class="detail-row">
+                            <span class="detail-label">${t.company}:</span>
+                            <span class="detail-value">${user.company}</span>
+                        </div>` : ''}
+                        ${user.address ? `
+                        <div class="detail-row">
+                            <span class="detail-label">${t.address}:</span>
+                            <span class="detail-value">${user.address}</span>
+                        </div>` : ''}
+                        ${user.postalCode ? `
+                        <div class="detail-row">
+                            <span class="detail-label">${t.postalCode}:</span>
+                            <span class="detail-value">${user.postalCode}</span>
+                        </div>` : ''}
+                        ${user.city ? `
+                        <div class="detail-row">
+                            <span class="detail-label">${t.city}:</span>
+                            <span class="detail-value">${user.city}</span>
+                        </div>` : ''}
+                        ${user.country ? `
+                        <div class="detail-row">
+                            <span class="detail-label">${t.country}:</span>
+                            <span class="detail-value">${user.country}</span>
+                        </div>` : ''}
+                        <div class="detail-row">
+                            <span class="detail-label">${t.startDate}:</span>
+                            <span class="detail-value">${formatDate(user.validationStartDate)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.endDate}:</span>
+                            <span class="detail-value">${formatDate(user.validationEndDate)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.status}:</span>
+                            <span class="detail-value ${isExpired ? 'status-expired' : 'status-active'}">
+                                ${isExpired ? t.statusExpired : t.statusActive}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">${t.daysRemaining}:</span>
+                            <span class="detail-value">${isExpired ? 0 : daysRemaining}</span>
+                        </div>
+                        ${user.version === 'paid' ? `
+                        <div class="detail-row">
+                            <span class="detail-label">${t.autoRenewal}:</span>
+                            <span class="detail-value">${user.autoRenewal ? t.yes : t.no}</span>
+                        </div>` : ''}
+                    `;
+
+                    document.getElementById('detailsContent').innerHTML = detailsHTML;
+                } else {
+                    throw new Error(data.message || t.error);
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                document.getElementById('activationCode').textContent = t.error;
+                document.getElementById('detailsContent').innerHTML = `<p>${t.error}</p>`;
+            }
+
+            // Logout button
+            document.getElementById('logoutButton').addEventListener('click', () => {
+                sessionStorage.clear();
+                localStorage.removeItem('activationCode');
+                window.location.href = `index.html?lang=${lang}`;
+            });
+        });
+    </script>
+</body>
+</html>

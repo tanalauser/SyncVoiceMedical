@@ -1,0 +1,464 @@
+﻿// Global variables
+let ws = null;
+let isConnected = false;
+let isRecording = false;
+let mediaRecorder = null;
+let audioStream = null;
+let audioChunks = [];
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+let reconnectTimeout = null;
+
+// Configuration
+const config = {
+    serverUrl: window.electronAPI.storage.get('serverUrl') || 'ws://localhost:8080',
+    email: window.electronAPI.storage.get('email') || '',
+    activationCode: window.electronAPI.storage.get('activationCode') || '',
+    language: window.electronAPI.storage.get('language') || 'en',
+    insertMethod: window.electronAPI.storage.get('insertMethod') || 'clipboard'
+};
+
+// Language mappings
+const languageMap = {
+    'fr': 'fr-FR',
+    'en': 'en-US',
+    'de': 'de-DE',
+    'es': 'es-ES',
+    'it': 'it-IT',
+    'pt': 'pt-PT'
+};
+
+// UI Elements
+const elements = {
+    statusText: document.getElementById('statusText'),
+    statusIndicator: document.getElementById('statusIndicator'),
+    connectBtn: document.getElementById('connectBtn'),
+    emailInput: document.getElementById('email'),
+    codeInput: document.getElementById('activationCode'),
+    languageSelect: document.getElementById('language'),
+    serverUrlInput: document.getElementById('serverUrl'),
+    insertMethodSelect: document.getElementById('insertMethod'),
+    saveSettingsBtn: document.getElementById('saveSettings'),
+    recordingStatus: document.getElementById('recordingStatus'),
+    transcriptionPreview: document.getElementById('transcriptionPreview'),
+    settingsPanel: document.getElementById('settingsPanel'),
+    settingsToggle: document.getElementById('settingsToggle'),
+    minimizeBtn: document.getElementById('minimizeBtn')
+};
+
+// Initialize UI with saved values
+if (elements.emailInput) elements.emailInput.value = config.email;
+if (elements.codeInput) elements.codeInput.value = config.activationCode;
+if (elements.languageSelect) elements.languageSelect.value = config.language;
+if (elements.serverUrlInput) elements.serverUrlInput.value = config.serverUrl;
+if (elements.insertMethodSelect) elements.insertMethodSelect.value = config.insertMethod;
+
+// WebSocket connection
+function connectWebSocket() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        console.log('WebSocket already connected or connecting');
+        return;
+    }
+
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+    }
+
+    updateStatus('connecting', 'Connecting to server...');
+    
+    try {
+        ws = new WebSocket(config.serverUrl);
+        
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            reconnectAttempts = 0;
+            updateStatus('connected', 'Connected - Authenticating...');
+            
+            // Authenticate
+            ws.send(JSON.stringify({
+                type: 'auth',
+                email: config.email,
+                activationCode: config.activationCode
+            }));
+        };
+        
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            handleWebSocketMessage(data);
+        };
+        
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            updateStatus('error', 'Connection error');
+        };
+        
+        ws.onclose = () => {
+            console.log('WebSocket closed');
+            ws = null;
+            isConnected = false;
+            updateStatus('disconnected', 'Disconnected');
+            
+            if (reconnectAttempts < maxReconnectAttempts && !reconnectTimeout) {
+                reconnectAttempts++;
+                const delay = Math.min(3000 * Math.pow(2, reconnectAttempts - 1), 30000);
+                console.log(`Reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts} in ${delay}ms`);
+                reconnectTimeout = setTimeout(() => {
+                    reconnectTimeout = null;
+                    connectWebSocket();
+                }, delay);
+            }
+        };
+    } catch (error) {
+        console.error('Failed to create WebSocket:', error);
+        updateStatus('error', 'Failed to connect');
+    }
+}
+
+// Handle WebSocket messages
+function handleWebSocketMessage(data) {
+    console.log('Received WebSocket message:', data);
+    
+    switch (data.type) {
+        case 'connection':
+            console.log('Connection acknowledged:', data);
+            break;
+            
+        case 'auth':
+            if (data.status === 'success') {
+                isConnected = true;
+                console.log('Authentication successful:', data);
+                updateStatus('ready', 'Connected and ready');
+                showNotification('Connected', 'Press Ctrl+Shift+D to start dictation');
+            } else {
+                console.error('Authentication failed:', data.message);
+                updateStatus('error', data.message || 'Authentication failed');
+                isConnected = false;
+            }
+            break;
+            
+        case 'transcriptionResult':
+            console.log('Transcription received:', data);
+            if (data.transcript) {
+                updateTranscriptionPreview(data.transcript);
+                if (data.isFinal) {
+                    insertTextAtCursor(data.transcript + ' ');
+                }
+            }
+            break;
+            
+        case 'error':
+            console.error('Server error:', data.message);
+            showNotification('Error', data.message);
+            break;
+            
+        default:
+            console.log('Unknown message type:', data.type);
+    }
+}
+
+// Initialize audio recording
+async function initializeAudioRecording() {
+    try {
+        audioStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                sampleRate: 16000
+            } 
+        });
+        
+        mediaRecorder = new MediaRecorder(audioStream, {
+            mimeType: 'audio/webm;codecs=opus'
+        });
+        
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+                // Send audio chunk to server
+                sendAudioChunk(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = () => {
+            console.log('MediaRecorder stopped');
+            // Send final audio if needed
+            if (audioChunks.length > 0) {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                sendFinalAudio(audioBlob);
+                audioChunks = [];
+            }
+        };
+        
+        mediaRecorder.onerror = (event) => {
+            console.error('MediaRecorder error:', event.error);
+            showNotification('Recording Error', 'Failed to record audio');
+            stopRecording();
+        };
+        
+        console.log('Audio recording initialized');
+        return true;
+    } catch (error) {
+        console.error('Failed to initialize audio recording:', error);
+        showNotification('Microphone Error', 'Failed to access microphone');
+        return false;
+    }
+}
+
+// Send audio chunk to server
+function sendAudioChunk(audioData) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        // Convert blob to base64 for WebSocket transmission
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64Audio = reader.result.split(',')[1];
+            ws.send(JSON.stringify({
+                type: 'audioChunk',
+                audio: base64Audio,
+                mimeType: 'audio/webm;codecs=opus',
+                language: config.language
+            }));
+        };
+        reader.readAsDataURL(audioData);
+    }
+}
+
+// Send final audio to server
+function sendFinalAudio(audioBlob) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64Audio = reader.result.split(',')[1];
+            ws.send(JSON.stringify({
+                type: 'audioComplete',
+                audio: base64Audio,
+                mimeType: 'audio/webm;codecs=opus',
+                language: config.language
+            }));
+        };
+        reader.readAsDataURL(audioBlob);
+    }
+}
+
+// Start recording
+async function startRecording() {
+    if (isRecording) {
+        console.log('Already recording');
+        return;
+    }
+    
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        const initialized = await initializeAudioRecording();
+        if (!initialized) return;
+    }
+    
+    try {
+        audioChunks = [];
+        mediaRecorder.start(1000); // Capture audio in 1-second chunks
+        isRecording = true;
+        console.log('Recording started');
+        updateRecordingStatus(true);
+        window.electronAPI.sendRecordingStarted();
+        
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ 
+                type: 'startTranscription',
+                language: config.language
+            }));
+        }
+    } catch (error) {
+        console.error('Failed to start recording:', error);
+        showNotification('Error', 'Failed to start recording');
+    }
+}
+
+// Stop recording
+function stopRecording() {
+    if (!isRecording) {
+        console.log('Not recording');
+        return;
+    }
+    
+    try {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+        isRecording = false;
+        console.log('Recording stopped');
+        updateRecordingStatus(false);
+        window.electronAPI.sendRecordingStopped();
+        
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'stopTranscription' }));
+        }
+        
+        // Clean up
+        if (audioStream) {
+            audioStream.getTracks().forEach(track => track.stop());
+            audioStream = null;
+        }
+        mediaRecorder = null;
+    } catch (error) {
+        console.error('Error stopping recording:', error);
+    }
+}
+
+// UI update functions
+function updateStatus(state, message) {
+    if (elements.statusText) elements.statusText.textContent = message;
+    if (elements.statusIndicator) elements.statusIndicator.className = `status-indicator ${state}`;
+    
+    if (elements.connectBtn) {
+        if (state === 'ready') {
+            elements.connectBtn.textContent = 'Disconnect';
+            elements.connectBtn.classList.add('connected');
+        } else {
+            elements.connectBtn.textContent = 'Connect';
+            elements.connectBtn.classList.remove('connected');
+        }
+    }
+}
+
+function updateRecordingStatus(recording) {
+    if (elements.recordingStatus) {
+        if (recording) {
+            elements.recordingStatus.classList.add('active');
+            elements.recordingStatus.textContent = '🔴 Recording... (Press Ctrl+Shift+D to stop)';
+        } else {
+            elements.recordingStatus.classList.remove('active');
+            elements.recordingStatus.textContent = 'Press Ctrl+Shift+D to start dictation';
+        }
+    }
+}
+
+function updateTranscriptionPreview(text) {
+    if (elements.transcriptionPreview) {
+        elements.transcriptionPreview.textContent = text;
+    }
+}
+
+function showNotification(title, message) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, {
+            body: message,
+            icon: 'assets/icon.png'
+        });
+    }
+    console.log(`${title}: ${message}`);
+}
+
+// Insert text at cursor position
+function insertTextAtCursor(text) {
+    if (!text) return;
+    
+    const success = config.insertMethod === 'clipboard' 
+        ? window.electronAPI.insertTextAtCursor(text)
+        : window.electronAPI.typeText(text);
+        
+    if (!success) {
+        showNotification('Insertion Error', 'Failed to insert text. Try changing the insertion method in settings.');
+    }
+}
+
+// Event listeners
+if (elements.connectBtn) {
+    elements.connectBtn.addEventListener('click', () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+                reconnectTimeout = null;
+            }
+            reconnectAttempts = maxReconnectAttempts;
+            isConnected = false;
+            updateStatus('disconnected', 'Disconnected');
+        } else {
+            reconnectAttempts = 0;
+            connectWebSocket();
+        }
+    });
+}
+
+if (elements.saveSettingsBtn) {
+    elements.saveSettingsBtn.addEventListener('click', () => {
+        config.email = elements.emailInput.value;
+        config.activationCode = elements.codeInput.value;
+        config.language = elements.languageSelect.value;
+        config.serverUrl = elements.serverUrlInput.value;
+        config.insertMethod = elements.insertMethodSelect.value;
+        
+        window.electronAPI.storage.set('email', config.email);
+        window.electronAPI.storage.set('activationCode', config.activationCode);
+        window.electronAPI.storage.set('language', config.language);
+        window.electronAPI.storage.set('serverUrl', config.serverUrl);
+        window.electronAPI.storage.set('insertMethod', config.insertMethod);
+        
+        alert('Settings saved successfully');
+        
+        if (ws) {
+            ws.close();
+            setTimeout(connectWebSocket, 500);
+        }
+    });
+}
+
+if (elements.settingsToggle) {
+    elements.settingsToggle.addEventListener('click', () => {
+        elements.settingsPanel.classList.toggle('hidden');
+    });
+}
+
+if (elements.minimizeBtn) {
+    elements.minimizeBtn.addEventListener('click', () => {
+        window.electronAPI.minimizeToTray();
+    });
+}
+
+// Global shortcut handlers
+let shortcutDebounce = null;
+
+window.electronAPI.onStartRecordingGlobal(() => {
+    if (shortcutDebounce) return;
+    shortcutDebounce = setTimeout(() => {
+        shortcutDebounce = null;
+    }, 500);
+    
+    if (!isRecording) {
+        startRecording();
+    } else {
+        stopRecording();
+    }
+});
+
+window.electronAPI.onStopRecordingGlobal(() => {
+    if (shortcutDebounce) return;
+    shortcutDebounce = setTimeout(() => {
+        shortcutDebounce = null;
+    }, 500);
+    
+    if (isRecording) {
+        stopRecording();
+    }
+});
+
+window.electronAPI.onStartRecordingFromTray(() => {
+    if (!isRecording) {
+        startRecording();
+    }
+});
+
+window.electronAPI.onShowSettings(() => {
+    if (elements.settingsPanel) {
+        elements.settingsPanel.classList.remove('hidden');
+    }
+});
+
+// Request microphone permission on load
+navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+        console.log('Microphone permission granted');
+        stream.getTracks().forEach(track => track.stop());
+    })
+    .catch(err => console.error('Microphone permission denied:', err));
+
+console.log('Desktop client ready. Click Connect to start.');

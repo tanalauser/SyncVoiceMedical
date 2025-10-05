@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comment ça marche ? - SyncVoice Medical</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1a5f7a 0%, #0d3d4f 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        header p {
+            font-size: 18px;
+            color: #e8f4f8;
+        }
+        
+        .intro {
+            padding: 40px 30px;
+            text-align: center;
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .intro h2 {
+            color: #1a5f7a;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        
+        .intro p {
+            color: #555;
+            font-size: 16px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .videos-section {
+            padding: 40px 30px;
+        }
+        
+        .video-card {
+            background-color: #ffffff;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .video-card:hover {
+            border-color: #1a5f7a;
+            box-shadow: 0 5px 20px rgba(26, 95, 122, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .video-card h3 {
+            color: #1a5f7a;
+            font-size: 22px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .video-number {
+            background-color: #1a5f7a;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .video-card p {
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        video {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background-color: #000;
+        }
+        
+        .cta-section {
+            background-color: #f8f9fa;
+            padding: 40px 30px;
+            text-align: center;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .cta-button:hover {
+            background-color: #218838;
+        }
+        
+        footer {
+            background-color: #1a5f7a;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        footer p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        footer a {
+            color: #e8f4f8;
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .badge {
+            display: inline-block;
+            background-color: #e8f4f8;
+            color: #1a5f7a;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 28px;
+            }
+            
+            .intro h2 {
+                font-size: 24px;
+            }
+            
+            .video-card {
+                padding: 20px;
+            }
+            
+            .video-card h3 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎥 Comment ça marche ?</h1>
+            <p>Découvrez SyncVoiceMedical en vidéo</p>
+        </header>
+        
+        <div class="intro">
+            <h2>Tutoriels vidéo complets</h2>
+            <p>Apprenez à utiliser SyncVoice Medical en quelques minutes. Ces vidéos vous guident pas à pas, de l'inscription à l'utilisation avancée dans Word et votre navigateur web.</p>
+        </div>
+        
+        <div class="videos-section">
+            <!-- Video 1 -->
+            <div class="video-card">
+                <h3>
+                    <span class="video-number">1</span>
+                    Démarrer votre essai gratuit
+                </h3>
+                <p>Découvrez comment créer votre compte et commencer votre essai gratuit de 7 jours en moins de 2 minutes. Aucune carte bancaire requise !</p>
+                <video controls>
+                    <source src="Movies/1_Fr_DémarrerMonEssaiGratuit.mp4" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+            </div>
+            
+            <!-- Video 2 -->
+            <div class="video-card">
+                <h3>
+                    <span class="video-number">2</span>
+                    Email de confirmation et accès à l'application web
+                </h3>
+                <p>Après votre inscription, vous recevrez un email de confirmation. Découvrez comment accéder à l'application web et vous connecter pour la première fois.</p>
+                <video controls>
+                    <source src="Movies/2_Fr_EmailReçu_webApp.mp4" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+            </div>
+            
+            <!-- Video 3 -->
+            <div class="video-card">
+                <h3>
+                    <span class="video-number">3</span>
+                    Créer un compte-rendu opératoire sur l'application web
+                </h3>
+                <p>Apprenez à dicter et créer un compte-rendu opératoire complet directement depuis votre navigateur. Idéal pour une utilisation rapide sans installation.</p>
+                <video controls>
+                    <source src="Movies/3_Fr_CompteRendu_Opératoire_WebApp.mp4" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+            </div>
+            
+            <!-- Video 4 -->
+            <div class="video-card">
+                <h3>
+                    <span class="video-number">4</span>
+                    Créer un compte-rendu opératoire dans Word
+                </h3>
+                <p>Découvrez comment utiliser SyncVoice Medical directement dans Microsoft Word. Dictez vos comptes-rendus pendant qu'ils apparaissent en temps réel dans votre document.</p>
+                <video controls>
+                    <source src="Movies/4_Fr_CompteRenduOpératoire_Word.mp4" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+            </div>
+            
+            <!-- Video 5 -->
+            <div class="video-card">
+                <h3>
+                    <span class="video-number">5</span>
+                    Installer et utiliser le client Desktop (100% local)
+                </h3>
+                <p>Pour une confidentialité maximale, installez notre client Desktop. Vos données restent 100% sur votre ordinateur - aucune connexion cloud requise !</p>
+                <video controls>
+                    <source src="Movies/5_Fr_SelectDesktopClient.mp4" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+            </div>
+        </div>
+        
+        <div class="cta-section">
+            <h2 style="color: #1a5f7a; margin-bottom: 15px;">Prêt à commencer ?</h2>
+            <p style="color: #666; margin-bottom: 25px; font-size: 16px;">Essayez gratuitement pendant 7 jours - Sans carte bancaire • Sans engagement</p>
+            <a href="https://syncvoicemedical.onrender.com/form.html?plan=free&source=videos&lang=fr" class="cta-button">
+                Démarrer mon essai gratuit →
+            </a>
+            <div style="margin-top: 20px;">
+                <span class="badge">🔒 Conforme RGPD</span>
+                <span class="badge">🔐 Données cryptées</span>
+                <span class="badge">🇫🇷 100% français</span>
+            </div>
+        </div>
+        
+        <footer>
+            <p><strong>SyncVoice Medical</strong></p>
+            <p>Solution française de transcription médicale par IA</p>
+            <p style="margin-top: 15px;">📍 Orléans, France | 📧 <a href="mailto:contact@syncvoicemedical.fr">contact@syncvoicemedical.fr</a></p>
+            <p style="margin-top: 10px; font-size: 12px;">© 2025 SyncVoice Medical - Tous droits réservés</p>
+        </footer>
+    </div>
+</body>
+</html>

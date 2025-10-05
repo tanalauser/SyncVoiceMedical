@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SECURITY FIX: Add Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline';
+        connect-src 'self' ws: wss: https:;
+        media-src 'self' blob: mediastream:;
+        img-src 'self' data: blob:;
+        font-src 'self';
+        object-src 'none';
+        base-uri 'self';
+    ">
+    
+    <title>SyncVoice Medical Desktop</title>
+    <style>
+        /* Base styles inspired by your existing CSS */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            font-size: 14px;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: #296396;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo img {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .logo-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .header-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .icon-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 16px;
+        }
+        
+        .icon-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .icon-btn:active {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            background: white;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        
+        .status-indicator.disconnected {
+            background: #dc3545;
+        }
+        
+        .status-indicator.connecting {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+        
+        .status-indicator.connected,
+        .status-indicator.ready {
+            background: #28a745;
+        }
+        
+        .status-indicator.error {
+            background: #dc3545;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .status-text {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+        
+        .connect-btn {
+            padding: 0.5rem 1rem;
+            background: #296396;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .connect-btn:hover {
+            background: #1e4d73;
+        }
+        
+        .connect-btn.connected {
+            background: #dc3545;
+        }
+        
+        .connect-btn.connected:hover {
+            background: #c82333;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+        
+        /* Recording Status */
+        .recording-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .recording-status {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .recording-status.active {
+            color: #dc3545;
+            font-weight: 600;
+            animation: recording-pulse 1s infinite;
+        }
+        
+        @keyframes recording-pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .shortcut-hint {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .shortcut-key {
+            background: #296396;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-family: monospace;
+            font-weight: 600;
+        }
+        
+        /* Transcription Preview */
+        .transcription-preview {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            min-height: 100px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-style: italic;
+            color: #666;
+            border: 2px dashed #e0e0e0;
+        }
+        
+        .transcription-preview:not(:empty) {
+            border-style: solid;
+            border-color: #69B578;
+            color: #333;
+            font-style: normal;
+        }
+        
+        /* Settings Panel */
+        .settings-panel {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        
+        .settings-panel.hidden {
+            display: none;
+        }
+        
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .settings-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #296396;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            color: #444;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #296396;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(41, 99, 150, 0.1);
+        }
+        
+        .form-group small {
+            display: block;
+            margin-top: 0.25rem;
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        .save-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: #69B578;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .save-btn:hover {
+            background: #5aa469;
+        }
+        
+        /* Advanced Settings */
+        .advanced-settings {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Method Info Styles */
+        .method-info {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .test-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+            transition: background 0.2s;
+        }
+
+        .test-btn:hover {
+            background: #218838;
+        }
+        
+        /* Manual Recording Button */
+        #manualRecordBtn {
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        #manualRecordBtn:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Footer */
+        .footer {
+            background: white;
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .footer a {
+            color: #296396;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Debug styles for button visibility */
+        #settingsToggle {
+            border: 1px solid rgba(255,255,255,0.3) !important;
+        }
+        
+        #settingsToggle:hover {
+            border-color: rgba(255,255,255,0.6) !important;
+        }
+
+
+
+        .desktop-client-section {
+    margin: 4rem 0;
+    padding: 0 1rem;
+}
+
+.desktop-client-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.desktop-client-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #296396, #69B578);
+}
+
+.desktop-client-card h2 {
+    color: #296396;
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.desktop-client-card > p {
+    color: #666;
+    font-size: 1.1rem;
+    margin-bottom: 2.5rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.desktop-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin: 2.5rem 0;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.feature {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.feature h3 {
+    color: #296396;
+    font-size: 1.2rem;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+}
+
+.feature p {
+    color: #666;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.desktop-download-btn {
+    background: linear-gradient(135deg, #296396, #1e4d73);
+    color: white;
+    border: none;
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 2rem 0 1rem;
+    box-shadow: 0 4px 12px rgba(41, 99, 150, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.desktop-download-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.desktop-download-btn:hover::before {
+    left: 100%;
+}
+
+.desktop-download-btn:hover {
+    background: linear-gradient(135deg, #1e4d73, #296396);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(41, 99, 150, 0.4);
+}
+
+.desktop-download-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(41, 99, 150, 0.3);
+}
+
+.system-requirements {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    font-style: italic;
+}
+
+.system-requirements small {
+    color: #777;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .desktop-client-card {
+        padding: 2rem 1.5rem;
+        margin: 0 1rem;
+    }
+    
+    .desktop-client-card h2 {
+        font-size: 1.8rem;
+    }
+    
+    .desktop-features {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .feature {
+        padding: 1.25rem;
+    }
+    
+    .desktop-download-btn {
+        padding: 0.9rem 2rem;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .desktop-client-section {
+        margin: 2rem 0;
+    }
+    
+    .desktop-client-card {
+        padding: 1.5rem 1rem;
+        margin: 0 0.5rem;
+    }
+    
+    .desktop-client-card h2 {
+        font-size: 1.6rem;
+    }
+    
+    .desktop-download-btn {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.95rem;
+        width: 100%;
+        max-width: 280px;
+    }
+}
+
+/* Animation for loading state */
+.desktop-download-btn.loading {
+    background: #6c757d;
+    cursor: not-allowed;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <img src="assets/icon.png" alt="SyncVoice Medical" onerror="this.style.display='none'">
+                <span class="logo-text">SyncVoice Medical</span>
+            </div>
+            <div class="header-controls">
+                <button class="icon-btn" id="settingsToggle" title="Settings">⚙️</button>
+                <button class="icon-btn" id="minimizeBtn" title="Minimize to tray">−</button>
+            </div>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-indicator disconnected" id="statusIndicator"></div>
+            <div class="status-text" id="statusText">Not connected</div>
+            <button class="connect-btn" id="connectBtn">Connect</button>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Recording Section -->
+            <div class="recording-section">
+                <div class="recording-status" id="recordingStatus">
+                    Press Ctrl+Shift+D to start dictation
+                </div>
+
+                <div style="color: #666; font-style: italic; text-align: center; margin: 10px;">
+  💡 Tip: Wait 2-3 seconds after speaking before pressing Ctrl+Shift+D for complete transcription
+</div>
+
+                <div class="shortcut-hint">
+                    <strong>Global Shortcuts:</strong><br>
+                    <span class="shortcut-key">Ctrl+Shift+D</span> Start/Stop dictation<br>
+                    <span class="shortcut-key">F4</span> Start dictation (alternative)
+                </div>
+                
+                <!-- Manual recording button as fallback -->
+                <button id="manualRecordBtn" class="connect-btn" style="margin-top: 1rem; display: none;">
+                    🎤 Start Recording
+                </button>
+            </div>
+            
+            <!-- Transcription Preview -->
+            <div class="transcription-preview" id="transcriptionPreview">
+                Transcribed text will appear here...
+            </div>
+            
+            <!-- Settings Panel -->
+            <div class="settings-panel hidden" id="settingsPanel">
+                <div class="settings-header">
+                    <h3 class="settings-title">Settings</h3>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" placeholder="your.email@example.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="activationCode">Activation Code:</label>
+                    <input type="text" id="activationCode" placeholder="ABC123">
+                </div>
+                
+                <div class="form-group">
+                    <label for="language">Language:</label>
+                    <select id="language">
+                        <option value="fr">Français</option>
+                        <option value="en">English</option>
+                        <option value="de">Deutsch</option>
+                        <option value="es">Español</option>
+                        <option value="it">Italiano</option>
+                        <option value="pt">Português</option>
+                    </select>
+                </div>
+                
+                <div class="checkbox-group" style="margin-top: 1rem; margin-bottom: 1rem;">
+                    <input type="checkbox" id="autoConnect" style="width: auto;">
+                    <label for="autoConnect" style="display: inline; margin-bottom: 0;">Automatically connect at startup</label>
+                </div>
+                
+                <div class="advanced-settings">
+                    <h4>Advanced Settings</h4>
+                    
+                    <div class="form-group">
+                        <label for="serverUrl">Server URL:</label>
+                        <input type="text" id="serverUrl" placeholder="wss://syncvoicemedical.onrender.com">
+                        <small>Default: wss://syncvoicemedical.onrender.com (Production)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="insertMethod">Text Insertion Method:</label>
+                        <select id="insertMethod">
+                            <option value="clipboard">📋 Clipboard (Ctrl+V) - Fastest</option>
+                            <option value="typing">⌨️ Direct Typing - More reliable</option>
+                            <option value="slow">🐌 Slow Typing - Most reliable for problematic apps</option>
+                            <option value="auto">🔄 Auto (Try clipboard, then typing, then slow)</option>
+                        </select>
+                        <small class="method-description">
+                            <div class="method-info">
+                                <strong>Clipboard:</strong> Copies text and simulates Ctrl+V. Fast but may not work with all apps.<br>
+                                <strong>Direct Typing:</strong> Types text at 80ms per character. Good balance of speed and reliability.<br>
+                                <strong>Slow Typing:</strong> Types character-by-character with 100ms delays. Most reliable for difficult applications.<br>
+                                <strong>Auto:</strong> Tries methods in order until one works.
+                            </div>
+                        </small>
+                    </div>
+
+                    <!-- Test button for text insertion -->
+                    <div class="form-group">
+                        <button type="button" id="testInsertion" class="test-btn">
+                            🧪 Test Text Insertion
+                        </button>
+                        <small>Click this, then quickly click in a text editor to test your selected method</small>
+                    </div>
+                </div>
+                
+                <button class="save-btn" id="saveSettings">Save Settings</button>
+            </div>
+        </div>
+
+        
+        <!-- Footer -->
+        <div class="footer">
+            <a href="https://syncvoicemedical.onrender.com" target="_blank" rel="noopener" id="websiteLink">
+    Visit SyncVoice Medical Website
+</a>
+        </div>
+    </div>
+    
+    <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+@echo off
+echo Starting SyncVoice Medical with Speech Recognition enabled...
+npm start -- --enable-speech-input --enable-web-speech --disable-web-security --allow-running-insecure-content

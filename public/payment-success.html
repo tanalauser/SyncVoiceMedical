@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html id="htmlLang" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Success - SyncVoice Medical</title>
+    <link rel="stylesheet" href="payment-success.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <a href="#" class="logo">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+            </a>
+        </nav>
+
+        <main class="form-container">
+            <div class="success-message">
+                <h1 id="successTitle">Payment Successful</h1>
+                <p id="successMessage">Thank you for your payment. You will receive a confirmation email shortly.</p>
+                <div id="activationStatus"></div>
+                <a href="index.html" class="return-btn" id="returnBtn">Return to Homepage</a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'en';
+        const email = urlParams.get('email');
+        
+        // Translations
+        const translations = {
+            fr: {
+                title: 'Paiement Réussi',
+                message: 'Merci pour votre paiement. Vous recevrez bientôt un email de confirmation.',
+                activationSending: 'Envoi du code d\'activation...',
+                activationSuccess: 'Code d\'activation envoyé avec succès.',
+                activationError: 'Erreur lors de l\'envoi du code d\'activation.',
+                returnButton: 'Retour à l\'accueil'
+            },
+            en: {
+                title: 'Payment Successful',
+                message: 'Thank you for your payment. You will receive a confirmation email shortly.',
+                activationSending: 'Sending activation code...',
+                activationSuccess: 'Activation code sent successfully.',
+                activationError: 'Error sending activation code.',
+                returnButton: 'Return to Homepage'
+            },
+            de: {
+                title: 'Zahlung Erfolgreich',
+                message: 'Vielen Dank für Ihre Zahlung. Sie erhalten in Kürze eine Bestätigungs-E-Mail.',
+                activationSending: 'Aktivierungscode wird gesendet...',
+                activationSuccess: 'Aktivierungscode erfolgreich versendet.',
+                activationError: 'Fehler beim Senden des Aktivierungscodes.',
+                returnButton: 'Zurück zur Startseite'
+            },
+            es: {
+                title: 'Pago Exitoso',
+                message: 'Gracias por su pago. Recibirá un correo electrónico de confirmación en breve.',
+                activationSending: 'Enviando código de activación...',
+                activationSuccess: 'Código de activación enviado con éxito.',
+                activationError: 'Error al enviar el código de activación.',
+                returnButton: 'Volver a la Página Principal'
+            },
+            it: {
+                title: 'Pagamento Riuscito',
+                message: 'Grazie per il tuo pagamento. Riceverai presto una email di conferma.',
+                activationSending: 'Invio del codice di attivazione...',
+                activationSuccess: 'Codice di attivazione inviato con successo.',
+                activationError: 'Errore nell\'invio del codice di attivazione.',
+                returnButton: 'Torna alla Homepage'
+            },
+            pt: {
+                title: 'Pagamento Bem-sucedido',
+                message: 'Obrigado pelo seu pagamento. Você receberá um email de confirmação em breve.',
+                activationSending: 'Enviando código de ativação...',
+                activationSuccess: 'Código de ativação enviado com sucesso.',
+                activationError: 'Erro ao enviar o código de ativação.',
+                returnButton: 'Voltar para a Página Inicial'
+            }
+        };
+
+        // Update content based on language
+        const t = translations[lang] || translations.en;
+        document.getElementById('htmlLang').lang = lang;
+        document.getElementById('successTitle').textContent = t.title;
+        document.getElementById('successMessage').textContent = t.message;
+        document.getElementById('returnBtn').textContent = t.returnButton;
+        document.getElementById('returnBtn').href = `index.html?lang=${lang}`;
+
+        // Send activation code after successful payment
+        if (email) {
+            const activationStatus = document.getElementById('activationStatus');
+            try {
+                activationStatus.textContent = t.activationSending;
+
+                const response = await fetch('http://localhost:3000/api/send-activation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        email, 
+                        version: 'paid', 
+                        language: lang 
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send activation code');
+                }
+
+                const result = await response.json();
+                activationStatus.textContent = t.activationSuccess;
+            } catch (error) {
+                console.error('Activation code error:', error);
+                activationStatus.textContent = t.activationError;
+            }
+        }
+    });
+    </script>
+</body>
+</html>

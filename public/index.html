@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Transcription Médicale</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+</head>
+<body>
+    <div class="hero">
+        <div class="wrapper">
+            <nav class="nav">
+                <div class="logo">
+                    <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+                </div>
+                <div class="nav-controls">
+                    <button class="login-btn">Se connecter</button>
+                    <div class="language-container">
+                        <label for="language-select">Language:</label>
+                        <select id="language-select" class="language-select">
+                            <option value="fr" selected>Français</option>
+                            <option value="en">English</option>
+                            <option value="de">Deutsch</option>
+                            <option value="es">Español</option>
+                            <option value="it">Italiano</option>
+                            <option value="pt">Português</option>
+                        </select>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="content-section">
+                <h1 class="title">TRANSCRIVEZ VOS COMPTES RENDUS MÉDICAUX AVEC L'IA</h1>
+                <p class="subtitle">Une seule licence, deux solutions puissantes</p>
+
+                <!-- Unified Pricing Section -->
+                <div class="pricing-section">
+                    <div class="pricing-header">
+                        <h2 class="pricing-title" id="pricing-main-title">Un Abonnement = Web + Bureau</h2>
+                        <p class="pricing-subtitle" id="pricing-subtitle">Profitez des deux versions sans frais supplémentaires</p>
+                    </div>
+
+                    <div class="pricing-cards">
+                        <div class="pricing-card trial-card">
+                            <div class="card-header">
+                                <h3 id="trial-title">Essai Gratuit</h3>
+                                <div class="price-tag" id="trial-price">0 €</div>
+                                <p class="duration" id="trial-duration">7 jours</p>
+                            </div>
+                            <div class="card-body">
+                                <p class="included-text" id="trial-feature-1">✓ Plateforme Web complète</p>
+                                <p class="included-text" id="trial-feature-2">✓ Application Bureau Windows</p>
+                                <p class="included-text" id="trial-feature-3">✓ Sans carte bancaire</p>
+                                <p class="included-text" id="trial-feature-4">✓ Annulation automatique</p>
+                            </div>
+                            <div class="card-footer">
+                                <a href="form.html?plan=free&lang=fr" class="btn btn-secondary btn-large" id="trial-button">Essayer Gratuitement</a>
+                            </div>
+                        </div>
+
+                        <div class="pricing-card subscription-card featured">
+                            <div class="featured-badge" id="popular-badge">POPULAIRE</div>
+                            <div class="card-header">
+                                <h3 id="subscription-title">Abonnement Complet</h3>
+                                <div class="price-tag" id="subscription-price">25 €</div>
+                                <p class="duration" id="subscription-duration">TTC / mois</p>
+                            </div>
+                            <div class="card-body">
+                                <p class="included-text" id="subscription-feature-1">✓ Plateforme Web illimitée</p>
+                                <p class="included-text" id="subscription-feature-2">✓ Application Bureau Windows</p>
+                                <p class="included-text" id="subscription-feature-3">✓ Mises à jour incluses</p>
+                                <p class="included-text" id="subscription-feature-4">✓ Support prioritaire</p>
+                                <p class="included-text" id="subscription-feature-5">✓ Résiliable à tout moment</p>
+                            </div>
+                            <div class="card-footer">
+                                <a href="form.html?plan=paid&lang=fr" class="btn btn-primary btn-large" id="subscription-button">Commencer Maintenant</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="value-proposition">
+                        <div class="value-icon">💡</div>
+                        <p id="value-proposition-text"><strong>Pourquoi payer deux fois ?</strong> Avec SyncVoice Medical, un seul abonnement vous donne accès à la plateforme web ET à l'application bureau. Utilisez celle qui convient le mieux à chaque situation.</p>
+                    </div>
+                </div>
+
+                <!-- What You Get Section -->
+                <div class="features-overview">
+                    <h2 class="section-title" id="what-you-get-title">Ce Que Vous Obtenez</h2>
+                    
+                    <div class="versions">
+                        <!-- Web Platform -->
+                        <div class="version-card web-version">
+                            <div class="version-header">
+                                <div class="version-icon">🌐</div>
+                                <h3>Plateforme Web</h3>
+                                <div class="included-badge" id="included-badge-web">INCLUS</div>
+                            </div>
+                            <p class="version-description">Transcription en temps réel dans votre navigateur</p>
+                            
+                            <ul class="feature-list">
+                                <li>Accessible depuis n'importe quel navigateur</li>
+                                <li>Aucune installation requise</li>
+                                <li>Idéal pour le travail mobile</li>
+                                <li>Partage facile des documents</li>
+                            </ul>
+                        </div>
+
+                        <!-- Desktop Application -->
+                        <div class="version-card desktop-version">
+                            <div class="version-header">
+                                <div class="version-icon">💻</div>
+                                <h3>Application Bureau</h3>
+                                <div class="included-badge" id="included-badge-desktop">INCLUS</div>
+                            </div>
+                            <p class="version-description">Intégration directe avec vos logiciels</p>
+                            
+                            <div class="desktop-highlight">
+                                <div class="highlight-feature">
+                                    <div class="feature-icon">⚡</div>
+                                    <div class="feature-text">
+                                        <strong id="highlight-feature-1-title">Placez votre curseur dans n'importe quel logiciel</strong><br>
+                                        <span id="highlight-feature-1-desc">Logiciel médical, Word, Excel, PowerPoint, etc.</span>
+                                    </div>
+                                </div>
+                                <div class="highlight-feature">
+                                    <div class="feature-icon">🎤</div>
+                                    <div class="feature-text">
+                                        <strong id="highlight-feature-2-title">Appuyez sur Ctrl+Shift+D et parlez</strong><br>
+                                        <span id="highlight-feature-2-desc">La transcription apparaît directement dans votre document.</span>
+                                    </div>
+                                </div>
+                                <div class="highlight-feature">
+                                    <div class="feature-icon">🔒</div>
+                                    <div class="feature-text">
+                                        <strong id="highlight-feature-3-title">100% Hors ligne et sécurisé</strong><br>
+                                        <span id="highlight-feature-3-desc">Aucune donnée ne quitte votre ordinateur.</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="desktop-download">
+                                <button class="download-btn" id="downloadBtn" type="button">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                                    </svg>
+                                    <span id="downloadBtnText">Télécharger pour Windows</span>
+                                </button>
+                                <p class="system-requirements" id="systemRequirements">
+                                    Nécessite Windows 10 ou supérieur • 200 MB d'espace disque
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Table -->
+                <div class="comparison-section">
+                    <h3 class="comparison-title">Comparaison des Versions</h3>
+                    <div class="comparison-table-container">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th class="feature-col">Fonctionnalité</th>
+                                    <th class="web-col">🌐 Plateforme Web</th>
+                                    <th class="desktop-col">💻 Application Bureau</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Connexion Internet</strong></td>
+                                    <td class="required">Requise</td>
+                                    <td class="not-required">Non requise</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Installation</strong></td>
+                                    <td class="advantage">Aucune</td>
+                                    <td>Windows uniquement</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sécurité des Données</strong></td>
+                                    <td>Cloud sécurisé</td>
+                                    <td class="advantage">Local sur votre PC</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Intégration Logiciels</strong></td>
+                                    <td>Copier/coller requis</td>
+                                    <td class="advantage">Directe (Word, Excel, etc.)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Accès</strong></td>
+                                    <td class="advantage">Tout navigateur</td>
+                                    <td>Bureau uniquement</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Vitesse</strong></td>
+                                    <td>Dépend de la connexion</td>
+                                    <td class="advantage">Traitement local rapide</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Browser Support Table -->
+                <div class="browser-support-section">
+                    <h4 class="browser-support-title">Compatibilité des navigateurs pour la reconnaissance vocale (Plateforme Web)</h4>
+                    <div class="table-container">
+                        <table class="browser-support-table">
+                            <thead>
+                                <tr>
+                                    <th class="browser-column">Navigateur</th>
+                                    <th class="support-column">Support</th>
+                                    <th class="recommendation-column">Recommandation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/chrome/chrome.svg" alt="Chrome" class="browser-icon"> Chrome</td>
+                                    <td><span class="support-full">Complet</span></td>
+                                    <td class="recommended">Recommandé</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/edge/edge.svg" alt="Edge" class="browser-icon"> Microsoft Edge</td>
+                                    <td><span class="support-full">Complet</span></td>
+                                    <td class="recommended">Recommandé</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/safari/safari.svg" alt="Safari" class="browser-icon"> Safari</td>
+                                    <td><span class="support-partial">Partiel</span></td>
+                                    <td class="limited">Limité</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/firefox/firefox.svg" alt="Firefox" class="browser-icon"> Firefox</td>
+                                    <td><span class="support-limited">Limité</span></td>
+                                    <td class="not-recommended">Non recommandé</td>
+                                </tr>
+                                <tr>
+                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/opera/opera.svg" alt="Opera" class="browser-icon"> Opera</td>
+                                    <td><span class="support-full">Complet</span></td>
+                                    <td class="recommended">Recommandé</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="browser-note">Pour une expérience optimale avec la plateforme web, nous recommandons l'utilisation de Chrome, Edge ou Opera.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+</html>

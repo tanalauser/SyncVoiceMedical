@@ -1,0 +1,889 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+.hero {
+    min-height: 100vh;
+}
+
+/* Main wrapper for alignment */
+.wrapper {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0;
+    position: relative;
+}
+
+/* Navigation */
+.nav {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    background-color: #f5f5f5;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo img {
+    height: 45px;
+    width: auto;
+}
+
+.nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.login-btn {
+    padding: 0.5rem 1.25rem;
+    background: #1a5f7a;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.language-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+label[for="language-select"] {
+    font-size: 1rem;
+}
+
+.language-select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    min-width: 120px;
+}
+
+/* Main Content */
+.content-section {
+    text-align: left;
+    margin: 2rem 0;
+}
+
+.title {
+    color: #1a5f7a;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    margin-bottom: 1.5rem;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.subtitle {
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    margin-bottom: 3rem;
+    text-align: center;
+}
+
+/* Version Selection Section */
+.version-selection {
+    margin-bottom: 4rem;
+}
+
+.version-title {
+    color: #1a5f7a;
+    font-size: 1.8rem;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.versions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.version-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.version-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.web-version {
+    border-color: #3498db;
+}
+
+.desktop-version {
+    border-color: #2ecc71;
+}
+
+.version-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.version-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.version-header h3 {
+    color: #1a5f7a;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.version-description {
+    color: #666;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Plans Container for Web Version */
+.plans-container {
+    display: flex;
+    gap: 1rem;
+    flex-direction: column;
+}
+
+.plan {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.plan-header h4 {
+    color: #1a5f7a;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.price {
+    font-size: 1.2rem;
+    color: #1a5f7a;
+    font-weight: 600;
+    margin: 0.5rem 0;
+}
+
+.plan-footer {
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.btn {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #1a5f7a;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #164d63;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+/* Desktop Highlight Section */
+.desktop-highlight {
+    margin-bottom: 2rem;
+}
+
+.highlight-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f0f7ff;
+    border-radius: 8px;
+    border-left: 4px solid #2ecc71;
+}
+
+.feature-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.feature-text {
+    flex: 1;
+}
+
+.feature-text strong {
+    color: #1a5f7a;
+    display: block;
+    margin-bottom: -0.9rem;
+}
+
+/* Desktop Download Section */
+.desktop-download {
+    text-align: center;
+}
+
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    background: #2ecc71;
+    color: white;
+    text-decoration: none;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.download-btn:hover {
+    background: #27ae60;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.download-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: white;
+}
+
+.system-requirements {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.subscription-note {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+/* Comparison Section */
+.comparison-section {
+    margin: 4rem 0;
+}
+
+.comparison-title {
+    color: #1a5f7a;
+    font-size: 1.5rem;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.comparison-table-container {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.comparison-table th {
+    background-color: #1a5f7a;
+    color: white;
+    padding: 1rem 0.75rem;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid #164d63;
+}
+
+.comparison-table td {
+    padding: 1rem 0.75rem;
+    border: 1px solid #e9ecef;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.comparison-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.comparison-table tr:hover {
+    background-color: #e3f2fd;
+}
+
+.feature-col {
+    width: 40%;
+    text-align: left !important;
+}
+
+.web-col, .desktop-col {
+    width: 30%;
+}
+
+.advantage {
+    color: #2ecc71;
+    font-weight: 600;
+}
+
+.required {
+    color: #e74c3c;
+}
+
+.not-required {
+    color: #2ecc71;
+    font-weight: 600;
+}
+
+/* Features Sections */
+.features-sections {
+    margin: 4rem 0;
+}
+
+.features-group {
+    margin-bottom: 3rem;
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.features-title {
+    color: #1a5f7a;
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.5rem;
+}
+
+.features-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.features-list {
+    list-style-type: none;
+    margin-bottom: 1rem;
+}
+
+.features-list li {
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.features-list li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #2ecc71;
+    font-weight: bold;
+}
+
+/* Browser Support Section */
+.browser-support-section {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e0e0e0;
+}
+
+.browser-support-title {
+    color: #1a5f7a;
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+}
+
+.table-container {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+}
+
+.browser-support-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.browser-support-table th {
+    background-color: #f8f9fa;
+    padding: 1rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #1a5f7a;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.browser-support-table td {
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+}
+
+.browser-support-table tr:last-child td {
+    border-bottom: none;
+}
+
+.browser-support-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.browser-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+.support-full {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.support-partial {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.support-limited {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.recommended {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.limited {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.not-recommended {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.browser-note {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+}
+
+/* Column widths for better layout */
+.browser-column {
+    width: 40%;
+}
+
+.support-column {
+    width: 25%;
+}
+
+.recommendation-column {
+    width: 35%;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .wrapper {
+        padding: 0 1rem;
+    }
+    
+    .versions {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .wrapper {
+        padding: 0 1rem;
+    }
+    
+    .nav-controls {
+        gap: 0.5rem;
+    }
+
+    .versions {
+        grid-template-columns: 1fr;
+    }
+
+    .version-card {
+        padding: 1.5rem;
+    }
+
+    .plans-container {
+        gap: 0.5rem;
+    }
+
+    .plan {
+        padding: 1rem;
+    }
+
+    .comparison-table-container {
+        padding: 1rem;
+    }
+
+    .comparison-table {
+        font-size: 0.85rem;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .features-group {
+        padding: 1.5rem;
+    }
+
+    .highlight-feature {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+    }
+
+    .table-container {
+        padding: 1rem;
+    }
+
+    .browser-support-table {
+        font-size: 0.85rem;
+    }
+
+    .browser-support-table th,
+    .browser-support-table td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .browser-icon {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .nav-controls {
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .language-container {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .version-card {
+        padding: 1rem;
+    }
+
+    .comparison-table {
+        font-size: 0.8rem;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 0.5rem 0.25rem;
+    }
+
+    .browser-support-table {
+        font-size: 0.8rem;
+    }
+
+    .browser-support-table th,
+    .browser-support-table td {
+        padding: 0.5rem 0.25rem;
+    }
+
+    .browser-icon {
+        width: 14px;
+        height: 14px;
+        margin-right: 0.25rem;
+    }
+
+    .highlight-feature {
+        padding: 0.75rem;
+    }
+
+    .download-btn {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    /* Add these styles to your existing index.css */
+
+/* Pricing Section */
+.pricing-section {
+    margin: 3rem 0 4rem;
+    text-align: center;
+}
+
+.pricing-header {
+    margin-bottom: 3rem;
+}
+
+.pricing-title {
+    color: #1a5f7a;
+    font-size: 2.2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.pricing-subtitle {
+    color: #666;
+    font-size: 1.2rem;
+}
+
+/* Pricing Cards */
+.pricing-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    max-width: 800px;
+    margin: 0 auto 3rem;
+}
+
+.pricing-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pricing-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.trial-card {
+    border: 2px solid #6c757d;
+}
+
+.subscription-card {
+    border: 2px solid #1a5f7a;
+}
+
+.featured {
+    transform: scale(1.05);
+}
+
+.featured-badge {
+    position: absolute;
+    top: -12px;
+    right: 30px;
+    background: #ff6b6b;
+    color: white;
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.card-header {
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-header h3 {
+    color: #1a5f7a;
+    margin-bottom: 1rem;
+    font-size: 1.4rem;
+}
+
+.price-tag {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #1a5f7a;
+    line-height: 1;
+}
+
+.duration {
+    color: #666;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+
+.card-body {
+    margin-bottom: 2rem;
+}
+
+.included-text {
+    text-align: left;
+    margin: 0.75rem 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+}
+
+.included-text::before {
+    content: "✓";
+    color: #2ecc71;
+    font-weight: bold;
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.card-footer {
+    margin-top: auto;
+}
+
+.btn-large {
+    padding: 1.2rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Value Proposition */
+.value-proposition {
+    background: #f0f7ff;
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.value-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+}
+
+.value-proposition p {
+    text-align: left;
+    margin: 0;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Features Overview */
+.features-overview {
+    margin: 4rem 0;
+}
+
+.section-title {
+    color: #1a5f7a;
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.features-overview .versions {
+    gap: 3rem;
+}
+
+.features-overview .version-card {
+    position: relative;
+}
+
+.included-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #2ecc71;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+}
+
+.feature-list li {
+    padding: 0.5rem 0;
+    color: #555;
+    display: flex;
+    align-items: flex-start;
+}
+
+.feature-list li::before {
+    content: "•";
+    color: #1a5f7a;
+    font-weight: bold;
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+
+/* Responsive Updates */
+@media (max-width: 768px) {
+    .pricing-cards {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .featured {
+        transform: none;
+    }
+    
+    .value-proposition {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .value-proposition p {
+        text-align: center;
+    }
+}
+}

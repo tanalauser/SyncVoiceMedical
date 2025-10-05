@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html id="htmlLang" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncVoice Medical - Connexion</title>
+    <link rel="stylesheet" href="form.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="languageDetection.js"></script>
+    <style>
+        /* Developer mode styles */
+        .dev-mode-banner {
+            background: #ffc107;
+            color: #000;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .dev-mode .dev-mode-banner {
+            display: block;
+        }
+        .dev-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 0.9em;
+            display: none;
+        }
+        .dev-mode .dev-info {
+            display: block;
+        }
+        .dev-info h3 {
+            margin-top: 0;
+            color: #1a5f7a;
+        }
+        .test-email-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .test-email-btn:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="dev-mode-banner">
+        🔧 Developer Mode Active - Remove 'dev-mode' class from body for production
+    </div>
+    
+    <div class="container">
+        <nav class="nav">
+            <a href="index.html" class="logo">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+            </a>
+            <a href="index.html" id="returnBtn" class="return-btn">Retour</a>
+        </nav>
+
+        <main class="form-container">
+            <h1 id="pageTitle" class="form-title">Connexion</h1>
+            
+            <!-- Developer testing info -->
+            <div class="dev-info">
+                <h3>Test Accounts</h3>
+                <p><strong>Developer Emails:</strong></p>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li>
+                        nicolas.tanala@v-stars3d.com 
+                        <button class="test-email-btn" onclick="fillTestEmail('nicolas.tanala@v-stars3d.com')">Use</button>
+                    </li>
+                    <li>
+                        nicolas.tanala@wanadoo.fr 
+                        <button class="test-email-btn" onclick="fillTestEmail('nicolas.tanala@wanadoo.fr')">Use</button>
+                    </li>
+                </ul>
+                <p><strong>Note:</strong> You must register first at <a href="form.html">form.html</a> to set your password.</p>
+                <p><strong>Recommended test password:</strong> DevTest2025! (min 8 chars)</p>
+            </div>
+            
+            <form id="loginForm" class="form">
+                <div class="form-group">
+                    <label for="email" id="emailLabel">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" id="passwordLabel">Mot de passe:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                <div id="successMessage" class="success-message" style="display: none; color: #28a745;"></div>
+
+                <button type="submit" id="submitButton" class="submit-btn">Se connecter</button>
+            </form>
+            
+            <div class="form-footer">
+                <p id="forgotPasswordText">
+                    <a href="#" id="forgotPasswordLink">Mot de passe oublié?</a>
+                </p>
+                <p style="margin-top: 10px;">
+                    <span id="noAccountText">Pas de compte?</span> 
+                    <a href="form.html" id="registerLink">S'inscrire</a>
+                </p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Helper function for dev mode
+        function fillTestEmail(email) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').focus();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Use languageDetection.js if available, otherwise fallback
+            let lang;
+            if (typeof detectUserLanguage === 'function') {
+                lang = detectUserLanguage();
+                saveLanguagePreference(lang);
+                updateUrlLanguage(lang);
+            } else {
+                // Fallback if languageDetection.js is not loaded
+                lang = urlParams.get('lang') || localStorage.getItem('selectedLanguage') || 'en';
+            }
+            
+            console.log('Login page - detected language:', lang);
+
+            // Check for dev mode in URL (can still enable via URL parameter)
+            if (urlParams.get('dev') === 'true') {
+                document.body.classList.add('dev-mode');
+            }
+
+            // Translations
+            const translations = {
+                fr: {
+                    pageTitle: 'Connexion',
+                    emailLabel: 'Email:',
+                    passwordLabel: 'Mot de passe:',
+                    submitButton: 'Se connecter',
+                    returnButton: 'Retour',
+                    forgotPassword: 'Mot de passe oublié?',
+                    noAccount: 'Pas de compte?',
+                    register: 'S\'inscrire',
+                    invalidCredentials: 'Email ou mot de passe incorrect',
+                    serverError: 'Erreur du serveur. Veuillez réessayer.',
+                    loading: 'Connexion en cours...',
+                    loginSuccess: 'Connexion réussie! Redirection...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Veuillez d\'abord saisir votre adresse email, puis cliquer sur "Mot de passe oublié?"',
+                    invalidEmail: 'Veuillez saisir une adresse email valide.',
+                    confirmReset: 'Envoyer un lien de réinitialisation du mot de passe à',
+                    sending: 'Envoi...',
+                    resetLinkSent: 'Lien de réinitialisation envoyé ! Vérifiez votre email.',
+                    resetError: 'Erreur lors de l\'envoi du lien de réinitialisation.',
+                    networkError: 'Erreur réseau. Veuillez réessayer.'
+                },
+                en: {
+                    pageTitle: 'Login',
+                    emailLabel: 'Email:',
+                    passwordLabel: 'Password:',
+                    submitButton: 'Login',
+                    returnButton: 'Return',
+                    forgotPassword: 'Forgot password?',
+                    noAccount: 'No account?',
+                    register: 'Register',
+                    invalidCredentials: 'Invalid email or password',
+                    serverError: 'Server error. Please try again.',
+                    loading: 'Logging in...',
+                    loginSuccess: 'Login successful! Redirecting...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Please enter your email address first, then click "Forgot password?"',
+                    invalidEmail: 'Please enter a valid email address.',
+                    confirmReset: 'Send password reset link to',
+                    sending: 'Sending...',
+                    resetLinkSent: 'Password reset link sent! Check your email.',
+                    resetError: 'Error sending reset link.',
+                    networkError: 'Network error. Please try again.'
+                },
+                de: {
+                    pageTitle: 'Anmeldung',
+                    emailLabel: 'E-Mail:',
+                    passwordLabel: 'Passwort:',
+                    submitButton: 'Anmelden',
+                    returnButton: 'Zurück',
+                    forgotPassword: 'Passwort vergessen?',
+                    noAccount: 'Kein Konto?',
+                    register: 'Registrieren',
+                    invalidCredentials: 'Ungültige E-Mail oder Passwort',
+                    serverError: 'Serverfehler. Bitte versuchen Sie es erneut.',
+                    loading: 'Anmelden...',
+                    loginSuccess: 'Anmeldung erfolgreich! Weiterleitung...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Bitte geben Sie zuerst Ihre E-Mail-Adresse ein und klicken Sie dann auf "Passwort vergessen?"',
+                    invalidEmail: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+                    confirmReset: 'Passwort-Reset-Link an',
+                    sending: 'Senden...',
+                    resetLinkSent: 'Passwort-Reset-Link gesendet! Überprüfen Sie Ihre E-Mail.',
+                    resetError: 'Fehler beim Senden des Reset-Links.',
+                    networkError: 'Netzwerkfehler. Bitte versuchen Sie es erneut.'
+                },
+                es: {
+                    pageTitle: 'Iniciar sesión',
+                    emailLabel: 'Correo electrónico:',
+                    passwordLabel: 'Contraseña:',
+                    submitButton: 'Iniciar sesión',
+                    returnButton: 'Volver',
+                    forgotPassword: '¿Olvidó su contraseña?',
+                    noAccount: '¿Sin cuenta?',
+                    register: 'Registrarse',
+                    invalidCredentials: 'Correo electrónico o contraseña inválidos',
+                    serverError: 'Error del servidor. Por favor, inténtelo de nuevo.',
+                    loading: 'Iniciando sesión...',
+                    loginSuccess: '¡Inicio de sesión exitoso! Redirigiendo...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Por favor, ingrese primero su dirección de correo electrónico, luego haga clic en "¿Olvidó su contraseña?"',
+                    invalidEmail: 'Por favor, ingrese una dirección de correo electrónico válida.',
+                    confirmReset: '¿Enviar enlace de restablecimiento de contraseña a',
+                    sending: 'Enviando...',
+                    resetLinkSent: '¡Enlace de restablecimiento enviado! Revise su correo.',
+                    resetError: 'Error al enviar el enlace de restablecimiento.',
+                    networkError: 'Error de red. Por favor, inténtelo de nuevo.'
+                },
+                it: {
+                    pageTitle: 'Accesso',
+                    emailLabel: 'Email:',
+                    passwordLabel: 'Password:',
+                    submitButton: 'Accedi',
+                    returnButton: 'Indietro',
+                    forgotPassword: 'Password dimenticata?',
+                    noAccount: 'Nessun account?',
+                    register: 'Registrati',
+                    invalidCredentials: 'Email o password non validi',
+                    serverError: 'Errore del server. Si prega di riprovare.',
+                    loading: 'Accesso in corso...',
+                    loginSuccess: 'Accesso riuscito! Reindirizzamento...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Inserisci prima il tuo indirizzo email, poi clicca su "Password dimenticata?"',
+                    invalidEmail: 'Inserisci un indirizzo email valido.',
+                    confirmReset: 'Inviare link di ripristino password a',
+                    sending: 'Invio...',
+                    resetLinkSent: 'Link di ripristino inviato! Controlla la tua email.',
+                    resetError: 'Errore nell\'invio del link di ripristino.',
+                    networkError: 'Errore di rete. Si prega di riprovare.'
+                },
+                pt: {
+                    pageTitle: 'Entrar',
+                    emailLabel: 'Email:',
+                    passwordLabel: 'Senha:',
+                    submitButton: 'Entrar',
+                    returnButton: 'Voltar',
+                    forgotPassword: 'Esqueceu a senha?',
+                    noAccount: 'Sem conta?',
+                    register: 'Registrar',
+                    invalidCredentials: 'Email ou senha inválidos',
+                    serverError: 'Erro do servidor. Por favor, tente novamente.',
+                    loading: 'Entrando...',
+                    loginSuccess: 'Login bem-sucedido! Redirecionando...',
+                    // Forgot password translations
+                    enterEmailFirst: 'Por favor, digite primeiro seu endereço de email, depois clique em "Esqueceu a senha?"',
+                    invalidEmail: 'Por favor, digite um endereço de email válido.',
+                    confirmReset: 'Enviar link de redefinição de senha para',
+                    sending: 'Enviando...',
+                    resetLinkSent: 'Link de redefinição enviado! Verifique seu email.',
+                    resetError: 'Erro ao enviar link de redefinição.',
+                    networkError: 'Erro de rede. Por favor, tente novamente.'
+                }
+            };
+
+            // Update content based on language
+            const t = translations[lang] || translations.en;
+            document.getElementById('htmlLang').lang = lang;
+            document.getElementById('pageTitle').textContent = t.pageTitle;
+            document.getElementById('emailLabel').textContent = t.emailLabel;
+            document.getElementById('passwordLabel').textContent = t.passwordLabel;
+            document.getElementById('submitButton').textContent = t.submitButton;
+            document.getElementById('returnBtn').textContent = t.returnButton;
+            document.getElementById('returnBtn').href = `index.html?lang=${lang}`;
+            document.getElementById('forgotPasswordLink').textContent = t.forgotPassword;
+            document.getElementById('noAccountText').textContent = t.noAccount;
+            document.getElementById('registerLink').textContent = t.register;
+            document.getElementById('registerLink').href = `form.html?lang=${lang}`;
+
+            // Form elements
+            const form = document.getElementById('loginForm');
+            const submitButton = document.getElementById('submitButton');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+
+            // Form submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const originalButtonText = submitButton.textContent;
+                submitButton.disabled = true;
+                submitButton.textContent = t.loading;
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+
+                try {
+                    const formData = new FormData(form);
+                    const email = formData.get('email');
+                    const password = formData.get('password');
+
+                    console.log('Attempting login for:', email);
+
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const result = await response.json();
+                    console.log('Login response:', result);
+
+                    if (response.ok && result.success) {
+                        // Store user session
+                        sessionStorage.setItem('userEmail', email);
+                        sessionStorage.setItem('userId', result.userId);
+                        if (result.userInfo) {
+                            sessionStorage.setItem('userInfo', JSON.stringify(result.userInfo));
+                        }
+                        
+                        // Show success message
+                        successMessage.textContent = t.loginSuccess;
+                        successMessage.style.display = 'block';
+                        
+                        // Redirect to appropriate page
+                        setTimeout(() => {
+                            // Check if user has dashboard access, otherwise go to appForm.html
+                            // In login.html, after successful login:
+const redirectUrl = `account.html?lang=${lang}`;
+window.location.href = redirectUrl;
+                        }, 1500);
+                    } else {
+                        errorMessage.textContent = result.message || t.invalidCredentials;
+                        errorMessage.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    errorMessage.textContent = t.serverError;
+                    errorMessage.style.display = 'block';
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonText;
+                }
+            });
+
+            // Forgot password link - UPDATED WITH FULL IMPLEMENTATION
+            document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                const email = document.getElementById('email').value;
+                
+                if (!email) {
+                    alert(t.enterEmailFirst);
+                    document.getElementById('email').focus();
+                    return;
+                }
+                
+                // Validate email format
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    alert(t.invalidEmail);
+                    document.getElementById('email').focus();
+                    return;
+                }
+                
+                // Confirmation message
+                if (confirm(`${t.confirmReset} ${email}?`)) {
+                    // Show loading state
+                    const originalText = document.getElementById('forgotPasswordLink').textContent;
+                    document.getElementById('forgotPasswordLink').textContent = '⏳ ' + t.sending;
+                    
+                    // Call forgot password API
+                    fetch('/api/forgot-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            alert(t.resetLinkSent);
+                        } else {
+                            alert(result.message || t.resetError);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert(t.networkError);
+                    })
+                    .finally(() => {
+                        // Restore original text
+                        document.getElementById('forgotPasswordLink').textContent = originalText;
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

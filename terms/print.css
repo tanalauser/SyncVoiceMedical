@@ -1,0 +1,60 @@
+@media print {
+    /* Hide navigation and buttons when printing */
+    .nav,
+    .action-buttons {
+        display: none !important;
+    }
+
+    /* Optimize page margins for printing */
+    body {
+        margin: 2.5cm;
+        padding: 0;
+    }
+
+    .container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Ensure text is black for better printing */
+    * {
+        color: black !important;
+        text-align: left;
+    }
+
+    /* Improve headings for print */
+    h1 {
+        font-size: 18pt;
+        margin-bottom: 20pt;
+    }
+
+    .article-title {
+        font-size: 14pt;
+        margin-top: 16pt;
+        margin-bottom: 8pt;
+    }
+
+    /* Optimize lists for printing */
+    ul, ol {
+        margin: 8pt 0;
+        padding-left: 16pt;
+    }
+
+    li {
+        margin-bottom: 4pt;
+    }
+
+    /* Ensure page breaks don't split articles awkwardly */
+    .article {
+        page-break-inside: avoid;
+        margin-bottom: 16pt;
+    }
+
+    /* Footer styling */
+    .footer {
+        margin-top: 24pt;
+        border-top: 1pt solid black;
+        padding-top: 12pt;
+    }
+}
