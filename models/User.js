@@ -168,8 +168,43 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    lastLoginAt: {
+    // Tracking Fields - ADD THESE
+    trialStartDate: {
         type: Date
+    },
+    source: {
+        type: String,
+        enum: ['email', 'web', 'direct', 'referral'],
+        default: 'web'
+    },
+    emailSentAt: {
+        type: Date
+    },
+    emailOpened: {
+        type: Boolean,
+        default: false
+    },
+    emailOpenedAt: {
+        type: Date
+    },
+    lastEmailOpenCampaign: {
+        type: String
+    },
+    subscriptionStatus: {
+        type: String,
+        enum: ['trial', 'paid', 'expired', 'churned'],
+        default: 'trial'
+    },
+    churned: {
+        type: Boolean,
+        default: false
+    },
+    churnedAt: {
+        type: Date
+    },
+    downloadIntent: {
+        type: Boolean,
+        default: false
     },
 }, {
     timestamps: true,

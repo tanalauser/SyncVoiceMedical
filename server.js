@@ -845,12 +845,46 @@ async function hashPassword(password) {
     return await bcrypt.hash(password, saltRounds);
 }
 
+// Email open tracking endpoint
+app.get('/api/email-open', async (req, res) => {
+    try {
+        const { email, campaign } = req.query;
+        
+        if (!email) {
+            return res.status(400).send('Email required');
+        }
+
+        const user = await User.findOne({ email: email.toLowerCase() });
+        
+        if (user) {
+            user.emailOpened = true;
+            user.emailOpenedAt = new Date();
+            if (campaign) {
+                user.lastEmailOpenCampaign = campaign;
+            }
+            await user.save();
+            logger.info(`Email opened tracked for: ${email}`);
+        }
+
+        // Return a 1x1 transparent pixel
+        const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+        res.writeHead(200, {
+            'Content-Type': 'image/gif',
+            'Content-Length': pixel.length,
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+        });
+        res.end(pixel);
+    } catch (error) {
+        logger.error('Email open tracking error:', error);
+        // Still return pixel even on error
+        const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+        res.writeHead(200, {'Content-Type': 'image/gif'});
+        res.end(pixel);
+    }
+});
+
 // Send activation code
 app.post('/api/send-activation', async (req, res) => {
-    user.trialStartDate = new Date();
-user.source = 'email';
-user.emailSentAt = new Date();
-
     logger.info('=== SEND-ACTIVATION ROUTE CALLED ===');
     
     const dbState = checkMongoConnection();
@@ -887,7 +921,12 @@ user.emailSentAt = new Date();
                 autoRenewal: otherData.autoRenewal,
                 validationStartDate: new Date(),
                 validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-                downloadIntent: otherData.downloadIntent || false
+                downloadIntent: otherData.downloadIntent || false,
+        // ADD TRACKING
+        trialStartDate: new Date(),
+        source: 'email',
+        emailSentAt: new Date(),
+        subscriptionStatus: 'trial'
             };
 
             let user = await User.findOne({ email: email.toLowerCase() });
@@ -998,19 +1037,25 @@ user.emailSentAt = new Date();
         const expiryDate = getExpiryDate();
 
         const userData = {
-            firstName,
-            lastName,
-            email: email.toLowerCase(),
-            activationCode,
-            activationCodeExpiry: expiryDate,
-            version,
-            language,
-            termsAccepted,
-            isActive: false,
-            updatedAt: new Date(),
-            validationStartDate: new Date(),
-            validationEndDate: expiryDate
-        };
+    firstName,
+    lastName,
+    email: email.toLowerCase(),
+    activationCode,
+    activationCodeExpiry: expiryDate,
+    version,
+    language,
+    termsAccepted,
+    isActive: false,
+    updatedAt: new Date(),
+    validationStartDate: new Date(),
+    validationEndDate: expiryDate,
+    // ADD TRACKING
+    trialStartDate: new Date(),
+    source: 'email',
+    emailSentAt: new Date(),
+    subscriptionStatus: 'trial',
+    downloadIntent: otherData.downloadIntent || false
+};
 
         if (otherData.password) {
             userData.password = await hashPassword(otherData.password);
@@ -1018,39 +1063,59 @@ user.emailSentAt = new Date();
 
         let user;
 
-        if (DEV_EMAILS.includes(email.toLowerCase())) {
-            const existingUser = await User.findOne({ email: email.toLowerCase() });
-            
-            if (existingUser) {
-                existingUser.activationCode = activationCode;
-                existingUser.activationCodeExpiry = expiryDate;
-                existingUser.firstName = firstName;
-                existingUser.lastName = lastName;
-                existingUser.language = language;
-                existingUser.termsAccepted = termsAccepted;
-                existingUser.updatedAt = new Date();
-                
-                if (otherData.password) {
-                    existingUser.password = await hashPassword(otherData.password);
-                }
-                
-                if (!existingUser.validationStartDate) {
-                    existingUser.validationStartDate = existingUser.createdAt || new Date();
-                }
-                if (!existingUser.validationEndDate) {
-                    existingUser.validationEndDate = expiryDate;
-                }
-                
-                await existingUser.save();
-                user = existingUser;
-            } else {
-                user = new User(userData);
-                await user.save();
-            }
-        } else {
-            user = new User(userData);
-            await user.save();
+if (DEV_EMAILS.includes(email.toLowerCase())) {
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    
+    if (existingUser) {
+        existingUser.activationCode = activationCode;
+        existingUser.activationCodeExpiry = expiryDate;
+        existingUser.firstName = firstName;
+        existingUser.lastName = lastName;
+        existingUser.language = language;
+        existingUser.termsAccepted = termsAccepted;
+        existingUser.updatedAt = new Date();
+        
+        // ADD TRACKING HERE
+        existingUser.trialStartDate = new Date();
+        existingUser.source = 'email';
+        existingUser.emailSentAt = new Date();
+        existingUser.subscriptionStatus = 'trial';
+        
+        if (otherData.password) {
+            existingUser.password = await hashPassword(otherData.password);
         }
+        
+        if (!existingUser.validationStartDate) {
+            existingUser.validationStartDate = existingUser.createdAt || new Date();
+        }
+        if (!existingUser.validationEndDate) {
+            existingUser.validationEndDate = expiryDate;
+        }
+        
+        await existingUser.save();
+        user = existingUser;
+    } else {
+        // ADD TRACKING TO NEW USER DATA
+        userData.trialStartDate = new Date();
+        userData.source = 'email';
+        userData.emailSentAt = new Date();
+        userData.subscriptionStatus = 'trial';
+        userData.downloadIntent = otherData.downloadIntent || false;
+        
+        user = new User(userData);
+        await user.save();
+    }
+} else {
+    // ADD TRACKING TO NEW USER DATA
+    userData.trialStartDate = new Date();
+    userData.source = 'email';
+    userData.emailSentAt = new Date();
+    userData.subscriptionStatus = 'trial';
+    userData.downloadIntent = otherData.downloadIntent || false;
+    
+    user = new User(userData);
+    await user.save();
+}
 
         let activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
 
@@ -1482,7 +1547,6 @@ async function handleSubscriptionChange(subscription) {
 }
 
 // Email template
-// Email template
 const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = false) => {
     const t = messages[lang] || messages.fr;
     
@@ -1652,7 +1716,11 @@ const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = 
                     }
                 </p>
             </div>
-        </div>
+  </div>
+    
+    <!-- Email Open Tracking Pixel -->
+    <img src="${BASE_URL}/api/email-open?email=${encodeURIComponent(user.email)}&campaign=trial_activation" width="1" height="1" style="display:none;" alt="">
+    
     </body>
     </html>`;
 };
