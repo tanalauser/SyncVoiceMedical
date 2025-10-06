@@ -516,6 +516,61 @@ app.get('/api/status', (req, res) => {
     }
 });
 
+// N8N tracking webhook - receives tracking data from n8n
+app.post('/api/n8n-tracking', async (req, res) => {
+    try {
+        const { email, event, ...data } = req.body;
+        
+        if (!email || !event) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email and event are required'
+            });
+        }
+
+        const user = await User.findOne({ email: email.toLowerCase() });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Update user based on event type
+        switch(event) {
+            case 'trial_signup':
+                user.trialStartDate = new Date();
+                user.source = data.source || 'email';
+                break;
+            case 'email_opened':
+                user.emailOpened = true;
+                user.emailOpenedAt = new Date();
+                user.lastEmailOpenCampaign = data.campaign;
+                break;
+            case 'paid_subscription':
+                user.isPaid = true;
+                user.subscriptionStartDate = new Date();
+                break;
+        }
+
+        await user.save();
+        
+        res.json({
+            success: true,
+            message: 'Tracking updated',
+            userId: user._id
+        });
+
+    } catch (error) {
+        logger.error('N8N tracking error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+});
+
 // Password reset request route
 app.post('/api/forgot-password', async (req, res) => {
     try {
