@@ -847,6 +847,10 @@ async function hashPassword(password) {
 
 // Send activation code
 app.post('/api/send-activation', async (req, res) => {
+    user.trialStartDate = new Date();
+user.source = 'email';
+user.emailSentAt = new Date();
+
     logger.info('=== SEND-ACTIVATION ROUTE CALLED ===');
     
     const dbState = checkMongoConnection();
