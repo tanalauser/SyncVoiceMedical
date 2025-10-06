@@ -1009,11 +1009,34 @@ app.post('/api/send-activation', async (req, res) => {
         };
 
         await transporter.sendMail(mailOptions);
+
+        // Call n8n webhook for trial signup tracking
+try {
+    await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook-test/trial-signup', {
+        email: email.toLowerCase(),
+        firstName: firstName,
+        lastName: lastName,
+        version: version,
+        language: language,
+        userId: user._id.toString(),
+        activationCode: user.activationCode,
+        signupDate: new Date().toISOString()
+    }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 5000
+    });
+    logger.info('n8n webhook called successfully for:', email);
+} catch (webhookError) {
+    // Don't fail the registration if webhook fails
+    logger.error('n8n webhook error (non-critical):', webhookError.message);
+}
         
         res.json({
             success: true,
             message: t.success,
-            userId: user._id.toString()
+            userId: user._id.toString(),
+            activationCode: activationCode,
+            userEmail: email
         });
 
     } catch (error) {
