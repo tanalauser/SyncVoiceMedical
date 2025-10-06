@@ -1012,7 +1012,7 @@ app.post('/api/send-activation', async (req, res) => {
 
         // Call n8n webhook for trial signup tracking
 try {
-    await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook-test/trial-signup', {
+    await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/trial-signup', {
         email: email.toLowerCase(),
         firstName: firstName,
         lastName: lastName,
