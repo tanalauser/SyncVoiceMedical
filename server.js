@@ -531,42 +531,121 @@ app.post('/api/n8n-tracking', async (req, res) => {
         const user = await User.findOne({ email: email.toLowerCase() });
         
         if (!user) {
+            // Create prospect if doesn't exist
+            if (event === 'email_sent') {
+                const newUser = new User({
+                    email: email.toLowerCase(),
+                    firstName: data.firstName || 'Unknown',
+                    lastName: data.lastName || 'Unknown',
+                    version: 'prospect',
+                    subscriptionStatus: 'prospect',
+                    source: data.source || 'email_campaign',
+                    emailSentAt: new Date(),
+                    termsAccepted: false,
+                    activationCode: 'PENDING',
+                    activationCodeExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                    validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                });
+                await newUser.save();
+                
+                return res.json({
+                    success: true,
+                    message: 'Prospect created',
+                    userId: newUser._id
+                });
+            }
+            
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
 
-        // Update user based on event type
+        // Track events based on type
         switch(event) {
-            case 'trial_signup':
-                user.trialStartDate = new Date();
-                user.source = data.source || 'email';
+            case 'email_sent':
+                user.emailSentAt = new Date();
+                user.emailSentCount = (user.emailSentCount || 0) + 1;
+                user.lastEmailCampaign = data.campaign;
                 break;
+                
             case 'email_opened':
                 user.emailOpened = true;
                 user.emailOpenedAt = new Date();
+                user.emailOpenCount = (user.emailOpenCount || 0) + 1;
                 user.lastEmailOpenCampaign = data.campaign;
+                if (!user.firstEmailOpenedAt) {
+                    user.firstEmailOpenedAt = new Date();
+                }
                 break;
+                
+            case 'link_clicked':
+                user.emailClicked = true;
+                user.emailClickedAt = new Date();
+                user.clickCount = (user.clickCount || 0) + 1;
+                user.lastClickedLink = data.link;
+                user.lastClickCampaign = data.campaign;
+                break;
+                
+            case 'trial_signup':
+                user.trialStartDate = new Date();
+                user.source = data.source || 'email';
+                user.subscriptionStatus = 'trial';
+                user.version = 'free';
+                user.isActive = true;
+                user.conversionCampaign = data.campaign;
+                break;
+                
             case 'paid_subscription':
                 user.isPaid = true;
                 user.subscriptionStartDate = new Date();
+                user.subscriptionStatus = 'paid';
+                user.version = 'paid';
+                user.paymentAmount = data.amount;
+                user.paymentCurrency = data.currency;
+                user.conversionValue = data.amount;
+                break;
+                
+            case 'subscription_cancelled':
+                user.subscriptionStatus = 'cancelled';
+                user.cancellationDate = new Date();
+                user.cancellationReason = data.reason;
+                break;
+                
+            case 'subscription_expired':
+                user.subscriptionStatus = 'expired';
+                user.churned = true;
+                user.churnedAt = new Date();
+                user.churnReason = data.reason || 'expired';
+                break;
+                
+            case 'reactivated':
+                user.subscriptionStatus = 'paid';
+                user.churned = false;
+                user.reactivatedAt = new Date();
+                user.reactivationCampaign = data.campaign;
                 break;
         }
 
+        // Update engagement metrics
+        user.lastActivityAt = new Date();
+        user.engagementScore = calculateEngagementScore(user);
+        
         await user.save();
         
         res.json({
             success: true,
-            message: 'Tracking updated',
-            userId: user._id
+            message: `Event '${event}' tracked`,
+            userId: user._id,
+            currentStatus: user.subscriptionStatus
         });
 
     } catch (error) {
         logger.error('N8N tracking error:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error'
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -845,10 +924,175 @@ async function hashPassword(password) {
     return await bcrypt.hash(password, saltRounds);
 }
 
+// Calculate engagement score
+function calculateEngagementScore(user) {
+    let score = 0;
+    
+    // Email engagement (max 40 points)
+    if (user.emailOpened) score += 10;
+    if (user.emailOpenCount > 3) score += 10;
+    if (user.emailClicked) score += 20;
+    
+    // Trial engagement (max 30 points)
+    if (user.trialStartDate) score += 30;
+    
+    // Paid engagement (max 30 points)
+    if (user.isPaid) score += 30;
+    
+    // Recency bonus
+    const daysSinceActivity = Math.floor((new Date() - new Date(user.lastActivityAt || user.createdAt)) / (1000 * 60 * 60 * 24));
+    if (daysSinceActivity < 7) score += 10;
+    else if (daysSinceActivity < 30) score += 5;
+    
+    return Math.min(100, score);
+}
+
+
+// Analytics endpoint for n8n dashboard
+app.get('/api/analytics/summary', async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        
+        const dateFilter = {};
+        if (startDate) dateFilter.$gte = new Date(startDate);
+        if (endDate) dateFilter.$lte = new Date(endDate);
+        
+        const filter = Object.keys(dateFilter).length > 0 
+            ? { createdAt: dateFilter } 
+            : {};
+
+        // Get comprehensive analytics
+        const [
+            totalProspects,
+            emailsOpened,
+            trialSignups,
+            paidSubscriptions,
+            churned,
+            reactivated
+        ] = await Promise.all([
+            User.countDocuments({ ...filter, subscriptionStatus: 'prospect' }),
+            User.countDocuments({ ...filter, emailOpened: true }),
+            User.countDocuments({ ...filter, subscriptionStatus: 'trial' }),
+            User.countDocuments({ ...filter, subscriptionStatus: 'paid' }),
+            User.countDocuments({ ...filter, churned: true }),
+            User.countDocuments({ ...filter, reactivatedAt: { $exists: true } })
+        ]);
+        
+        // Calculate conversion rates
+        const emailToTrialRate = totalProspects > 0 
+            ? ((trialSignups / totalProspects) * 100).toFixed(2) 
+            : 0;
+            
+        const trialToPaidRate = trialSignups > 0 
+            ? ((paidSubscriptions / trialSignups) * 100).toFixed(2) 
+            : 0;
+            
+        const churnRate = paidSubscriptions > 0 
+            ? ((churned / paidSubscriptions) * 100).toFixed(2) 
+            : 0;
+        
+        // Get recent activity
+        const recentActivity = await User.find()
+            .sort({ lastActivityAt: -1 })
+            .limit(10)
+            .select('email subscriptionStatus lastActivityAt engagementScore');
+        
+        res.json({
+            success: true,
+            timestamp: new Date().toISOString(),
+            metrics: {
+                totals: {
+                    prospects: totalProspects,
+                    emailsOpened: emailsOpened,
+                    trials: trialSignups,
+                    paid: paidSubscriptions,
+                    churned: churned,
+                    reactivated: reactivated
+                },
+                rates: {
+                    emailToTrial: `${emailToTrialRate}%`,
+                    trialToPaid: `${trialToPaidRate}%`,
+                    churn: `${churnRate}%`
+                },
+                recentActivity: recentActivity
+            }
+        });
+        
+    } catch (error) {
+        logger.error('Analytics error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Analytics query failed',
+            error: error.message
+        });
+    }
+});
+
+// Churn detection - Run daily via n8n schedule
+app.post('/api/detect-churns', async (req, res) => {
+    try {
+        const now = new Date();
+        
+        // Find expired subscriptions that haven't been marked as churned
+        const expiredUsers = await User.find({
+            version: 'paid',
+            validationEndDate: { $lt: now },
+            churned: { $ne: true }
+        });
+        
+        const churnedEmails = [];
+        
+        for (const user of expiredUsers) {
+            user.churned = true;
+            user.churnedAt = now;
+            user.subscriptionStatus = 'churned';
+            user.churnReason = 'subscription_expired';
+            await user.save();
+            
+            churnedEmails.push({
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                churnedAt: now.toISOString(),
+                daysActive: Math.floor((now - new Date(user.validationStartDate)) / (1000 * 60 * 60 * 24))
+            });
+        }
+        
+        // Send to n8n for win-back campaigns
+        if (churnedEmails.length > 0) {
+            try {
+                await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/churns-detected', {
+                    churns: churnedEmails,
+                    count: churnedEmails.length,
+                    detectedAt: now.toISOString()
+                }, {
+                    timeout: 5000
+                });
+            } catch (webhookError) {
+                logger.warn('n8n churn webhook error:', webhookError.message);
+            }
+        }
+        
+        res.json({
+            success: true,
+            message: `Detected ${churnedEmails.length} churned users`,
+            churns: churnedEmails
+        });
+        
+    } catch (error) {
+        logger.error('Churn detection error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Churn detection failed',
+            error: error.message
+        });
+    }
+});
+
 // Email open tracking endpoint
 app.get('/api/email-open', async (req, res) => {
     try {
-        const { email, campaign } = req.query;
+        const { email, campaign, source } = req.query;
         
         if (!email) {
             return res.status(400).send('Email required');
@@ -857,16 +1101,47 @@ app.get('/api/email-open', async (req, res) => {
         const user = await User.findOne({ email: email.toLowerCase() });
         
         if (user) {
+            // Track email open
             user.emailOpened = true;
             user.emailOpenedAt = new Date();
-            if (campaign) {
-                user.lastEmailOpenCampaign = campaign;
+            user.lastEmailOpenCampaign = campaign || 'unknown';
+            
+            // Track first open if not already tracked
+            if (!user.firstEmailOpenedAt) {
+                user.firstEmailOpenedAt = new Date();
             }
+            
+            // Increment open count
+            user.emailOpenCount = (user.emailOpenCount || 0) + 1;
+            
+            // Update engagement score
+            user.engagementScore = calculateEngagementScore(user);
+            
             await user.save();
-            logger.info(`Email opened tracked for: ${email}`);
+            
+            logger.info(`Email opened tracked for: ${email}`, {
+                campaign: campaign,
+                source: source,
+                openCount: user.emailOpenCount
+            });
+            
+            // Send to n8n for real-time tracking
+            try {
+                await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/email-opened', {
+                    email: email.toLowerCase(),
+                    campaign: campaign,
+                    source: source,
+                    openedAt: new Date().toISOString(),
+                    openCount: user.emailOpenCount
+                }, {
+                    timeout: 5000
+                });
+            } catch (webhookError) {
+                logger.warn('n8n webhook error (non-critical):', webhookError.message);
+            }
         }
 
-        // Return a 1x1 transparent pixel
+        // Return 1x1 transparent pixel
         const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
         res.writeHead(200, {
             'Content-Type': 'image/gif',
@@ -876,7 +1151,6 @@ app.get('/api/email-open', async (req, res) => {
         res.end(pixel);
     } catch (error) {
         logger.error('Email open tracking error:', error);
-        // Still return pixel even on error
         const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
         res.writeHead(200, {'Content-Type': 'image/gif'});
         res.end(pixel);
@@ -1970,6 +2244,32 @@ function mapLanguageForDeepgram(clientLanguage) {
     logger.info(`Language mapping: ${clientLanguage} → ${mappedLanguage}`);
     return mappedLanguage;
 }
+
+app.get('/api/unsubscribe', async (req, res) => {
+    try {
+        const { email, id } = req.query;
+        
+        if (!email) {
+            return res.status(400).send('Email required');
+        }
+        
+        const user = await User.findOne({ email: email.toLowerCase() });
+        
+        if (user) {
+            user.subscriptionStatus = 'unsubscribed';
+            user.unsubscribedAt = new Date();
+            await user.save();
+        }
+        
+        // Redirect to unsubscribe confirmation page
+        res.redirect('/unsubscribed.html?email=' + encodeURIComponent(email));
+        
+    } catch (error) {
+        logger.error('Unsubscribe error:', error);
+        res.redirect('/error.html');
+    }
+});
+
 
 // Store active WebSocket connections
 const activeConnections = new Map();
