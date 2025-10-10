@@ -2681,18 +2681,35 @@ wss.on('connection', (ws, req) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
     logger.info('SIGTERM received, closing server...');
-    wss.close(() => {
-        logger.info('WebSocket server closed');
-        server.close(() => {
-            logger.info('HTTP server closed');
-            mongoose.connection.close().then(() => {
-                console.log('MongoDB connection closed');
-                process.exit(0);
+    
+    try {
+        // Close WebSocket server
+        await new Promise((resolve) => {
+            wss.close(() => {
+                logger.info('WebSocket server closed');
+                resolve();
             });
         });
-    });
+        
+        // Close HTTP server
+        await new Promise((resolve) => {
+            server.close(() => {
+                logger.info('HTTP server closed');
+                resolve();
+            });
+        });
+        
+        // Close MongoDB connection
+        await mongoose.connection.close();
+        logger.info('MongoDB connection closed');
+        
+    } catch (error) {
+        logger.error('Error during shutdown:', error);
+    } finally {
+        process.exit(0);
+    }
 });
 
 // Export for testing
