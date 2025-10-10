@@ -1410,7 +1410,7 @@ if (DEV_EMAILS.includes(email.toLowerCase())) {
 
         // Call n8n webhook for trial signup tracking
 try {
-    await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/trial-signup', {
+    await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/402c0884-919a-49de-ae81-97f01b1eb6cd', {
         email: email.toLowerCase(),
         firstName: firstName,
         lastName: lastName,
