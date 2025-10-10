@@ -2687,8 +2687,8 @@ process.on('SIGTERM', () => {
         logger.info('WebSocket server closed');
         server.close(() => {
             logger.info('HTTP server closed');
-            mongoose.connection.close(false, () => {
-                logger.info('MongoDB connection closed');
+            mongoose.connection.close().then(() => {
+                console.log('MongoDB connection closed');
                 process.exit(0);
             });
         });
