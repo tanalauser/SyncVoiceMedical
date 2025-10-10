@@ -423,7 +423,7 @@ class ApiError extends Error {
 app.use('/api', userRoutes);
 
 // Health endpoints
-app.get('/health', (req, res) => {
+app.get('/healthz', (req, res) => {
     const dbState = checkMongoConnection();
     res.status(200).json({
         status: 'healthy',
