@@ -533,33 +533,31 @@ app.post('/api/n8n-tracking', async (req, res) => {
         const user = await User.findOne({ email: email.toLowerCase() });
         
         if (!user) {
-            // Create prospect if doesn't exist
-            if (event === 'email_sent') {
-                const newUser = new User({
-                    email: email.toLowerCase(),
-                    firstName: data.firstName || 'Unknown',
-                    lastName: data.lastName || 'Unknown',
-                    version: 'prospect',
-                    subscriptionStatus: 'prospect',
-                    source: data.source || 'email_campaign',
-                    emailSentAt: new Date(),
-                    termsAccepted: false,
-                    activationCode: 'PENDING',
-                    activationCodeExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-                    validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                });
-                await newUser.save();
-                
-                return res.json({
-                    success: true,
-                    message: 'Prospect created',
-                    userId: newUser._id
-                });
-            }
+    // Create prospect for ANY tracking event from unknown users
+            const newUser = new User({
+                email: email.toLowerCase(),
+                firstName: data.firstName || 'Unknown',
+                lastName: data.lastName || 'Unknown',
+                version: 'prospect',
+                subscriptionStatus: 'prospect',
+                source: data.source || 'email_campaign',
+                emailOpened: event === 'email_opened',
+                emailOpenedAt: event === 'email_opened' ? new Date() : null,
+                emailOpenCount: event === 'email_opened' ? 1 : 0,
+                firstEmailOpenedAt: event === 'email_opened' ? new Date() : null,
+                lastEmailOpenCampaign: data.campaign || 'automated',
+                termsAccepted: false,
+                activationCode: 'PENDING',
+                activationCodeExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            });
             
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
+            await newUser.save();
+            
+            return res.json({
+                success: true,
+                message: `Prospect created from ${event}`,
+                userId: newUser._id
             });
         }
 
