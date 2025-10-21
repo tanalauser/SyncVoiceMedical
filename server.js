@@ -1487,6 +1487,24 @@ app.get('/api/debug/db-info', async (req, res) => {
 });
 
 
+app.get('/api/debug/collections', async (req, res) => {
+    try {
+        const collections = await mongoose.connection.db.listCollections().toArray();
+        const userCount = await mongoose.connection.db.collection('users').countDocuments();
+        const analyticsUserCount = await mongoose.connection.db.collection('analytics.users').countDocuments();
+        
+        res.json({
+            database: mongoose.connection.name,
+            collections: collections.map(c => c.name),
+            userCount,
+            analyticsUserCount
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 // Add this Stripe webhook endpoint to your server.js
 app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
