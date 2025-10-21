@@ -1199,7 +1199,8 @@ app.post('/api/send-activation', async (req, res) => {
                 downloadIntent: otherData.downloadIntent || false,
                 // TRACKING FIELDS
                 //trialStartDate: new Date(),
-                source: otherData.source || 'website',
+                //source: otherData.source || 'website',
+                source: 'email',
                 emailSentAt: new Date(),
                 signupSource: 'website',  // New field name not restricted by enum
                 paymentStatus: 'pending',
