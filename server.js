@@ -1127,15 +1127,16 @@ app.get('/api/email-open', async (req, res) => {
             
             // Send to n8n for real-time tracking
             try {
-                await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/email-opened', {
-                    email: email.toLowerCase(),
-                    campaign: campaign,
-                    source: source,
-                    openedAt: new Date().toISOString(),
-                    openCount: user.emailOpenCount
-                }, {
+                // CORRECTED: Use GET request and correct URL path
+                await axios.get('https://n8n.srv1030172.hstgr.cloud/webhook/email-open', {
+                    params: {
+                        email: email.toLowerCase(),
+                        campaign: campaign || 'unknown',
+                        source: source || 'direct'
+                    },
                     timeout: 5000
                 });
+                logger.info('n8n webhook called successfully');
             } catch (webhookError) {
                 logger.warn('n8n webhook error (non-critical):', webhookError.message);
             }
