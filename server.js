@@ -1094,6 +1094,8 @@ app.get('/api/email-open', async (req, res) => {
     try {
         const { email, campaign, source } = req.query;
         
+        console.log('Email open tracking called for:', email);
+        
         if (!email) {
             return res.status(400).send('Email required');
         }
@@ -1101,16 +1103,24 @@ app.get('/api/email-open', async (req, res) => {
         const user = await User.findOne({ email: email.toLowerCase() });
         
         if (user) {
-            // USE THE SCHEMA METHOD INSTEAD
+            console.log('User found, current openCount:', user.emailOpenCount);
+            console.log('Current updatedAt:', user.updatedAt);
+            
+            // Use the schema method
             await user.trackEmailOpen(campaign || 'unknown');
+            
+            // Verify the save worked
+            const updatedUser = await User.findOne({ email: email.toLowerCase() });
+            console.log('After save, openCount:', updatedUser.emailOpenCount);
+            console.log('New updatedAt:', updatedUser.updatedAt);
             
             logger.info(`Email opened tracked for: ${email}`, {
                 campaign: campaign,
                 source: source,
-                openCount: user.emailOpenCount
+                openCount: updatedUser.emailOpenCount
             });
             
-            // n8n webhook call (keep as is)
+            // Send to n8n for real-time tracking
             try {
                 await axios.get('https://n8n.srv1030172.hstgr.cloud/webhook/email-open', {
                     params: {
@@ -1121,11 +1131,13 @@ app.get('/api/email-open', async (req, res) => {
                     timeout: 5000
                 });
             } catch (webhookError) {
-                // Ignore silently
+                // Silently ignore
             }
+        } else {
+            console.log('User not found for email:', email);
         }
 
-        // Return pixel
+        // Return 1x1 transparent pixel
         const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
         res.writeHead(200, {
             'Content-Type': 'image/gif',
@@ -1134,12 +1146,16 @@ app.get('/api/email-open', async (req, res) => {
         });
         res.end(pixel);
     } catch (error) {
+        console.error('Email open tracking error:', error);
         logger.error('Email open tracking error:', error);
+        
+        // Still return pixel even on error
         const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
         res.writeHead(200, {'Content-Type': 'image/gif'});
         res.end(pixel);
     }
 });
+
 
 // Send activation code
 app.post('/api/send-activation', async (req, res) => {
