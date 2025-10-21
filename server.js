@@ -1198,9 +1198,11 @@ app.post('/api/send-activation', async (req, res) => {
                 validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 downloadIntent: otherData.downloadIntent || false,
                 // TRACKING FIELDS
-                trialStartDate: new Date(),
+                //trialStartDate: new Date(),
                 source: otherData.source || 'website',
                 emailSentAt: new Date(),
+                signupSource: 'website',  // New field name not restricted by enum
+                paymentStatus: 'pending',
                 subscriptionStatus: 'pending_payment',
                 customerJourney: {
                     signupDate: new Date(),
@@ -1343,9 +1345,12 @@ app.post('/api/send-activation', async (req, res) => {
             // COMPREHENSIVE TRACKING
             trialStartDate: new Date(),
             trialEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-            source: otherData.source || 'website',
+            //source: otherData.source || 'website',
+            source: 'email',
+            signupSource: otherData.source || 'website',  // New field name
+            trialStatus: 'pending_activation',
             emailSentAt: new Date(),
-            subscriptionStatus: 'trial_pending_activation',
+            //subscriptionStatus: 'trial_pending_activation',
             downloadIntent: otherData.downloadIntent || false,
             customerJourney: {
                 signupDate: new Date(),
