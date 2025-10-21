@@ -1459,6 +1459,34 @@ app.post('/api/send-activation', async (req, res) => {
 });
 
 
+app.get('/api/debug/db-info', async (req, res) => {
+    try {
+        const dbInfo = {
+            connected: mongoose.connection.readyState === 1,
+            host: mongoose.connection.host,
+            name: mongoose.connection.name,
+            uri: mongoose.connection._connectionString ? mongoose.connection._connectionString.replace(/\/\/.*:.*@/, '//***:***@') : 'Not available'
+        };
+        
+        // Count users in the connected database
+        const userCount = await User.countDocuments();
+        const sampleUser = await User.findOne({ email: 'nicolas.tanala@v-stars3d.com' });
+        
+        res.json({
+            database: dbInfo,
+            userCount,
+            sampleUser: sampleUser ? {
+                email: sampleUser.email,
+                updatedAt: sampleUser.updatedAt,
+                emailOpenCount: sampleUser.emailOpenCount
+            } : null
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 // Add this Stripe webhook endpoint to your server.js
 app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
