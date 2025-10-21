@@ -1411,23 +1411,19 @@ if (DEV_EMAILS.includes(email.toLowerCase())) {
 
         // Call n8n webhook for trial signup tracking
 try {
-    await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/402c0884-919a-49de-ae81-97f01b1eb6cd', {
-        email: email.toLowerCase(),
-        firstName: firstName,
-        lastName: lastName,
-        version: version,
-        language: language,
-        userId: user._id.toString(),
-        activationCode: user.activationCode,
-        signupDate: new Date().toISOString()
-    }, {
-        headers: { 'Content-Type': 'application/json' },
+    await axios.get('https://n8n.srv1030172.hstgr.cloud/webhook/email-open', {
+        params: {
+            email: email.toLowerCase(),
+            campaign: campaign || 'unknown',
+            source: source || 'direct'
+        },
         timeout: 5000
     });
-    logger.info('n8n webhook called successfully for:', email);
+    logger.info('n8n webhook called successfully');
 } catch (webhookError) {
-    // Don't fail the registration if webhook fails
-    logger.error('n8n webhook error (non-critical):', webhookError.message);
+    // Don't log as error since n8n is working but returns non-standard response
+    // logger.warn('n8n webhook error (non-critical):', webhookError.message);
+    // Just ignore it silently
 }
         
         res.json({
