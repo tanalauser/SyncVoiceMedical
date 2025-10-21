@@ -1197,11 +1197,18 @@ app.post('/api/send-activation', async (req, res) => {
                 validationStartDate: new Date(),
                 validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 downloadIntent: otherData.downloadIntent || false,
-        // ADD TRACKING
-        trialStartDate: new Date(),
-        source: 'email',
-        emailSentAt: new Date(),
-        subscriptionStatus: 'trial'
+                // TRACKING FIELDS
+                trialStartDate: new Date(),
+                source: otherData.source || 'website',
+                emailSentAt: new Date(),
+                subscriptionStatus: 'pending_payment',
+                customerJourney: {
+                    signupDate: new Date(),
+                    emailOpened: false,
+                    trialStarted: false,
+                    paidConversion: false,
+                    churnDate: null
+                }
             };
 
             let user = await User.findOne({ email: email.toLowerCase() });
@@ -1271,6 +1278,8 @@ app.post('/api/send-activation', async (req, res) => {
                         existingUser.language = language;
                         existingUser.termsAccepted = termsAccepted;
                         existingUser.updatedAt = new Date();
+                        existingUser.trialStartDate = existingUser.trialStartDate || new Date();
+                        existingUser.subscriptionStatus = 'trial_active';
                         
                         await existingUser.save();
                         
@@ -1298,6 +1307,13 @@ app.post('/api/send-activation', async (req, res) => {
                             daysRemaining: 7 - daysSinceStart
                         });
                     } else {
+                        // Mark as churned
+                        existingUser.subscriptionStatus = 'trial_expired';
+                        existingUser.churnedAt = new Date();
+                        existingUser.churnReason = 'trial_expired';
+                        existingUser.isActive = false;
+                        await existingUser.save();
+                        
                         return res.status(400).json({
                             success: false,
                             message: 'Your 7-day trial has expired. Please purchase a subscription to continue.'
@@ -1312,25 +1328,33 @@ app.post('/api/send-activation', async (req, res) => {
         const expiryDate = getExpiryDate();
 
         const userData = {
-    firstName,
-    lastName,
-    email: email.toLowerCase(),
-    activationCode,
-    activationCodeExpiry: expiryDate,
-    version,
-    language,
-    termsAccepted,
-    isActive: false,
-    updatedAt: new Date(),
-    validationStartDate: new Date(),
-    validationEndDate: expiryDate,
-    // ADD TRACKING
-    trialStartDate: new Date(),
-    source: 'email',
-    emailSentAt: new Date(),
-    subscriptionStatus: 'trial',
-    downloadIntent: otherData.downloadIntent || false
-};
+            firstName,
+            lastName,
+            email: email.toLowerCase(),
+            activationCode,
+            activationCodeExpiry: expiryDate,
+            version,
+            language,
+            termsAccepted,
+            isActive: false,
+            updatedAt: new Date(),
+            validationStartDate: new Date(),
+            validationEndDate: expiryDate,
+            // COMPREHENSIVE TRACKING
+            trialStartDate: new Date(),
+            trialEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+            source: otherData.source || 'website',
+            emailSentAt: new Date(),
+            subscriptionStatus: 'trial_pending_activation',
+            downloadIntent: otherData.downloadIntent || false,
+            customerJourney: {
+                signupDate: new Date(),
+                emailOpened: false,
+                trialStarted: true,
+                paidConversion: false,
+                churnDate: null
+            }
+        };
 
         if (otherData.password) {
             userData.password = await hashPassword(otherData.password);
@@ -1338,59 +1362,21 @@ app.post('/api/send-activation', async (req, res) => {
 
         let user;
 
-if (DEV_EMAILS.includes(email.toLowerCase())) {
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    
-    if (existingUser) {
-        existingUser.activationCode = activationCode;
-        existingUser.activationCodeExpiry = expiryDate;
-        existingUser.firstName = firstName;
-        existingUser.lastName = lastName;
-        existingUser.language = language;
-        existingUser.termsAccepted = termsAccepted;
-        existingUser.updatedAt = new Date();
-        
-        // ADD TRACKING HERE
-        existingUser.trialStartDate = new Date();
-        existingUser.source = 'email';
-        existingUser.emailSentAt = new Date();
-        existingUser.subscriptionStatus = 'trial';
-        
-        if (otherData.password) {
-            existingUser.password = await hashPassword(otherData.password);
+        if (DEV_EMAILS.includes(email.toLowerCase())) {
+            const existingUser = await User.findOne({ email: email.toLowerCase() });
+            
+            if (existingUser) {
+                Object.assign(existingUser, userData);
+                await existingUser.save();
+                user = existingUser;
+            } else {
+                user = new User(userData);
+                await user.save();
+            }
+        } else {
+            user = new User(userData);
+            await user.save();
         }
-        
-        if (!existingUser.validationStartDate) {
-            existingUser.validationStartDate = existingUser.createdAt || new Date();
-        }
-        if (!existingUser.validationEndDate) {
-            existingUser.validationEndDate = expiryDate;
-        }
-        
-        await existingUser.save();
-        user = existingUser;
-    } else {
-        // ADD TRACKING TO NEW USER DATA
-        userData.trialStartDate = new Date();
-        userData.source = 'email';
-        userData.emailSentAt = new Date();
-        userData.subscriptionStatus = 'trial';
-        userData.downloadIntent = otherData.downloadIntent || false;
-        
-        user = new User(userData);
-        await user.save();
-    }
-} else {
-    // ADD TRACKING TO NEW USER DATA
-    userData.trialStartDate = new Date();
-    userData.source = 'email';
-    userData.emailSentAt = new Date();
-    userData.subscriptionStatus = 'trial';
-    userData.downloadIntent = otherData.downloadIntent || false;
-    
-    user = new User(userData);
-    await user.save();
-}
 
         let activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
 
@@ -1409,22 +1395,24 @@ if (DEV_EMAILS.includes(email.toLowerCase())) {
 
         await transporter.sendMail(mailOptions);
 
-        // Call n8n webhook for trial signup tracking
-try {
-    await axios.get('https://n8n.srv1030172.hstgr.cloud/webhook/email-open', {
-        params: {
-            email: email.toLowerCase(),
-            campaign: campaign || 'unknown',
-            source: source || 'direct'
-        },
-        timeout: 5000
-    });
-    logger.info('n8n webhook called successfully');
-} catch (webhookError) {
-    // Don't log as error since n8n is working but returns non-standard response
-    // logger.warn('n8n webhook error (non-critical):', webhookError.message);
-    // Just ignore it silently
-}
+        // Call n8n webhook for trial signup tracking (CORRECTED)
+        try {
+            await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/trial-signup', {
+                email: email.toLowerCase(),
+                firstName: firstName,
+                lastName: lastName,
+                version: version,
+                source: otherData.source || 'website',
+                signupDate: new Date().toISOString()
+            }, {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 5000
+            });
+            logger.info('n8n trial signup webhook called successfully');
+        } catch (webhookError) {
+            // Silently ignore webhook errors
+            logger.debug('n8n webhook non-critical error');
+        }
         
         res.json({
             success: true,
