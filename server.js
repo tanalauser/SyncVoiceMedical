@@ -1101,23 +1101,8 @@ app.get('/api/email-open', async (req, res) => {
         const user = await User.findOne({ email: email.toLowerCase() });
         
         if (user) {
-            // Track email open
-            user.emailOpened = true;
-            user.emailOpenedAt = new Date();
-            user.lastEmailOpenCampaign = campaign || 'unknown';
-            
-            // Track first open if not already tracked
-            if (!user.firstEmailOpenedAt) {
-                user.firstEmailOpenedAt = new Date();
-            }
-            
-            // Increment open count
-            user.emailOpenCount = (user.emailOpenCount || 0) + 1;
-            
-            // Update engagement score
-            user.engagementScore = calculateEngagementScore(user);
-            
-            await user.save();
+            // USE THE SCHEMA METHOD INSTEAD
+            await user.trackEmailOpen(campaign || 'unknown');
             
             logger.info(`Email opened tracked for: ${email}`, {
                 campaign: campaign,
@@ -1125,9 +1110,8 @@ app.get('/api/email-open', async (req, res) => {
                 openCount: user.emailOpenCount
             });
             
-            // Send to n8n for real-time tracking
+            // n8n webhook call (keep as is)
             try {
-                // CORRECTED: Use GET request and correct URL path
                 await axios.get('https://n8n.srv1030172.hstgr.cloud/webhook/email-open', {
                     params: {
                         email: email.toLowerCase(),
@@ -1136,13 +1120,12 @@ app.get('/api/email-open', async (req, res) => {
                     },
                     timeout: 5000
                 });
-                logger.info('n8n webhook called successfully');
             } catch (webhookError) {
-                logger.warn('n8n webhook error (non-critical):', webhookError.message);
+                // Ignore silently
             }
         }
 
-        // Return 1x1 transparent pixel
+        // Return pixel
         const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
         res.writeHead(200, {
             'Content-Type': 'image/gif',
@@ -1267,22 +1250,26 @@ app.post('/api/send-activation', async (req, res) => {
                 });
                 
                 if (existingUser) {
-                    const trialStartDate = existingUser.createdAt || existingUser.updatedAt;
+                    const trialStartDate = existingUser.trialStartDate || existingUser.createdAt || existingUser.updatedAt;
                     const daysSinceStart = Math.floor((new Date() - new Date(trialStartDate)) / (1000 * 60 * 60 * 24));
                     
                     if (daysSinceStart < 7) {
                         const activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
                         const expiryDate = getExpiryDate();
                         
+                        // Update user fields
                         existingUser.activationCode = activationCode;
                         existingUser.activationCodeExpiry = expiryDate;
                         existingUser.firstName = firstName;
                         existingUser.lastName = lastName;
                         existingUser.language = language;
                         existingUser.termsAccepted = termsAccepted;
-                        existingUser.updatedAt = new Date();
+                        
+                        // Use schema method for tracking
+                        existingUser.subscriptionStatus = 'trial';
                         existingUser.trialStartDate = existingUser.trialStartDate || new Date();
-                        existingUser.subscriptionStatus = 'trial_active';
+                        existingUser.trialEndDate = existingUser.trialEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                        existingUser.lastActivityAt = new Date();
                         
                         await existingUser.save();
                         
@@ -1310,12 +1297,8 @@ app.post('/api/send-activation', async (req, res) => {
                             daysRemaining: 7 - daysSinceStart
                         });
                     } else {
-                        // Mark as churned
-                        existingUser.subscriptionStatus = 'trial_expired';
-                        existingUser.churnedAt = new Date();
-                        existingUser.churnReason = 'trial_expired';
-                        existingUser.isActive = false;
-                        await existingUser.save();
+                        // Use schema method to mark as churned
+                        await existingUser.markAsChurned('trial_expired');
                         
                         return res.status(400).json({
                             success: false,
@@ -1458,6 +1441,82 @@ app.post('/api/send-activation', async (req, res) => {
         });
     }
 });
+
+
+// Add this Stripe webhook endpoint to your server.js
+app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    
+    try {
+        // Construct the event using the raw body and signature
+        const event = stripe.webhooks.constructEvent(
+            req.body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET // You need to add this to your .env
+        );
+        
+        // Handle the event
+        switch (event.type) {
+            case 'payment_intent.succeeded':
+                const paymentIntent = event.data.object;
+                
+                // Get user email from metadata
+                const userEmail = paymentIntent.metadata.userEmail;
+                
+                if (userEmail) {
+                    const user = await User.findOne({ email: userEmail.toLowerCase() });
+                    
+                    if (user) {
+                        // Use your schema method to convert to paid
+                        await user.convertToPaid(
+                            paymentIntent.amount / 100, // Convert cents to currency
+                            paymentIntent.currency,
+                            'stripe_payment'
+                        );
+                        
+                        logger.info(`User ${userEmail} converted to paid subscription`);
+                        
+                        // Call n8n webhook for paid conversion tracking
+                        try {
+                            await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/stripe-webhook', {
+                                type: 'payment_succeeded',
+                                email: userEmail,
+                                amount: paymentIntent.amount / 100,
+                                currency: paymentIntent.currency
+                            });
+                        } catch (webhookError) {
+                            logger.debug('n8n webhook non-critical error');
+                        }
+                    }
+                }
+                break;
+                
+            case 'customer.subscription.deleted':
+                // Handle subscription cancellation
+                const subscription = event.data.object;
+                const customer = await stripe.customers.retrieve(subscription.customer);
+                
+                if (customer.email) {
+                    const user = await User.findOne({ email: customer.email.toLowerCase() });
+                    if (user) {
+                        await user.markAsChurned('subscription_cancelled');
+                        logger.info(`User ${customer.email} subscription cancelled`);
+                    }
+                }
+                break;
+                
+            default:
+                logger.info(`Unhandled Stripe event type: ${event.type}`);
+        }
+        
+        res.json({received: true});
+        
+    } catch (err) {
+        logger.error('Stripe webhook error:', err.message);
+        res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+});
+
 
 // Handle activation
 app.get('/api/activate/:code', async (req, res) => {
