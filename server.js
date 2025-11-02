@@ -1753,6 +1753,76 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+
+        const analyticsDB = mongoose.createConnection(
+            process.env.MONGODB_URI || process.env.APP_DB_INSTANCE,
+            {
+                dbName: 'analytics' // Specify analytics database
+            }
+        );
+
+        // Create Analytics User model
+        const AnalyticsUser = analyticsDB.model('User', new mongoose.Schema({
+            // Basic user info
+            email: { type: String, unique: true, required: true },
+            firstName: String,
+            lastName: String,
+            password: String,
+            
+            // Subscription info
+            version: { type: String, default: 'free' }, // free, paid, prospect
+            isActive: { type: Boolean, default: true },
+            isPaid: { type: Boolean, default: false },
+            
+            // Email campaign tracking
+            emailCampaigns: {
+                totalEmailsSent: { type: Number, default: 0 },
+                totalEmailsOpened: { type: Number, default: 0 },
+                lastEmailSent: Date,
+                lastEmailOpened: Date,
+                lastCampaignName: String,
+                lastOpenedCampaignName: String,
+                emailOpenRate: { type: Number, default: 0 },
+                campaigns: [{
+                    name: String,
+                    sentAt: Date,
+                    opened: { type: Boolean, default: false },
+                    openedAt: Date,
+                    clicked: { type: Boolean, default: false },
+                    clickedAt: Date
+                }]
+            },
+            
+            // Conversion tracking
+            conversion: {
+                source: { type: String, default: 'direct' },
+                campaignName: String,
+                signupDate: Date,
+                trialStartDate: Date,
+                paidConversionDate: Date,
+                daysToConversion: Number
+            },
+            
+            // Engagement metrics
+            engagement: {
+                lastActivity: Date,
+                totalLogins: { type: Number, default: 0 },
+                lastEmailClick: Date,
+                websiteVisits: { type: Number, default: 0 }
+            },
+            
+            // Validation dates
+            validationStartDate: Date,
+            validationEndDate: Date,
+            activationCode: String,
+            activationCodeExpiry: Date,
+            
+            // Timestamps
+            createdAt: { type: Date, default: Date.now },
+            updatedAt: { type: Date, default: Date.now }
+        }));
+
+
 // Webhook handlers
 async function handleSuccessfulPayment(paymentIntent) {
     try {

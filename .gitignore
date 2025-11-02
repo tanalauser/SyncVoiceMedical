@@ -1,6 +1,19 @@
 ﻿Movies - original/
 node_modules/
 .env
+.env.local
+.env.*.local
 desktop-client/dist/
 public/downloads/*.exe
 *.exe
+visualize-mongodb.js
+*.csv
+*.json
+mongodb-users-export-*.csv
+mongodb-users-export-*.json
+*.log
+logs/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+syncvoice-tracker/
