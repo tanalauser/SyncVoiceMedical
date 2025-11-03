@@ -2311,250 +2311,33 @@ app.get('/api/download-desktop', async (req, res) => {
         
         logger.info('Desktop download request:', { lang, email, code, source });
         
-        // Validate user credentials if provided
-        if (email && code) {
-            const user = await User.findOne({ 
-                email: email.toLowerCase(),
-                activationCode: code
-            });
-            
-            if (!user) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Invalid credentials. Please register first.'
-                });
-            }
-        }
-        
-        // Check if installer exists locally first
+        // Check if installer exists
         const installerPath = path.join(__dirname, 'public', 'downloads', 'SyncVoiceMedical-Setup.exe');
         
         if (fs.existsSync(installerPath)) {
-            // File exists, serve it
-            res.setHeader('Content-Type', 'application/octet-stream');
-            res.setHeader('Content-Disposition', 'attachment; filename="SyncVoiceMedical-Setup.exe"');
-            
-            return res.download(installerPath, 'SyncVoiceMedical-Setup.exe', (err) => {
-                if (err) {
-                    logger.error('Error sending file:', err);
-                    if (!res.headersSent) {
-                        res.status(500).json({
-                            success: false,
-                            message: 'Error downloading file. Please try again.'
-                        });
-                    }
-                }
-            });
+            return res.download(installerPath);
         }
         
-        // TEMPORARY SOLUTION: Redirect to GitHub Release or provide instructions
-        // Option 1: If you have a GitHub release, uncomment and update this:
-        /*
-        const githubReleaseUrl = 'https://github.com/YOUR_USERNAME/YOUR_REPO/releases/download/v1.0.0/SyncVoiceMedical-Setup.exe';
-        return res.redirect(githubReleaseUrl);
-        */
-        
-        // Option 2: Provide a helpful page with instructions
-        const translations = {
-            fr: {
-                title: 'Téléchargement Temporairement Indisponible',
-                message: 'Le téléchargement de l\'application desktop est temporairement indisponible.',
-                instruction: 'Une nouvelle version améliorée sera disponible très prochainement.',
-                alternative: 'En attendant, vous pouvez utiliser la version web complète de SyncVoice Medical.',
-                webButton: 'Utiliser la Version Web',
-                emailNotice: 'Vous recevrez un email dès que la version desktop sera disponible.',
-                contact: 'Pour toute question: syncvoicemedical@gmail.com'
-            },
-            en: {
-                title: 'Download Temporarily Unavailable',
-                message: 'The desktop application download is temporarily unavailable.',
-                instruction: 'An improved version will be available very soon.',
-                alternative: 'Meanwhile, you can use the full web version of SyncVoice Medical.',
-                webButton: 'Use Web Version',
-                emailNotice: 'You will receive an email as soon as the desktop version is available.',
-                contact: 'For any questions: syncvoicemedical@gmail.com'
-            },
-            de: {
-                title: 'Download Vorübergehend Nicht Verfügbar',
-                message: 'Der Download der Desktop-Anwendung ist vorübergehend nicht verfügbar.',
-                instruction: 'Eine verbesserte Version wird sehr bald verfügbar sein.',
-                alternative: 'In der Zwischenzeit können Sie die vollständige Webversion von SyncVoice Medical nutzen.',
-                webButton: 'Webversion Verwenden',
-                emailNotice: 'Sie erhalten eine E-Mail, sobald die Desktop-Version verfügbar ist.',
-                contact: 'Bei Fragen: syncvoicemedical@gmail.com'
-            },
-            es: {
-                title: 'Descarga Temporalmente No Disponible',
-                message: 'La descarga de la aplicación de escritorio no está disponible temporalmente.',
-                instruction: 'Una versión mejorada estará disponible muy pronto.',
-                alternative: 'Mientras tanto, puede usar la versión web completa de SyncVoice Medical.',
-                webButton: 'Usar Versión Web',
-                emailNotice: 'Recibirá un correo electrónico cuando la versión de escritorio esté disponible.',
-                contact: 'Para cualquier pregunta: syncvoicemedical@gmail.com'
-            },
-            it: {
-                title: 'Download Temporaneamente Non Disponibile',
-                message: 'Il download dell\'applicazione desktop è temporaneamente non disponibile.',
-                instruction: 'Una versione migliorata sarà disponibile molto presto.',
-                alternative: 'Nel frattempo, puoi utilizzare la versione web completa di SyncVoice Medical.',
-                webButton: 'Usa Versione Web',
-                emailNotice: 'Riceverai un\'email non appena la versione desktop sarà disponibile.',
-                contact: 'Per qualsiasi domanda: syncvoicemedical@gmail.com'
-            },
-            pt: {
-                title: 'Download Temporariamente Indisponível',
-                message: 'O download do aplicativo desktop está temporariamente indisponível.',
-                instruction: 'Uma versão melhorada estará disponível muito em breve.',
-                alternative: 'Enquanto isso, você pode usar a versão web completa do SyncVoice Medical.',
-                webButton: 'Usar Versão Web',
-                emailNotice: 'Você receberá um e-mail assim que a versão desktop estiver disponível.',
-                contact: 'Para qualquer pergunta: syncvoicemedical@gmail.com'
-            }
+        // Temporary: Provide friendly message
+        const message = {
+            fr: 'Le téléchargement est temporairement indisponible. Utilisez la version web.',
+            en: 'Download temporarily unavailable. Please use the web version.'
         };
         
-        const t = translations[lang] || translations.fr;
-        
-        const htmlResponse = `
-        <!DOCTYPE html>
-        <html lang="${lang}">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>SyncVoice Medical - ${t.title}</title>
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                    background: linear-gradient(135deg, #69B578 0%, #296396 100%);
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 20px;
-                }
-                .container {
-                    background: white;
-                    border-radius: 20px;
-                    padding: 40px;
-                    max-width: 600px;
-                    width: 100%;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                    text-align: center;
-                    animation: slideUp 0.5s ease;
-                }
-                @keyframes slideUp {
-                    from { opacity: 0; transform: translateY(30px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .icon {
-                    width: 80px;
-                    height: 80px;
-                    margin: 0 auto 20px;
-                    background: #FFF3E0;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 40px;
-                }
-                h1 {
-                    color: #333;
-                    margin-bottom: 15px;
-                    font-size: 24px;
-                }
-                .message {
-                    color: #666;
-                    line-height: 1.6;
-                    margin-bottom: 30px;
-                }
-                .info-box {
-                    background: #E8F5E9;
-                    border-left: 4px solid #69B578;
-                    padding: 15px;
-                    margin: 20px 0;
-                    border-radius: 4px;
-                    text-align: left;
-                }
-                .btn {
-                    display: inline-block;
-                    background: #69B578;
-                    color: white;
-                    padding: 12px 30px;
-                    border-radius: 8px;
-                    text-decoration: none;
-                    font-weight: 600;
-                    margin: 10px;
-                    transition: all 0.3s ease;
-                }
-                .btn:hover {
-                    background: #5a9d68;
-                    transform: translateY(-2px);
-                    box-shadow: 0 5px 15px rgba(105, 181, 120, 0.3);
-                }
-                .contact {
-                    margin-top: 30px;
-                    padding-top: 20px;
-                    border-top: 1px solid #eee;
-                    color: #999;
-                    font-size: 14px;
-                }
-                .credentials {
-                    background: #f5f5f5;
-                    padding: 10px;
-                    border-radius: 4px;
-                    margin: 10px 0;
-                    font-family: monospace;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="icon">⏳</div>
-                <h1>${t.title}</h1>
-                <p class="message">${t.message}</p>
-                
-                <div class="info-box">
-                    <strong>ℹ️ ${t.instruction}</strong>
-                    <p style="margin-top: 10px;">${t.emailNotice}</p>
-                    ${email ? `<div class="credentials">📧 ${email}</div>` : ''}
-                </div>
-                
-                <p class="message">${t.alternative}</p>
-                
-                <a href="/index.html?lang=${lang}" class="btn">${t.webButton}</a>
-                
-                <div class="contact">
-                    ${t.contact}
-                </div>
-            </div>
-            
-            <script>
-                // Log the attempt for analytics
-                console.log('Desktop download attempted:', {
-                    lang: '${lang}',
-                    email: '${email || 'not provided'}',
-                    source: '${source}',
-                    timestamp: new Date().toISOString()
-                });
-                
-                // Optional: Auto-redirect to web version after 5 seconds
-                setTimeout(() => {
-                    // Uncomment to enable auto-redirect
-                    // window.location.href = '/index.html?lang=${lang}';
-                }, 5000);
-            </script>
-        </body>
-        </html>
-        `;
-        
-        res.status(200).send(htmlResponse);
-        
+        res.status(200).send(`
+            <html>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h2>${message[lang] || message.fr}</h2>
+                <p>Veuillez utiliser la version web / Please use web version</p>
+                <a href="/index.html" style="padding: 10px 20px; background: #69B578; color: white; text-decoration: none; border-radius: 5px;">
+                    Accéder / Access Web Version
+                </a>
+            </body>
+            </html>
+        `);
     } catch (error) {
-        logger.error('Desktop download error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Download service temporarily unavailable. Please try again later.'
-        });
+        logger.error('Download error:', error);
+        res.status(500).json({ success: false, message: 'Service unavailable' });
     }
 });
 
