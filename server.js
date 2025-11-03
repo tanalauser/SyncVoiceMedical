@@ -2326,8 +2326,8 @@ app.get('/api/download-desktop', async (req, res) => {
             }
         }
         
-        // REDIRECT TO GITHUB RELEASE
-        res.redirect('https://github.com/tanalauser/SyncVoiceMedical/releases/download/v1.0.0/SyncVoiceMedical-Setup.exe');
+        // REDIRECT TO GITHUB RELEASE - CORRECT URL
+        res.redirect('https://github.com/tanalauser/SyncVoiceMedical/releases/download/v1.0.0/SyncVoice.Medical.Desktop.Setup.1.0.0.exe');
         
     } catch (error) {
         logger.error('Desktop download error:', error);
