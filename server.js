@@ -2311,33 +2311,30 @@ app.get('/api/download-desktop', async (req, res) => {
         
         logger.info('Desktop download request:', { lang, email, code, source });
         
-        // Check if installer exists
-        const installerPath = path.join(__dirname, 'public', 'downloads', 'SyncVoiceMedical-Setup.exe');
-        
-        if (fs.existsSync(installerPath)) {
-            return res.download(installerPath);
+        // Optional: Validate user credentials if provided
+        if (email && code) {
+            const user = await User.findOne({ 
+                email: email.toLowerCase(),
+                activationCode: code
+            });
+            
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid credentials. Please register first.'
+                });
+            }
         }
         
-        // Temporary: Provide friendly message
-        const message = {
-            fr: 'Le téléchargement est temporairement indisponible. Utilisez la version web.',
-            en: 'Download temporarily unavailable. Please use the web version.'
-        };
+        // REDIRECT TO GITHUB RELEASE
+        res.redirect('https://github.com/tanalauser/SyncVoiceMedical/releases/download/v1.0.0/SyncVoiceMedical-Setup.exe');
         
-        res.status(200).send(`
-            <html>
-            <body style="font-family: Arial; text-align: center; padding: 50px;">
-                <h2>${message[lang] || message.fr}</h2>
-                <p>Veuillez utiliser la version web / Please use web version</p>
-                <a href="/index.html" style="padding: 10px 20px; background: #69B578; color: white; text-decoration: none; border-radius: 5px;">
-                    Accéder / Access Web Version
-                </a>
-            </body>
-            </html>
-        `);
     } catch (error) {
-        logger.error('Download error:', error);
-        res.status(500).json({ success: false, message: 'Service unavailable' });
+        logger.error('Desktop download error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Download service temporarily unavailable.'
+        });
     }
 });
 
