@@ -3,255 +3,400 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SyncVoice Medical - Transcription Médicale</title>
+    <title>SyncVoice Medical - Transcription Médicale IA</title>
     <link rel="stylesheet" href="index.css">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="hero">
-        <div class="wrapper">
-            <nav class="nav">
-                <div class="logo">
-                    <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
-                </div>
-                <div class="nav-controls">
-                    <button class="login-btn">Se connecter</button>
-                    <div class="language-container">
-                        <label for="language-select">Language:</label>
-                        <select id="language-select" class="language-select">
-                            <option value="fr" selected>Français</option>
-                            <option value="en">English</option>
-                            <option value="de">Deutsch</option>
-                            <option value="es">Español</option>
-                            <option value="it">Italiano</option>
-                            <option value="pt">Português</option>
-                        </select>
-                    </div>
-                </div>
-            </nav>
-
-            <div class="content-section">
-                <h1 class="title">TRANSCRIVEZ VOS COMPTES RENDUS MÉDICAUX AVEC L'IA</h1>
-                <p class="subtitle">Une seule licence, deux solutions puissantes</p>
-
-                <!-- Unified Pricing Section -->
-                <div class="pricing-section">
-                    <div class="pricing-header">
-                        <h2 class="pricing-title" id="pricing-main-title">Un Abonnement = Web + Bureau</h2>
-                        <p class="pricing-subtitle" id="pricing-subtitle">Profitez des deux versions sans frais supplémentaires</p>
-                    </div>
-
-                    <div class="pricing-cards">
-                        <div class="pricing-card trial-card">
-                            <div class="card-header">
-                                <h3 id="trial-title">Essai Gratuit</h3>
-                                <div class="price-tag" id="trial-price">0 €</div>
-                                <p class="duration" id="trial-duration">7 jours</p>
-                            </div>
-                            <div class="card-body">
-                                <p class="included-text" id="trial-feature-1">✓ Plateforme Web complète</p>
-                                <p class="included-text" id="trial-feature-2">✓ Application Bureau Windows</p>
-                                <p class="included-text" id="trial-feature-3">✓ Sans carte bancaire</p>
-                                <p class="included-text" id="trial-feature-4">✓ Annulation automatique</p>
-                            </div>
-                            <div class="card-footer">
-                                <a href="form.html?plan=free&lang=fr" class="btn btn-secondary btn-large" id="trial-button">Essayer Gratuitement</a>
-                            </div>
-                        </div>
-
-                        <div class="pricing-card subscription-card featured">
-                            <div class="featured-badge" id="popular-badge">POPULAIRE</div>
-                            <div class="card-header">
-                                <h3 id="subscription-title">Abonnement Complet</h3>
-                                <div class="price-tag" id="subscription-price">25 €</div>
-                                <p class="duration" id="subscription-duration">TTC / mois</p>
-                            </div>
-                            <div class="card-body">
-                                <p class="included-text" id="subscription-feature-1">✓ Plateforme Web illimitée</p>
-                                <p class="included-text" id="subscription-feature-2">✓ Application Bureau Windows</p>
-                                <p class="included-text" id="subscription-feature-3">✓ Mises à jour incluses</p>
-                                <p class="included-text" id="subscription-feature-4">✓ Support prioritaire</p>
-                                <p class="included-text" id="subscription-feature-5">✓ Résiliable à tout moment</p>
-                            </div>
-                            <div class="card-footer">
-                                <a href="form.html?plan=paid&lang=fr" class="btn btn-primary btn-large" id="subscription-button">Commencer Maintenant</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="value-proposition">
-                        <div class="value-icon">💡</div>
-                        <p id="value-proposition-text"><strong>Pourquoi payer deux fois ?</strong> Avec SyncVoice Medical, un seul abonnement vous donne accès à la plateforme web ET à l'application bureau. Utilisez celle qui convient le mieux à chaque situation.</p>
-                    </div>
-                </div>
-
-                <!-- What You Get Section -->
-                <div class="features-overview">
-                    <h2 class="section-title" id="what-you-get-title">Ce Que Vous Obtenez</h2>
-                    
-                    <div class="versions">
-                        <!-- Web Platform -->
-                        <div class="version-card web-version">
-                            <div class="version-header">
-                                <div class="version-icon">🌐</div>
-                                <h3>Plateforme Web</h3>
-                                <div class="included-badge" id="included-badge-web">INCLUS</div>
-                            </div>
-                            <p class="version-description">Transcription en temps réel dans votre navigateur</p>
-                            
-                            <ul class="feature-list">
-                                <li>Accessible depuis n'importe quel navigateur</li>
-                                <li>Aucune installation requise</li>
-                                <li>Idéal pour le travail mobile</li>
-                                <li>Partage facile des documents</li>
-                            </ul>
-                        </div>
-
-                        <!-- Desktop Application -->
-                        <div class="version-card desktop-version">
-                            <div class="version-header">
-                                <div class="version-icon">💻</div>
-                                <h3>Application Bureau</h3>
-                                <div class="included-badge" id="included-badge-desktop">INCLUS</div>
-                            </div>
-                            <p class="version-description">Intégration directe avec vos logiciels</p>
-                            
-                            <div class="desktop-highlight">
-                                <div class="highlight-feature">
-                                    <div class="feature-icon">⚡</div>
-                                    <div class="feature-text">
-                                        <strong id="highlight-feature-1-title">Placez votre curseur dans n'importe quel logiciel</strong><br>
-                                        <span id="highlight-feature-1-desc">Logiciel médical, Word, Excel, PowerPoint, etc.</span>
-                                    </div>
-                                </div>
-                                <div class="highlight-feature">
-                                    <div class="feature-icon">🎤</div>
-                                    <div class="feature-text">
-                                        <strong id="highlight-feature-2-title">Appuyez sur Ctrl+Shift+D et parlez</strong><br>
-                                        <span id="highlight-feature-2-desc">La transcription apparaît directement dans votre document.</span>
-                                    </div>
-                                </div>
-                                <div class="highlight-feature">
-                                    <div class="feature-icon">🔒</div>
-                                    <div class="feature-text">
-                                        <strong id="highlight-feature-3-title">100% Hors ligne et sécurisé</strong><br>
-                                        <span id="highlight-feature-3-desc">Aucune donnée ne quitte votre ordinateur.</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="desktop-download">
-                                <button class="download-btn" id="downloadBtn" type="button">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                                    </svg>
-                                    <span id="downloadBtnText">Télécharger pour Windows</span>
-                                </button>
-                                <p class="system-requirements" id="systemRequirements">
-                                    Nécessite Windows 10 ou supérieur • 200 MB d'espace disque
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Comparison Table -->
-                <div class="comparison-section">
-                    <h3 class="comparison-title">Comparaison des Versions</h3>
-                    <div class="comparison-table-container">
-                        <table class="comparison-table">
-                            <thead>
-                                <tr>
-                                    <th class="feature-col">Fonctionnalité</th>
-                                    <th class="web-col">🌐 Plateforme Web</th>
-                                    <th class="desktop-col">💻 Application Bureau</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>Connexion Internet</strong></td>
-                                    <td class="required">Requise</td>
-                                    <td class="not-required">Non requise</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Installation</strong></td>
-                                    <td class="advantage">Aucune</td>
-                                    <td>Windows uniquement</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Sécurité des Données</strong></td>
-                                    <td>Cloud sécurisé</td>
-                                    <td class="advantage">Local sur votre PC</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Intégration Logiciels</strong></td>
-                                    <td>Copier/coller requis</td>
-                                    <td class="advantage">Directe (Word, Excel, etc.)</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Accès</strong></td>
-                                    <td class="advantage">Tout navigateur</td>
-                                    <td>Bureau uniquement</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Vitesse</strong></td>
-                                    <td>Dépend de la connexion</td>
-                                    <td class="advantage">Traitement local rapide</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Browser Support Table -->
-                <div class="browser-support-section">
-                    <h4 class="browser-support-title">Compatibilité des navigateurs pour la reconnaissance vocale (Plateforme Web)</h4>
-                    <div class="table-container">
-                        <table class="browser-support-table">
-                            <thead>
-                                <tr>
-                                    <th class="browser-column">Navigateur</th>
-                                    <th class="support-column">Support</th>
-                                    <th class="recommendation-column">Recommandation</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/chrome/chrome.svg" alt="Chrome" class="browser-icon"> Chrome</td>
-                                    <td><span class="support-full">Complet</span></td>
-                                    <td class="recommended">Recommandé</td>
-                                </tr>
-                                <tr>
-                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/edge/edge.svg" alt="Edge" class="browser-icon"> Microsoft Edge</td>
-                                    <td><span class="support-full">Complet</span></td>
-                                    <td class="recommended">Recommandé</td>
-                                </tr>
-                                <tr>
-                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/safari/safari.svg" alt="Safari" class="browser-icon"> Safari</td>
-                                    <td><span class="support-partial">Partiel</span></td>
-                                    <td class="limited">Limité</td>
-                                </tr>
-                                <tr>
-                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/firefox/firefox.svg" alt="Firefox" class="browser-icon"> Firefox</td>
-                                    <td><span class="support-limited">Limité</span></td>
-                                    <td class="not-recommended">Non recommandé</td>
-                                </tr>
-                                <tr>
-                                    <td><img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/opera/opera.svg" alt="Opera" class="browser-icon"> Opera</td>
-                                    <td><span class="support-full">Complet</span></td>
-                                    <td class="recommended">Recommandé</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <p class="browser-note">Pour une expérience optimale avec la plateforme web, nous recommandons l'utilisation de Chrome, Edge ou Opera.</p>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical">
+            </a>
+            <div class="nav-controls">
+                <button class="login-btn" id="loginBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span id="loginText">Se connecter</span>
+                </button>
+                <div class="language-selector">
+                    <select id="language-select" class="language-select">
+                        <option value="fr">🇫🇷 FR</option>
+                        <option value="en">🇬🇧 EN</option>
+                        <option value="de">🇩🇪 DE</option>
+                        <option value="es">🇪🇸 ES</option>
+                        <option value="it">🇮🇹 IT</option>
+                        <option value="pt">🇵🇹 PT</option>
+                    </select>
                 </div>
             </div>
         </div>
-    </div>
+    </nav>
+
+    <!-- Hero Section - Above the Fold -->
+    <section class="hero">
+        <div class="hero-background">
+            <div class="waveform-animation"></div>
+        </div>
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title" id="heroTitle">
+                    <span class="title-line">Parlez.</span>
+                    <span class="title-line highlight">Transcrivez.</span>
+                    <span class="title-line">Soignez.</span>
+                </h1>
+                <p class="hero-subtitle" id="heroSubtitle">
+                    Transcription médicale intelligente par IA.<br>
+                    <strong>Dictées illimitées. Précision professionnelle.</strong>
+                </p>
+                <div class="hero-cta">
+                    <a href="form.html?plan=free" class="btn btn-primary btn-lg" id="ctaFree">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        <span id="ctaFreeText">Essai gratuit 7 jours</span>
+                    </a>
+                    <a href="#pricing" class="btn btn-outline btn-lg" id="ctaPricing">
+                        <span id="ctaPricingText">Voir les tarifs</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                    </a>
+                </div>
+                <div class="trust-badges">
+                    <div class="badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                        </svg>
+                        <span id="badgeSecure">Sécurisé RGPD</span>
+                    </div>
+                    <div class="badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        <span id="badgeMedical">Usage médical</span>
+                    </div>
+                    <div class="badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/>
+                        </svg>
+                        <span id="badgeUnlimited">Dictées illimitées</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="mic-container">
+                    <div class="mic-pulse"></div>
+                    <div class="mic-pulse delay-1"></div>
+                    <div class="mic-pulse delay-2"></div>
+                    <div class="mic-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="howItWorks">
+        <div class="container">
+            <h2 class="section-title" id="howItWorksTitle">Comment ça marche</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M9 9h6v6H9z"/>
+                        </svg>
+                    </div>
+                    <h3 id="step1Title">1. Connectez-vous</h3>
+                    <p id="step1Desc">Accédez à la plateforme depuis votre navigateur ou notre application Windows.</p>
+                </div>
+                <div class="step">
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                        </svg>
+                    </div>
+                    <h3 id="step2Title">2. Dictez</h3>
+                    <p id="step2Desc">Parlez naturellement. L'IA transcrit en temps réel avec précision médicale.</p>
+                </div>
+                <div class="step">
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                            <rect x="8" y="2" width="8" height="4" rx="1"/>
+                            <path d="M9 14l2 2 4-4"/>
+                        </svg>
+                    </div>
+                    <h3 id="step3Title">3. Utilisez</h3>
+                    <p id="step3Desc">Copiez ou exportez directement vers Word. Partagez avec vos collègues.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <h2 class="section-title" id="pricingTitle">Tarifs simples et transparents</h2>
+            <p class="section-subtitle" id="pricingSubtitle">Sans engagement. Annulez quand vous voulez.</p>
+            
+            <div class="pricing-toggle">
+                <span class="toggle-label" id="toggleMonthly">Mensuel</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="billingToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="toggle-label" id="toggleYearly">Annuel</span>
+                <span class="savings-badge" id="savingsBadge">-17%</span>
+            </div>
+
+            <div class="pricing-cards">
+                <!-- Free Trial -->
+                <div class="pricing-card">
+                    <div class="card-header">
+                        <h3 id="freeTitle">Essai Gratuit</h3>
+                        <div class="price">
+                            <span class="amount">0</span>
+                            <span class="currency" id="freeCurrency">€</span>
+                        </div>
+                        <p class="price-period" id="freePeriod">7 jours</p>
+                    </div>
+                    <ul class="features-list">
+                        <li id="freeFeature1">✓ Accès complet à la plateforme</li>
+                        <li id="freeFeature2">✓ Dictées illimitées</li>
+                        <li id="freeFeature3">✓ Export Word</li>
+                        <li id="freeFeature4">✓ Support par email</li>
+                    </ul>
+                    <a href="form.html?plan=free" class="btn btn-secondary btn-block" id="freeBtn">
+                        <span id="freeBtnText">Commencer l'essai</span>
+                    </a>
+                </div>
+
+                <!-- Monthly/Yearly -->
+                <div class="pricing-card featured">
+                    <div class="popular-badge" id="popularBadge">Populaire</div>
+                    <div class="card-header">
+                        <h3 id="proTitle">Professionnel</h3>
+                        <div class="price">
+                            <span class="amount" id="proAmount">25</span>
+                            <span class="currency" id="proCurrency">€</span>
+                            <span class="period" id="proPeriod">/mois</span>
+                        </div>
+                        <p class="price-note" id="proNote">TTC</p>
+                    </div>
+                    <ul class="features-list">
+                        <li id="proFeature1">✓ Tout de l'essai gratuit</li>
+                        <li id="proFeature2">✓ Modèles médicaux</li>
+                        <li id="proFeature3">✓ Application Windows</li>
+                        <li id="proFeature4">✓ Support prioritaire</li>
+                        <li id="proFeature5">✓ Mises à jour incluses</li>
+                    </ul>
+                    <a href="form.html?plan=paid&billing=monthly" class="btn btn-primary btn-block" id="proBtn">
+                        <span id="proBtnText">Commencer maintenant</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Desktop App Section -->
+    <section class="desktop-app" id="desktopApp">
+        <div class="container">
+            <div class="desktop-content">
+                <div class="desktop-info">
+                    <span class="section-label" id="desktopLabel">Application Bureau</span>
+                    <h2 class="desktop-title" id="desktopTitle">Travaillez directement dans Word, Excel, PowerPoint</h2>
+                    <p class="desktop-desc" id="desktopDesc">
+                        Notre application Windows s'intègre parfaitement à vos outils quotidiens. 
+                        Placez votre curseur, appuyez sur <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, 
+                        et dictez directement.
+                    </p>
+                    <div class="desktop-features">
+                        <div class="desktop-feature">
+                            <div class="feature-icon offline">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <strong id="offlineTitle">100% Hors ligne</strong>
+                                <span id="offlineDesc">Aucune connexion requise</span>
+                            </div>
+                        </div>
+                        <div class="desktop-feature">
+                            <div class="feature-icon secure">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <strong id="secureTitle">Données locales</strong>
+                                <span id="secureDesc">Rien ne quitte votre PC</span>
+                            </div>
+                        </div>
+                        <div class="desktop-feature">
+                            <div class="feature-icon fast">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.21-1.92 6-4.72 7.28L13 17v5l6-6-4.28-4.28C17.08 10.36 19 7.71 19 4.5c0-.83-.67-1.5-1.5-1.5-.17 0-.34.03-.5.08V2.05C12.82.56 9.24.56 5 2.05v2.02c2.95-.49 7-3.85 7 7.93z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <strong id="fastTitle">Ultra rapide</strong>
+                                <span id="fastDesc">Traitement instantané</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-download btn-lg" id="downloadBtn">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                        <span id="downloadBtnText">Télécharger pour Windows</span>
+                    </button>
+                    <p class="system-req" id="systemReq">Windows 10+ • 200 MB • Abonnement requis</p>
+                </div>
+                <div class="desktop-visual">
+                    <div class="app-window">
+                        <div class="window-header">
+                            <div class="window-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <span class="window-title">Microsoft Word</span>
+                        </div>
+                        <div class="window-content">
+                            <div class="typing-animation">
+                                <span class="cursor"></span>
+                                <span class="typed-text" id="typingText">Le patient présente une douleur thoracique...</span>
+                            </div>
+                        </div>
+                        <div class="floating-mic">
+                            <div class="mic-active"></div>
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comparison" id="comparison">
+        <div class="container">
+            <h2 class="section-title" id="comparisonTitle">Web ou Bureau ?</h2>
+            <p class="section-subtitle" id="comparisonSubtitle">Choisissez la solution adaptée à vos besoins</p>
+            
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th id="compFeature">Fonctionnalité</th>
+                            <th><span class="web-icon">🌐</span> <span id="compWeb">Plateforme Web</span></th>
+                            <th><span class="desktop-icon">💻</span> <span id="compDesktop">Application Bureau</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="compInternet">Connexion Internet</td>
+                            <td class="required" id="compInternetWeb">Requise</td>
+                            <td class="advantage" id="compInternetDesktop">Non requise</td>
+                        </tr>
+                        <tr>
+                            <td id="compInstall">Installation</td>
+                            <td class="advantage" id="compInstallWeb">Aucune</td>
+                            <td id="compInstallDesktop">Windows uniquement</td>
+                        </tr>
+                        <tr>
+                            <td id="compSecurity">Sécurité données</td>
+                            <td id="compSecurityWeb">Cloud sécurisé</td>
+                            <td class="advantage" id="compSecurityDesktop">Local sur PC</td>
+                        </tr>
+                        <tr>
+                            <td id="compIntegration">Intégration Office</td>
+                            <td id="compIntegrationWeb">Copier/coller</td>
+                            <td class="advantage" id="compIntegrationDesktop">Directe</td>
+                        </tr>
+                        <tr>
+                            <td id="compAccess">Accessibilité</td>
+                            <td class="advantage" id="compAccessWeb">Tout navigateur</td>
+                            <td id="compAccessDesktop">Bureau uniquement</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Browser Support -->
+    <section class="browser-support" id="browserSupport">
+        <div class="container">
+            <h3 class="browser-title" id="browserTitle">Navigateurs compatibles (Plateforme Web)</h3>
+            <div class="browsers">
+                <div class="browser recommended">
+                    <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/chrome/chrome.svg" alt="Chrome">
+                    <span>Chrome</span>
+                    <span class="status full" id="chromeStatus">Recommandé</span>
+                </div>
+                <div class="browser recommended">
+                    <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/edge/edge.svg" alt="Edge">
+                    <span>Edge</span>
+                    <span class="status full" id="edgeStatus">Recommandé</span>
+                </div>
+                <div class="browser recommended">
+                    <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/opera/opera.svg" alt="Opera">
+                    <span>Opera</span>
+                    <span class="status full" id="operaStatus">Recommandé</span>
+                </div>
+                <div class="browser limited">
+                    <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/safari/safari.svg" alt="Safari">
+                    <span>Safari</span>
+                    <span class="status partial" id="safariStatus">Limité</span>
+                </div>
+                <div class="browser not-recommended">
+                    <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/74.1.0/firefox/firefox.svg" alt="Firefox">
+                    <span>Firefox</span>
+                    <span class="status limited" id="firefoxStatus">Non recommandé</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical" class="footer-logo">
+                    <p id="footerTagline">Transcription médicale intelligente</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#" id="footerPrivacy">Confidentialité</a>
+                    <a href="#" id="footerTerms">Conditions</a>
+                    <a href="#" id="footerContact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 SyncVoice Medical. <span id="footerRights">Tous droits réservés.</span></p>
+            </div>
+        </div>
+    </footer>
 
     <script src="index.js"></script>
 </body>

@@ -5,1001 +5,236 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SyncVoice Medical - Application</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f4f3;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        
-        /* Navigation Bar */
-        .navbar {
-            background-color: #1a5f7a;
-            color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .navbar-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: white;
-            cursor: pointer;
-        }
-        
-        .navbar-brand img {
-            height: 40px;
-            margin-right: 1rem;
-        }
-        
-        .navbar-brand h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .navbar-menu {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .navbar-menu a {
-            color: white;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        
-        .navbar-menu a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        .upgrade-btn {
-            background-color: #f39c12;
-            padding: 0.5rem 1.5rem !important;
-        }
-        
-        .upgrade-btn:hover {
-            background-color: #e67e22 !important;
-        }
-        
-        .logout-btn {
-            background-color: #dc3545;
-            padding: 0.5rem 1.5rem !important;
-        }
-        
-        .logout-btn:hover {
-            background-color: #c82333 !important;
-        }
-        
-        /* Main Container */
-        .container {
-            flex: 1;
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-            width: 100%;
-        }
-        
-        /* Status Bar */
-        .status-bar {
-            background: white;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .status-info {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-        
-        .status-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .status-label {
-            font-size: 0.875rem;
-            color: #666;
-        }
-        
-        .status-value {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .trial-badge {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        
-        .premium-badge {
-            background: #f3e5f5;
-            color: #7b1fa2;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        
-        /* Application Form */
-        .app-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .app-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .app-title {
-            color: #1a5f7a;
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .app-subtitle {
-            color: #666;
-            font-size: 1.125rem;
-        }
-        
-        .voice-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        
-        .form-label {
-            font-weight: 600;
-            color: #333;
-            font-size: 1rem;
-        }
-        
-        .form-input,
-        .form-textarea {
-            padding: 0.75rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            transition: border-color 0.3s;
-        }
-        
-        .form-input:focus,
-        .form-textarea:focus {
-            outline: none;
-            border-color: #69B578;
-        }
-        
-        .form-textarea {
-            min-height: 300px;
-            resize: vertical;
-        }
-        
-        /* Control Buttons */
-        .controls {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 1rem;
-        }
-        
-        .control-btn {
-            padding: 0.75rem 2rem;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .start-btn {
-            background-color: #69B578;
-            color: white;
-        }
-        
-        .start-btn:hover:not(:disabled) {
-            background-color: #5aa469;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        .stop-btn {
-            background-color: #dc3545;
-            color: white;
-        }
-        
-        .stop-btn:hover:not(:disabled) {
-            background-color: #c82333;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        .copy-btn {
-            background-color: #296396;
-            color: white;
-        }
-        
-        .copy-btn:hover:not(:disabled) {
-            background-color: #1e4d73;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        .control-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        /* Recording Indicator */
-        .recording-indicator {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            color: #dc3545;
-            font-weight: 600;
-        }
-        
-        .recording-indicator.active {
-            display: flex;
-        }
-        
-        .recording-dot {
-            width: 12px;
-            height: 12px;
-            background-color: #dc3545;
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        /* Status Messages */
-        .status-message {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: 4px;
-            text-align: center;
-            display: none;
-        }
-        
-        .status-message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            display: block;
-        }
-        
-        .status-message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            display: block;
-        }
-        
-        .status-message.info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-            display: block;
-        }
-        
-        /* Footer */
-        .footer {
-            background-color: #f8f9fa;
-            padding: 1rem;
-            text-align: center;
-            color: #666;
-            margin-top: auto;
-        }
-        
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .navbar-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .navbar-menu {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            
-            .status-bar {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .status-info {
-                flex-direction: column;
-                gap: 1rem;
-                text-align: center;
-            }
-            
-            .controls {
-                flex-wrap: wrap;
-            }
-            
-            .control-btn {
-                flex: 1;
-                min-width: 140px;
-            }
-        }
-
-        /* Additional styles for appForm.js compatibility */
-        .transcription-container {
-            position: relative;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: white;
-        }
-
-        .action-btn {
-            margin: 0.5rem;
-        }
-
-        .icon {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
-
-        .btn-text {
-            display: inline-block;
-        }
-
-        .template-container {
-            padding: 1rem;
-            background: #f5f5f5;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-
-        .section-header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .section-header {
-            font-weight: bold;
-            color: #1a5f7a;
-            padding: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .section-header.active-section {
-            background-color: #e3f2fd;
-            border-radius: 4px;
-        }
-
-        .clear-section-btn {
-            padding: 0.25rem 0.75rem;
-            font-size: 0.875rem;
-            background-color: #f44336;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .clear-section-btn:hover {
-            background-color: #d32f2f;
-        }
-
-        .section-content {
-            min-height: 100px;
-            padding: 1rem;
-            background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            white-space: pre-wrap;
-            transition: all 0.3s;
-        }
-
-        .section-content.active-section {
-            border-color: #1a5f7a;
-            box-shadow: 0 0 0 2px rgba(26, 95, 122, 0.1);
-        }
-
-        .section-content[contenteditable="true"]:focus {
-            outline: none;
-            border-color: #69B578;
-        }
-
-        /* Template Modal */
-        .template-modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .template-modal.show {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            padding: 2rem;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-header h2 {
-            color: #1a5f7a;
-            margin: 0;
-        }
-
-        .close-modal {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #aaa;
-            cursor: pointer;
-            background: none;
-            border: none;
-            padding: 0;
-            line-height: 1;
-        }
-
-        .close-modal:hover,
-        .close-modal:focus {
-            color: #000;
-        }
-
-        .template-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-
-        .template-item {
-            padding: 1.5rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-        }
-
-        .template-item:hover {
-            border-color: #69B578;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .template-item h3 {
-            color: #1a5f7a;
-            margin-bottom: 0.5rem;
-        }
-
-        .template-item p {
-            color: #666;
-            font-size: 0.875rem;
-        }
-
-        /* Speech notification */
-        .speech-notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 10000;
-            max-width: 400px;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .countdown-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(26, 95, 122, 0.8));
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    z-index: 10000;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    text-align: center;
-    animation: fadeIn 0.3s ease-in;
-}
-
-.countdown-overlay.show {
-    display: flex;
-}
-
-/* Countdown text styling */
-#countdownText {
-    font-size: 2.5em;
-    font-weight: 700;
-    margin-bottom: 30px;
-    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-}
-
-/* Countdown number styling */
-#countdownNumber {
-    font-size: 8em;
-    font-weight: 900;
-    color: #ff6b35;
-    text-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
-    margin-bottom: 20px;
-    animation: scaleIn 0.5s ease-out;
-}
-
-/* Pulse animation for "SPEAK NOW" */
-@keyframes pulse {
-    0% { 
-        transform: scale(1); 
-        opacity: 1; 
-    }
-    50% { 
-        transform: scale(1.1); 
-        opacity: 0.8; 
-    }
-    100% { 
-        transform: scale(1); 
-        opacity: 1; 
-    }
-}
-
-/* Scale in animation for countdown numbers */
-@keyframes scaleIn {
-    0% {
-        transform: scale(0.5);
-        opacity: 0;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-/* Fade in animation for overlay */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        backdrop-filter: blur(0px);
-    }
-    to {
-        opacity: 1;
-        backdrop-filter: blur(10px);
-    }
-}
-
-/* Enhanced recording indicator */
-.recording-indicator {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    color: white;
-    font-weight: 700;
-    border-radius: 25px;
-    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    animation: recordingPulse 2s infinite;
-}
-
-.recording-indicator.active {
-    display: flex;
-}
-
-/* Enhanced recording dot */
-.recording-dot {
-    width: 16px;
-    height: 16px;
-    background-color: white;
-    border-radius: 50%;
-    animation: dotPulse 1.5s infinite;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* Recording pulse animation */
-@keyframes recordingPulse {
-    0%, 100% { 
-        transform: scale(1);
-        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-    }
-    50% { 
-        transform: scale(1.05);
-        box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
-    }
-}
-
-/* Dot pulse animation */
-@keyframes dotPulse {
-    0%, 100% { 
-        opacity: 1; 
-        transform: scale(1);
-    }
-    50% { 
-        opacity: 0.3; 
-        transform: scale(0.8);
-    }
-}
-
-/* Template instruction styling */
-.template-instruction {
-    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-    border: 2px solid #1976d2;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-    color: #1976d2;
-    text-align: center;
-    font-size: 1.1em;
-    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
-    animation: slideInDown 0.5s ease-out;
-}
-
-/* Slide in animation for instructions */
-@keyframes slideInDown {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Enhanced speak now styling */
-.speak-now-indicator {
-    color: #4CAF50 !important;
-    font-size: 3.5em !important;
-    font-weight: 900 !important;
-    text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.8) !important;
-    animation: speakNowPulse 1s infinite !important;
-}
-
-@keyframes speakNowPulse {
-    0%, 100% { 
-        transform: scale(1);
-        color: #4CAF50;
-    }
-    50% { 
-        transform: scale(1.1);
-        color: #66BB6A;
-    }
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-    #countdownText {
-        font-size: 2em;
-        margin-bottom: 20px;
-    }
-    
-    #countdownNumber {
-        font-size: 6em;
-        margin-bottom: 15px;
-    }
-    
-    .template-instruction {
-        padding: 1rem;
-        font-size: 1em;
-    }
-    
-    .recording-indicator {
-        padding: 0.5rem 1rem;
-        font-size: 0.9em;
-    }
-}
-
-/* High contrast mode for accessibility */
-@media (prefers-high-contrast: high) {
-    .countdown-overlay {
-        background: black;
-        backdrop-filter: none;
-    }
-    
-    #countdownText {
-        color: white;
-        text-shadow: none;
-        border: 2px solid white;
-        padding: 10px;
-    }
-    
-    #countdownNumber {
-        color: yellow;
-        text-shadow: none;
-        border: 3px solid yellow;
-        padding: 20px;
-    }
-}
-
-/* Reduced motion for accessibility */
-@media (prefers-reduced-motion: reduce) {
-    .countdown-overlay,
-    #countdownNumber,
-    .recording-indicator,
-    .recording-dot,
-    .template-instruction {
-        animation: none;
-    }
-    
-    .pulse,
-    .speak-now-indicator {
-        animation: none !important;
-    }
-}
-
-/* Enhanced button states for better feedback */
-.control-btn.recording {
-    background-color: #e74c3c !important;
-    color: white !important;
-    box-shadow: 0 0 20px rgba(231, 76, 60, 0.5) !important;
-    animation: buttonRecordingPulse 2s infinite !important;
-}
-
-@keyframes buttonRecordingPulse {
-    0%, 100% { 
-        box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
-    }
-    50% { 
-        box-shadow: 0 0 30px rgba(231, 76, 60, 0.8);
-    }
-}
-
-        
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="appForm.css">
 </head>
 <body>
     <!-- Navigation Bar -->
-    <nav class="navbar">
-        <div class="navbar-content">
-            <div class="navbar-brand" id="logoLink">
-                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical">
-                <h1>SyncVoice Medical</h1>
+    <header class="app-header">
+        <a href="index.html" class="app-logo navbar-brand" id="logoLink">
+            <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical">
+        </a>
+        <div class="user-info">
+            <div class="user-details">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-meta">
+                    <span class="user-name" id="userEmail">Utilisateur</span>
+                    <span class="user-badge trial" id="accountTypeBadge">Essai gratuit</span>
+                </div>
             </div>
-            <div class="navbar-menu">
-                <a href="account.html" id="myAccountLink">Mon Compte</a>
-                <a href="form.html?plan=paid" id="upgradeLink" class="upgrade-btn" style="display: none;">Passer à Premium</a>
-                <a href="#" id="logoutLink" class="logout-btn">Se déconnecter</a>
+            <div class="days-remaining" id="daysRemainingContainer" style="display: none;">
+                <span class="days-label" id="daysLabel">Jours restants:</span>
+                <span class="days-value" id="daysRemaining">-</span>
             </div>
+            <nav class="nav-links navbar-menu">
+                <a href="account.html" class="nav-link" id="myAccountLink">Mon Compte</a>
+                <a href="form.html?plan=paid" class="nav-link upgrade-link" id="upgradeLink" style="display: none;">Passer à Premium</a>
+                <a href="#" class="nav-link logout-link" id="logoutLink">Se déconnecter</a>
+            </nav>
         </div>
-    </nav>
+    </header>
 
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Status Bar -->
-        <div class="status-bar">
-            <div class="status-info">
-                <div class="status-item">
-                    <span class="status-label" id="userLabel">Utilisateur</span>
-                    <span class="status-value" id="userEmail">-</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label" id="statusLabel">Statut</span>
-                    <span class="status-value">
-                        <span id="accountTypeBadge" class="trial-badge">Essai gratuit</span>
-                    </span>
-                </div>
-                <div class="status-item" id="daysRemainingContainer" style="display: none;">
-                    <span class="status-label" id="daysLabel">Jours restants</span>
-                    <span class="status-value" id="daysRemaining">-</span>
-                </div>
-            </div>
+    <!-- Main Content -->
+    <main class="app-main">
+        <!-- Title Section -->
+        <div class="app-title-section">
+            <h1 class="app-title" id="appTitle">Transcription Vocale</h1>
+            <p class="app-subtitle" id="appSubtitle">Commencez à dicter pour transcrire votre texte</p>
         </div>
 
-        <!-- Application Form -->
-        <div class="app-container">
-            <div class="app-header">
-                <h1 class="app-title" id="appTitle">Transcription Vocale</h1>
-                <p class="app-subtitle" id="appSubtitle">Commencez à dicter pour transcrire votre texte</p>
+        <!-- Voice Form -->
+        <form class="voice-form" id="voiceForm">
+            <!-- Subject Input -->
+            <div class="subject-section form-group">
+                <label for="subjectInput" class="subject-label form-label" id="subjectLabel">Sujet / Référence:</label>
+                <input type="text" id="subjectInput" class="subject-input form-input" placeholder="Ex: Consultation du 31/07/2025">
             </div>
 
-            <form class="voice-form" id="voiceForm">
-                <div class="form-group">
-                    <label for="subjectInput" class="form-label" id="subjectLabel">Sujet / Référence:</label>
-                    <input type="text" id="subjectInput" class="form-input" placeholder="Ex: Consultation du 31/07/2025">
+            <!-- Transcription Wrapper - New 80/20 Layout -->
+            <div class="transcription-wrapper">
+                <!-- Transcription Area (80%) -->
+                <div class="transcription-section">
+                    <label for="transcriptionText" class="transcription-label form-label" id="transcriptionLabel">Transcription:</label>
+                    <div class="transcription-container">
+                        <textarea 
+                            id="transcriptionText" 
+                            class="transcription-textarea form-textarea" 
+                            placeholder="Appuyez sur le bouton 'Parlez en Français', attendez que le compte à rebours se termine, puis parlez. Votre transcription apparaîtra ici..."
+                        ></textarea>
+                        <div class="transcription-footer">
+                            <span class="char-count" id="charCount">0 caractères</span>
+                            <span class="ai-notice" id="AICanMakeMistakes_message">* L'IA peut faire des erreurs. Veuillez vérifier la transcription.</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group transcription-container">
-                    <label for="transcriptionText" class="form-label" id="transcriptionLabel">Transcription:</label>
-                    <textarea id="transcriptionText" class="form-textarea" placeholder="Le texte transcrit apparaîtra ici..."></textarea>
-                </div>
+                <!-- Control Buttons Panel (18%) - Vertical Stack -->
+                <div class="controls-panel controls">
+                    <!-- Recording Status Indicator -->
+                    <div class="recording-status recording-indicator" id="recordingIndicator">
+                        <div class="recording-dot"></div>
+                        <span class="recording-text" id="recordingText">Enregistrement en cours...</span>
+                    </div>
 
-                <div class="controls">
-                    <button type="button" id="startButton" class="control-btn start-btn btn">
-                        <span>🎤</span>
-                        <span class="btn-text" id="startBtnText">Commencer</span>
+                    <!-- Primary Action - Start Speaking -->
+                    <button type="button" id="startButton" class="control-btn primary start-btn btn">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                        </svg>
+                        <span class="btn-text" id="startBtnText">Parlez en Français</span>
                     </button>
-                    <button type="button" id="pauseButton" class="control-btn stop-btn btn" disabled>
-                        <span>⏸️</span>
+
+                    <!-- Pause Button -->
+                    <button type="button" id="pauseButton" class="control-btn secondary pause stop-btn btn" disabled>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                        </svg>
                         <span class="btn-text" id="pauseBtnText">Pause</span>
                     </button>
-                    <button type="button" id="stopButton" class="control-btn stop-btn btn" disabled>
-                        <span>⏹️</span>
-                        <span class="btn-text" id="stopBtnText">Arrêter</span>
-                    </button>
-                    <button type="button" id="copyButton" class="control-btn copy-btn btn">
-                        <span>📋</span>
-                        <span class="btn-text" id="copyBtnText">Copier</span>
-                    </button>
-                </div>
 
-                <div class="controls">
-                    <button type="button" id="templateButton" class="btn action-btn" style="background-color: #f39c12;">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                    <!-- Stop Button -->
+                    <button type="button" id="stopButton" class="control-btn secondary stop stop-btn btn" disabled>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 6h12v12H6z"/>
                         </svg>
-                        <span class="btn-text">Utiliser un modèle Word</span>
+                        <span class="btn-text" id="stopBtnText">Stop</span>
                     </button>
-                    <button type="button" id="quitButton" class="btn action-btn" style="background-color: #757575;">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <path d="M19,6.41L17.59,5 12,10.59 6.41,5 5,6.41 10.59,12 5,17.59 6.41,19 12,13.41 17.59,19 19,17.59 13.41,12z" />
+
+                    <div class="controls-divider"></div>
+
+                    <!-- Copy Button -->
+                    <button type="button" id="copyButton" class="control-btn action copy copy-btn btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        <span class="btn-text" id="copyBtnText">Copiez tout</span>
+                    </button>
+
+                    <!-- Template Button -->
+                    <button type="button" id="templateButton" class="control-btn action action-btn btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                        <span class="btn-text">Modèle Word</span>
+                    </button>
+
+                    <!-- Clear Button -->
+                    <button type="button" id="clearButton" class="control-btn action action-btn btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        <span class="btn-text">Tout Effacer</span>
+                    </button>
+
+                    <div class="controls-divider"></div>
+
+                    <!-- Quit Button -->
+                    <button type="button" id="quitButton" class="control-btn quit action-btn btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
                         </svg>
                         <span class="btn-text">Quitter</span>
                     </button>
-                    <button type="button" id="clearButton" class="btn action-btn" style="background-color: #d32f2f;">
-                        Tout Effacer
-                    </button>
                 </div>
-
-                <div class="recording-indicator" id="recordingIndicator">
-                    <div class="recording-dot"></div>
-                    <span id="recordingText">Enregistrement en cours...</span>
-                </div>
-
-                <div id="statusMessage" class="status-message"></div>
-                
-                <div style="text-align: center; margin-top: 1rem; color: #666; font-size: 0.875rem;">
-                    <span id="AICanMakeMistakes_message">* L'IA peut faire des erreurs. Veuillez vérifier la transcription.</span>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <p>&copy; 2025 SyncVoice Medical. <span id="footerText">Tous droits réservés.</span></p>
-    </footer>
-
-    <!-- Template Modal -->
-    <div id="templateModal" class="template-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="templateModalTitle">Choisissez un modèle</h2>
-                <button class="close-modal">&times;</button>
             </div>
-            <div class="template-grid">
+
+            <!-- Status Message (for errors/success) -->
+            <div id="statusMessage" class="status-message"></div>
+        </form>
+    </main>
+
+    <!-- Template Modal (keeping original structure for compatibility) -->
+    <div id="templateModal" class="template-modal">
+        <div class="template-modal-content modal-content">
+            <div class="template-modal-header modal-header">
+                <h2 class="template-modal-title" id="templateModalTitle">Choisissez un modèle</h2>
+                <button class="template-modal-close close-modal">&times;</button>
+            </div>
+            <div class="template-list template-grid">
                 <div class="template-item" data-template="consultation">
-                    <h3>Consultation Médicale</h3>
+                    <h4>Consultation Médicale</h4>
                     <p>Modèle pour une consultation médicale standard</p>
                 </div>
                 <div class="template-item" data-template="specialist">
-                    <h3>Consultation Spécialisée</h3>
+                    <h4>Consultation Spécialisée</h4>
                     <p>Modèle pour une consultation avec un spécialiste</p>
                 </div>
                 <div class="template-item" data-template="surgery">
-                    <h3>Chirurgie</h3>
+                    <h4>Chirurgie</h4>
                     <p>Modèle pour un rapport chirurgical</p>
                 </div>
                 <div class="template-item" data-template="prescription">
-                    <h3>Ordonnance</h3>
+                    <h4>Ordonnance</h4>
                     <p>Modèle pour une ordonnance médicale</p>
                 </div>
             </div>
         </div>
     </div>
-    
+
+    <!-- Countdown Overlay -->
+    <div id="countdownOverlay" class="countdown-overlay">
+        <div class="countdown-number" id="countdownNumber">3</div>
+        <div class="countdown-text" id="countdownText">Préparation...</div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer footer">
+        <p>&copy; 2025 SyncVoice Medical. <span id="footerText">Tous droits réservés.</span></p>
+    </footer>
+
     <!-- Include the language detection module if available -->
     <script src="languageDetection.js"></script>
 
+    <!-- DocX library for Word export -->
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
-    <!-- Include the main application JavaScript -->
+    <!-- Main application JavaScript (your existing file) -->
     <script src="appForm.js"></script>
+    
+    <!-- Character counter enhancement -->
+    <script>
+        // Character counter
+        document.addEventListener('DOMContentLoaded', function() {
+            const textarea = document.getElementById('transcriptionText');
+            const charCount = document.getElementById('charCount');
+            
+            if (textarea && charCount) {
+                function updateCount() {
+                    const count = textarea.value.length;
+                    charCount.textContent = count + ' caractères';
+                }
+                
+                textarea.addEventListener('input', updateCount);
+                
+                // Watch for programmatic changes
+                const observer = new MutationObserver(updateCount);
+                observer.observe(textarea, { childList: true, characterData: true, subtree: true });
+                
+                // Also poll periodically for speech recognition updates
+                setInterval(updateCount, 500);
+                
+                updateCount();
+            }
+            
+            // User avatar initialization
+            const userEmail = document.getElementById('userEmail');
+            const userAvatar = document.getElementById('userAvatar');
+            if (userEmail && userAvatar) {
+                const email = userEmail.textContent || 'U';
+                userAvatar.textContent = email.charAt(0).toUpperCase();
+            }
+        });
+    </script>
 </body>
 </html>

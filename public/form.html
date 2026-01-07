@@ -1,369 +1,564 @@
-<!DOCTYPE html>
-<html id="htmlLang" lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">SyncVoice Medical - Formulaire</title>
-    <link rel="stylesheet" href="form.css">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <script src="languageDetection.js"></script>
-</head>
-<body>
-    <div class="container">
-        <nav class="nav">
-            <a href="#" class="logo">
-                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
             </a>
-        </nav>
+            <select id="language-select" class="language-select">
+                <option value="fr">🇫🇷 FR</option>
+                <option value="en">🇬🇧 EN</option>
+                <option value="de">🇩🇪 DE</option>
+                <option value="es">🇪🇸 ES</option>
+                <option value="it">🇮🇹 IT</option>
+                <option value="pt">🇵🇹 PT</option>
+            </select>
+        </div>
+    </nav>
 
-        <main class="form-container">
-            <h1 id="formTitle">Veuillez remplir les champs ci-dessous pour obtenir votre code d'activation.</h1>
-            
-            <form id="registrationForm" class="registration-form">
-                <div class="button-container">
-                    <a href="index.html" id="returnBtn" class="return-btn" aria-label="Return to homepage">Retour</a>
+    <main class="main-content">
+        <div class="form-card">
+            <div class="form-header">
+                <span class="plan-badge free" id="planBadge">Essai gratuit</span>
+                <h1 class="form-title" id="formTitle">Créez votre compte</h1>
+                <p class="form-subtitle" id="formSubtitle">Remplissez les informations ci-dessous</p>
+            </div>
+
+            <!-- Billing Toggle (Paid only) -->
+            <div class="billing-toggle hidden" id="billingToggle">
+                <span class="toggle-label" id="monthlyLabel">Mensuel</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="billingSwitch">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="toggle-label" id="yearlyLabel">Annuel</span>
+                <span class="savings-badge">-17%</span>
+            </div>
+
+            <!-- Price Display (Paid only) -->
+            <div class="price-display hidden" id="priceDisplay">
+                <div class="price-amount"><span id="priceSymbol">€</span><span id="priceValue">25</span></div>
+                <div class="price-period" id="pricePeriod">par mois</div>
+            </div>
+
+            <div id="errorMessage" class="message error"></div>
+            <div id="successMessage" class="message success"></div>
+
+            <form id="registrationForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName" class="form-label" id="firstNameLabel">Prénom <span class="required">*</span></label>
+                        <input type="text" id="firstName" name="prenom" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName" class="form-label" id="lastNameLabel">Nom <span class="required">*</span></label>
+                        <input type="text" id="lastName" name="nom" class="form-input" required>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="prenom" id="prenomLabel">Prénom :</label>
-                    <input type="text" id="prenom" name="prenom" required aria-required="true"
-                        data-fr="prenom" 
-                        data-en="firstName"
-                        data-de="vorname"
-                        data-es="nombre"
-                        data-it="nome"
-                        data-pt="nome">
-                </div>
-                
-                <div class="form-group">
-                    <label for="nom" id="nomLabel">Nom :</label>
-                    <input type="text" id="nom" name="nom" required aria-required="true"
-                        data-fr="nom"
-                        data-en="lastName"
-                        data-de="nachname"
-                        data-es="apellido"
-                        data-it="cognome"
-                        data-pt="sobrenome">
-                </div>
-                
-                <div class="form-group">
-                    <label for="email" id="emailLabel">Email :</label>
-                    <input type="email" id="email" name="email" required aria-required="true">
+                    <label for="email" class="form-label" id="emailLabel">Email <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" class="form-input" required>
                 </div>
 
-                <!-- Password Fields - Always visible for authentication -->
                 <div class="form-group">
-                    <label for="password" id="passwordLabel">Mot de passe :</label>
-                    <input type="password" id="password" name="password" required aria-required="true" minlength="8"
-                        data-fr="motDePasse"
-                        data-en="password"
-                        data-de="passwort"
-                        data-es="contraseña"
-                        data-it="password"
-                        data-pt="senha">
-                    <div class="password-help" id="passwordHelp">Au moins 8 caractères</div>
+                    <label for="company" class="form-label" id="companyLabel">Établissement / Cabinet</label>
+                    <input type="text" id="company" name="societe" class="form-input">
                 </div>
-                
-                <div class="form-group">
-                    <label for="confirmPassword" id="confirmPasswordLabel">Confirmer le mot de passe :</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" required aria-required="true" minlength="8"
-                        data-fr="confirmerMotDePasse"
-                        data-en="confirmPassword"
-                        data-de="passwortBestaetigen"
-                        data-es="confirmarContraseña"
-                        data-it="confermaPassword"
-                        data-pt="confirmarSenha">
-                    <div class="password-match-message" id="passwordMatchMessage"></div>
-                </div>
-                
-                <!-- Paid version fields in a single container -->
-                <div class="paid-only-fields hidden">
+
+                <!-- Address fields (Paid only) -->
+                <div id="addressFields" class="hidden">
                     <div class="form-group">
-                        <label for="societe" id="societeLabel">Société :</label>
-                        <input type="text" id="societe" name="societe"
-                            data-fr="societe"
-                            data-en="company"
-                            data-de="firma"
-                            data-es="empresa"
-                            data-it="azienda"
-                            data-pt="empresa">
+                        <label for="address" class="form-label" id="addressLabel">Adresse <span class="required">*</span></label>
+                        <input type="text" id="address" name="adresse" class="form-input">
                     </div>
-                
-                    <div class="form-group">
-                        <label for="adresse" id="adresseLabel">Adresse :</label>
-                        <input type="text" id="adresse" name="adresse"
-                            data-fr="adresse"
-                            data-en="address"
-                            data-de="adresse"
-                            data-es="direccion"
-                            data-it="indirizzo"
-                            data-pt="endereco">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="postalCode" class="form-label" id="postalCodeLabel">Code postal <span class="required">*</span></label>
+                            <input type="text" id="postalCode" name="codePostal" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="city" class="form-label" id="cityLabel">Ville <span class="required">*</span></label>
+                            <input type="text" id="city" name="ville" class="form-input">
+                        </div>
                     </div>
-                
+
                     <div class="form-group">
-                        <label for="adresseSuite" id="adresseSuiteLabel">Adresse (suite) :</label>
-                        <input type="text" id="adresseSuite" name="adresseSuite"
-                            data-fr="adresseSuite"
-                            data-en="addressContinued"
-                            data-de="adresseFortsetzung"
-                            data-es="direccionContinuacion"
-                            data-it="indirizzoContinuazione"
-                            data-pt="enderecoContinuacao">
-                    </div>
-                
-                    <div class="form-group">
-                        <label for="codePostal" id="codePostalLabel">Code Postal :</label>
-                        <input type="text" id="codePostal" name="codePostal"
-                            data-fr="codePostal"
-                            data-en="postalCode"
-                            data-de="postleitzahl"
-                            data-es="codigoPostal"
-                            data-it="codicePostale"
-                            data-pt="codigoPostal">
-                    </div>
-                
-                    <div class="form-group">
-                        <label for="ville" id="villeLabel">Ville :</label>
-                        <input type="text" id="ville" name="ville"
-                            data-fr="ville"
-                            data-en="city"
-                            data-de="stadt"
-                            data-es="ciudad"
-                            data-it="citta"
-                            data-pt="cidade">
-                    </div>
-                
-                    <div class="form-group">
-                        <label for="pays" id="paysLabel">Pays :</label>
-                        <input type="text" id="pays" name="pays"
-                            data-fr="pays"
-                            data-en="country"
-                            data-de="land"
-                            data-es="pais"
-                            data-it="paese"
-                            data-pt="pais">
+                        <label for="country" class="form-label" id="countryLabel">Pays <span class="required">*</span></label>
+                        <select id="country" name="pays" class="form-select">
+                            <option value="France">France</option>
+                            <option value="Belgium">Belgique</option>
+                            <option value="Switzerland">Suisse</option>
+                            <option value="Luxembourg">Luxembourg</option>
+                            <option value="Germany">Allemagne</option>
+                            <option value="Austria">Autriche</option>
+                            <option value="Spain">Espagne</option>
+                            <option value="Italy">Italie</option>
+                            <option value="Portugal">Portugal</option>
+                            <option value="United Kingdom">Royaume-Uni</option>
+                            <option value="Ireland">Irlande</option>
+                            <option value="Netherlands">Pays-Bas</option>
+                            <option value="Other">Autre</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="terms-section">
-                    <div class="terms-link">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'%3E%3C/path%3E%3Cpolyline points='14 2 14 8 20 8'%3E%3C/polyline%3E%3Cline x1='16' y1='13' x2='8' y2='13'%3E%3C/line%3E%3Cline x1='16' y1='17' x2='8' y2='17'%3E%3C/line%3E%3Cpolyline points='10 9 9 9 8 9'%3E%3C/polyline%3E%3C/svg%3E" alt="Terms icon">
-                        <a href="#" id="termsLink" aria-label="View Terms and Conditions">Cliquez ici pour les Conditions Générales</a>
+                <!-- Payment Section (Paid only) -->
+                <div class="payment-section hidden" id="paymentSection">
+                    <div class="payment-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                        <span id="paymentTitle">Informations de paiement</span>
                     </div>
-                
-                    <div class="checkbox-group">
-                        <label for="termsAccept" class="checkbox-label">
-                            <input type="checkbox" id="termsAccept" name="termsAccept" required aria-required="true">
-                            <span id="termsAcceptLabel">J'ai lu et accepté les conditions générales</span>
-                        </label>
-                    </div>
-                    
-                    <div id="proceedMessage" class="proceed-message" role="alert"></div>
-                    
-                    <p id="termsConfirmation" class="terms-confirmation"></p>
-                
-                    <div class="checkbox-group paid-only-fields hidden">
-                        <label for="autoRenewal" class="checkbox-label">
-                            <input type="checkbox" id="autoRenewal" name="autoRenewal">
-                            <span id="autoRenewalLabel">Je souhaite le renouvellement automatique</span>
-                        </label>
-                    </div>
+                    <div id="payment-element"></div>
+                    <div id="card-errors"></div>
                 </div>
 
-                <div id="payment-element-container" class="paid-only-fields hidden">
-                    <div class="payment-header">
-                        <div class="payment-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2" y="5" width="20" height="14" rx="2" />
-                                <line x1="2" y1="10" x2="22" y2="10" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="payment-title" id="paymentTitle">Paiement Sécurisé</h3>
-                            <p class="payment-subtitle" id="paymentSubtitle">Vos informations de paiement sont sécurisées</p>
-                        </div>
-                    </div>
-                    
-                    <div class="card-container">
-                        <div id="payment-element" class="payment-element">
-                            <!-- Stripe Payment Element will be mounted here -->
-                        </div>
-                        <div id="card-errors" class="card-errors" role="alert"></div>
-                    </div>
-                    
-                    <div class="payment-summary">
-                        <div class="payment-detail">
-                            <span id="subscriptionLabel">Abonnement mensuel</span>
-                            <span>25,00 €</span>
-                        </div>
-                        <div class="payment-total">
-                            <span id="totalLabel">Total</span>
-                            <span>25,00 €</span>
-                        </div>
-                    </div>
-                    
-                    <div class="payment-badges">
-                        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSIzMiI+PHBhdGggZmlsbD0iIzI1MmEzMiIgZD0iTTQ0IDBoNGEwIDAgMCAwIDEgMCAwdjIzYTQgNCAwIDAgMS00IDRIMGEwIDAgMCAwIDEgMCAwVjRhNCA0IDAgMCAxIDQtNGg0MHoiIG9wYWNpdHk9Ii4wNyIvPjxwYXRoIGQ9Ik0xNi43MiAxNi4wMzFoLTMuMjk1bDIuMDMtNSAzLjQyOSA4LjdoLTIuMTYzbC0uODI2LTIuMTc1ek0zOSAxOS43MzFoLTIuMjNsMS4xMjgtMi45MDRoLTIuNTgybDEuMTI4LTIuOTA0aDIuNTgybDEuMTI4LTIuOTA0SDQzbC0xLjEyOCAyLjkwNGgyLjU4MWwtMS4xMjYgMi45MDRoLTIuNTgybC0xLjEyOCAyLjkwNGgtLjAwMXpNMjYgOS43MzFsLTEuNSA0SDI4bC0uNSAxLjVoLTMuNWwtMSAyLjVoLTJsMS0yLjVoLTJsMSAyLjVoLTJsLTEgMi41aC0ybDEtMi41aC0yLjVsLjUgNWgyLjVsLTEuNSA0SDIwbC0uNSAxLjVoLTMuNWwxIDIuNWgyMGwzLTV6IiBmaWxsPSIjNmE2YzZmIi8+PC9zdmc+" alt="Stripe" class="payment-badge">
-                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCA0OCAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iI0YzRjRGNiIvPgo8cGF0aCBkPSJNMzAgMTguNUgxOEMxNi42MTkzIDE4LjUgMTUuNSAxNy4zODA3IDE1LjUgMTZDMTUuNSAxNC42MTkzIDE2LjYxOTMgMTMuNSAxOCAxMy41SDMwQzMxLjM4MDcgMTMuNSAzMi41IDE0LjYxOTMgMzIuNSAxNkMzMi41IDE3LjM4MDcgMzEuMzgwNyAxOC41IDMwIDE4LjVaIiBzdHJva2U9IiM2QTZDNkYiIHN0cm9rZS13aWR0aD0iMi41Ii8+CjxwYXRoIGQ9Ik0yNyAxM1YxOSIgc3Ryb2tlPSIjNkE2QzZGIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8L3N2Zz4K" alt="Card" class="payment-badge">
-                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCA0OCAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iI0YzRjRGNiIvPgo8cGF0aCBkPSJNMTggMTMuNUgzMEMzMS4zODA3IDEzLjUgMzIuNSAxNC42MTkzIDMyLjUgMTZDMzIuNSAxNy4zODA3IDMxLjM4MDcgMTguNSAzMCAxOC41SDE4QzE2LjYxOTMgMTguNSAxNS41IDE3LjM4MDcgMTUuNSAxNkMxNS41IDE0LjYxOTMgMTYuNjE5MyAxMy41IDE4IDEzLjVaIiBzdHJva2U9IiM2QTZDNkYiIHN0cm9rZS13aWR0aD0iMi41Ii8+Cjwvc3ZnPgo=" alt="Secure" class="payment-badge">
-                    </div>
+                <div class="terms-group">
+                    <input type="checkbox" id="termsAccept" class="terms-checkbox" required>
+                    <label for="termsAccept" class="terms-label" id="termsLabel">
+                        J'accepte les <a href="#" target="_blank">conditions d'utilisation</a> et la <a href="#" target="_blank">politique de confidentialité</a>
+                    </label>
                 </div>
 
-                <!-- Submit button outside any paid-only-fields container -->
-                <button type="submit" class="submit-btn" id="submitButton">
-                    Veuillez envoyer mon code d'activation pour 7 jours à l'adresse email ci-dessus.
+                <button type="submit" id="submitButton" class="submit-btn">
+                    <span id="submitText">Créer mon compte</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
                 </button>
             </form>
-        </main>
-    </div>
 
-    <script src="https://js.stripe.com/v3/"></script>
-    <script src="form.js"></script>
-    
+            <div class="form-footer">
+                <p>
+                    <span id="hasAccountText">Déjà un compte ?</span>
+                    <a href="login.html" id="loginLink" class="form-link">Se connecter</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
     <script>
-    // Password validation and form handling
-    document.addEventListener('DOMContentLoaded', function() {
-        const submitButton = document.getElementById('submitButton');
-        const form = document.getElementById('registrationForm');
-        const password = document.getElementById('password');
-        const confirmPassword = document.getElementById('confirmPassword');
-        const passwordMatchMessage = document.getElementById('passwordMatchMessage');
-        
-        // Password validation translations
-        const passwordMessages = {
-            fr: {
-                tooShort: 'Le mot de passe doit contenir au moins 8 caractères',
-                noMatch: 'Les mots de passe ne correspondent pas',
-                match: 'Les mots de passe correspondent ✓',
-                helpText: 'Au moins 8 caractères'
-            },
-            en: {
-                tooShort: 'Password must be at least 8 characters long',
-                noMatch: 'Passwords do not match',
-                match: 'Passwords match ✓',
-                helpText: 'At least 8 characters'
-            },
-            de: {
-                tooShort: 'Das Passwort muss mindestens 8 Zeichen lang sein',
-                noMatch: 'Passwörter stimmen nicht überein',
-                match: 'Passwörter stimmen überein ✓',
-                helpText: 'Mindestens 8 Zeichen'
-            },
-            es: {
-                tooShort: 'La contraseña debe tener al menos 8 caracteres',
-                noMatch: 'Las contraseñas no coinciden',
-                match: 'Las contraseñas coinciden ✓',
-                helpText: 'Al menos 8 caracteres'
-            },
-            it: {
-                tooShort: 'La password deve avere almeno 8 caratteri',
-                noMatch: 'Le password non corrispondono',
-                match: 'Le password corrispondono ✓',
-                helpText: 'Almeno 8 caratteri'
-            },
-            pt: {
-                tooShort: 'A senha deve ter pelo menos 8 caracteres',
-                noMatch: 'As senhas não coincidem',
-                match: 'As senhas coincidem ✓',
-                helpText: 'Pelo menos 8 caracteres'
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Configuration
+            const PRICING = {
+                EUR: { symbol: '€', monthly: 25, yearly: 250 },
+                GBP: { symbol: '£', monthly: 21, yearly: 218 }
+            };
+
+            const GBP_COUNTRIES = ['United Kingdom', 'UK', 'GB'];
+
+            // State
+            const urlParams = new URLSearchParams(window.location.search);
+            let plan = urlParams.get('plan') || 'free';
+            let billing = urlParams.get('billing') || 'monthly';
+            let currency = urlParams.get('currency')?.toUpperCase() || 'EUR';
+            let lang = urlParams.get('lang') || localStorage.getItem('selectedLanguage') || 'fr';
+            
+            // Stripe
+            let stripe = null;
+            let cardElement = null;
+
+            // Translations
+            const t = {
+                fr: {
+                    freeBadge: 'Essai gratuit - 7 jours',
+                    paidBadgeMonthly: 'Abonnement mensuel',
+                    paidBadgeYearly: 'Abonnement annuel',
+                    formTitle: 'Créez votre compte',
+                    formSubtitleFree: 'Commencez votre essai gratuit de 7 jours',
+                    formSubtitlePaid: 'Accès illimité à la transcription médicale',
+                    firstName: 'Prénom',
+                    lastName: 'Nom',
+                    email: 'Email',
+                    company: 'Établissement / Cabinet',
+                    address: 'Adresse',
+                    postalCode: 'Code postal',
+                    city: 'Ville',
+                    country: 'Pays',
+                    paymentTitle: 'Informations de paiement',
+                    terms: "J'accepte les <a href='#'>conditions d'utilisation</a> et la <a href='#'>politique de confidentialité</a>",
+                    submitFree: "Commencer l'essai gratuit",
+                    submitPaid: 'Payer et commencer',
+                    hasAccount: 'Déjà un compte ?',
+                    login: 'Se connecter',
+                    return: 'Retour',
+                    monthly: 'Mensuel',
+                    yearly: 'Annuel',
+                    perMonth: 'par mois',
+                    perYear: 'par an',
+                    processing: 'Traitement...',
+                    success: 'Inscription réussie ! Vérifiez votre email.',
+                    error: 'Une erreur est survenue. Veuillez réessayer.'
+                },
+                en: {
+                    freeBadge: 'Free trial - 7 days',
+                    paidBadgeMonthly: 'Monthly subscription',
+                    paidBadgeYearly: 'Annual subscription',
+                    formTitle: 'Create your account',
+                    formSubtitleFree: 'Start your 7-day free trial',
+                    formSubtitlePaid: 'Unlimited access to medical transcription',
+                    firstName: 'First name',
+                    lastName: 'Last name',
+                    email: 'Email',
+                    company: 'Practice / Organization',
+                    address: 'Address',
+                    postalCode: 'Postal code',
+                    city: 'City',
+                    country: 'Country',
+                    paymentTitle: 'Payment information',
+                    terms: "I accept the <a href='#'>terms of service</a> and <a href='#'>privacy policy</a>",
+                    submitFree: 'Start free trial',
+                    submitPaid: 'Pay and start',
+                    hasAccount: 'Already have an account?',
+                    login: 'Sign in',
+                    return: 'Back',
+                    monthly: 'Monthly',
+                    yearly: 'Yearly',
+                    perMonth: 'per month',
+                    perYear: 'per year',
+                    processing: 'Processing...',
+                    success: 'Registration successful! Check your email.',
+                    error: 'An error occurred. Please try again.'
+                },
+                de: {
+                    freeBadge: 'Kostenlose Testversion - 7 Tage',
+                    paidBadgeMonthly: 'Monatliches Abo',
+                    paidBadgeYearly: 'Jahresabo',
+                    formTitle: 'Erstellen Sie Ihr Konto',
+                    formSubtitleFree: 'Starten Sie Ihre 7-tägige Testversion',
+                    formSubtitlePaid: 'Unbegrenzter Zugang zur medizinischen Transkription',
+                    firstName: 'Vorname',
+                    lastName: 'Nachname',
+                    email: 'E-Mail',
+                    company: 'Praxis / Organisation',
+                    address: 'Adresse',
+                    postalCode: 'PLZ',
+                    city: 'Stadt',
+                    country: 'Land',
+                    paymentTitle: 'Zahlungsinformationen',
+                    terms: "Ich akzeptiere die <a href='#'>AGB</a> und <a href='#'>Datenschutzrichtlinie</a>",
+                    submitFree: 'Testversion starten',
+                    submitPaid: 'Bezahlen und starten',
+                    hasAccount: 'Bereits ein Konto?',
+                    login: 'Anmelden',
+                    return: 'Zurück',
+                    monthly: 'Monatlich',
+                    yearly: 'Jährlich',
+                    perMonth: 'pro Monat',
+                    perYear: 'pro Jahr',
+                    processing: 'Verarbeitung...',
+                    success: 'Registrierung erfolgreich! Überprüfen Sie Ihre E-Mail.',
+                    error: 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.'
+                },
+                es: {
+                    freeBadge: 'Prueba gratuita - 7 días',
+                    paidBadgeMonthly: 'Suscripción mensual',
+                    paidBadgeYearly: 'Suscripción anual',
+                    formTitle: 'Cree su cuenta',
+                    formSubtitleFree: 'Comience su prueba gratuita de 7 días',
+                    formSubtitlePaid: 'Acceso ilimitado a la transcripción médica',
+                    firstName: 'Nombre',
+                    lastName: 'Apellido',
+                    email: 'Correo electrónico',
+                    company: 'Centro / Organización',
+                    address: 'Dirección',
+                    postalCode: 'Código postal',
+                    city: 'Ciudad',
+                    country: 'País',
+                    paymentTitle: 'Información de pago',
+                    terms: "Acepto los <a href='#'>términos</a> y la <a href='#'>política de privacidad</a>",
+                    submitFree: 'Comenzar prueba gratuita',
+                    submitPaid: 'Pagar y comenzar',
+                    hasAccount: '¿Ya tiene una cuenta?',
+                    login: 'Iniciar sesión',
+                    return: 'Volver',
+                    monthly: 'Mensual',
+                    yearly: 'Anual',
+                    perMonth: 'al mes',
+                    perYear: 'al año',
+                    processing: 'Procesando...',
+                    success: '¡Registro exitoso! Revise su correo.',
+                    error: 'Ocurrió un error. Por favor, inténtelo de nuevo.'
+                },
+                it: {
+                    freeBadge: 'Prova gratuita - 7 giorni',
+                    paidBadgeMonthly: 'Abbonamento mensile',
+                    paidBadgeYearly: 'Abbonamento annuale',
+                    formTitle: 'Crea il tuo account',
+                    formSubtitleFree: 'Inizia la tua prova gratuita di 7 giorni',
+                    formSubtitlePaid: 'Accesso illimitato alla trascrizione medica',
+                    firstName: 'Nome',
+                    lastName: 'Cognome',
+                    email: 'Email',
+                    company: 'Studio / Organizzazione',
+                    address: 'Indirizzo',
+                    postalCode: 'CAP',
+                    city: 'Città',
+                    country: 'Paese',
+                    paymentTitle: 'Informazioni di pagamento',
+                    terms: "Accetto i <a href='#'>termini</a> e la <a href='#'>privacy policy</a>",
+                    submitFree: 'Inizia prova gratuita',
+                    submitPaid: 'Paga e inizia',
+                    hasAccount: 'Hai già un account?',
+                    login: 'Accedi',
+                    return: 'Indietro',
+                    monthly: 'Mensile',
+                    yearly: 'Annuale',
+                    perMonth: 'al mese',
+                    perYear: "all'anno",
+                    processing: 'Elaborazione...',
+                    success: 'Registrazione riuscita! Controlla la tua email.',
+                    error: "Si è verificato un errore. Per favore riprova."
+                },
+                pt: {
+                    freeBadge: 'Teste grátis - 7 dias',
+                    paidBadgeMonthly: 'Assinatura mensal',
+                    paidBadgeYearly: 'Assinatura anual',
+                    formTitle: 'Crie sua conta',
+                    formSubtitleFree: 'Comece seu teste grátis de 7 dias',
+                    formSubtitlePaid: 'Acesso ilimitado à transcrição médica',
+                    firstName: 'Nome',
+                    lastName: 'Sobrenome',
+                    email: 'Email',
+                    company: 'Clínica / Organização',
+                    address: 'Endereço',
+                    postalCode: 'CEP',
+                    city: 'Cidade',
+                    country: 'País',
+                    paymentTitle: 'Informações de pagamento',
+                    terms: "Aceito os <a href='#'>termos</a> e a <a href='#'>política de privacidade</a>",
+                    submitFree: 'Começar teste grátis',
+                    submitPaid: 'Pagar e começar',
+                    hasAccount: 'Já tem uma conta?',
+                    login: 'Entrar',
+                    return: 'Voltar',
+                    monthly: 'Mensal',
+                    yearly: 'Anual',
+                    perMonth: 'por mês',
+                    perYear: 'por ano',
+                    processing: 'Processando...',
+                    success: 'Registro bem-sucedido! Verifique seu email.',
+                    error: 'Ocorreu um erro. Por favor, tente novamente.'
+                }
+            };
+
+            // Elements
+            const form = document.getElementById('registrationForm');
+            const planBadge = document.getElementById('planBadge');
+            const billingToggle = document.getElementById('billingToggle');
+            const billingSwitch = document.getElementById('billingSwitch');
+            const priceDisplay = document.getElementById('priceDisplay');
+            const addressFields = document.getElementById('addressFields');
+            const paymentSection = document.getElementById('paymentSection');
+            const submitButton = document.getElementById('submitButton');
+            const langSelect = document.getElementById('language-select');
+
+            // Initialize
+            function init() {
+                langSelect.value = lang;
+                document.documentElement.lang = lang;
+                
+                if (plan === 'paid') {
+                    billingToggle.classList.remove('hidden');
+                    priceDisplay.classList.remove('hidden');
+                    addressFields.classList.remove('hidden');
+                    paymentSection.classList.remove('hidden');
+                    planBadge.classList.remove('free');
+                    planBadge.classList.add('paid');
+                    
+                    // Set address fields as required
+                    document.getElementById('address').required = true;
+                    document.getElementById('postalCode').required = true;
+                    document.getElementById('city').required = true;
+                    
+                    billingSwitch.checked = billing === 'yearly';
+                    initStripe();
+                }
+                
+                updateContent();
+                updatePricing();
             }
-        };
 
-        // Get current language (you may need to adjust this based on your language detection)
-        const currentLang = document.documentElement.lang || 'fr';
-        const messages = passwordMessages[currentLang] || passwordMessages.fr;
-
-        // Update password help text
-        const passwordHelp = document.getElementById('passwordHelp');
-        if (passwordHelp) {
-            passwordHelp.textContent = messages.helpText;
-        }
-
-        // Password validation function
-        function validatePasswords() {
-            const passwordValue = password.value;
-            const confirmPasswordValue = confirmPassword.value;
-            
-            // Clear previous styling
-            password.classList.remove('error', 'success');
-            confirmPassword.classList.remove('error', 'success');
-            passwordMatchMessage.classList.remove('error', 'success');
-            
-            // Check password length
-            if (passwordValue.length > 0 && passwordValue.length < 8) {
-                password.classList.add('error');
-                passwordMatchMessage.textContent = messages.tooShort;
-                passwordMatchMessage.classList.add('error');
-                return false;
-            }
-            
-            // Check if passwords match
-            if (passwordValue.length >= 8 && confirmPasswordValue.length >= 8) {
-                if (passwordValue === confirmPasswordValue) {
-                    password.classList.add('success');
-                    confirmPassword.classList.add('success');
-                    passwordMatchMessage.textContent = messages.match;
-                    passwordMatchMessage.classList.add('success');
-                    return true;
+            function updateContent() {
+                const tr = t[lang] || t.fr;
+                
+                document.getElementById('returnText').textContent = tr.return;
+                document.getElementById('returnBtn').href = 'index.html?lang=' + lang;
+                document.getElementById('formTitle').textContent = tr.formTitle;
+                document.getElementById('formSubtitle').textContent = plan === 'paid' ? tr.formSubtitlePaid : tr.formSubtitleFree;
+                document.getElementById('firstNameLabel').innerHTML = tr.firstName + ' <span class="required">*</span>';
+                document.getElementById('lastNameLabel').innerHTML = tr.lastName + ' <span class="required">*</span>';
+                document.getElementById('emailLabel').innerHTML = tr.email + ' <span class="required">*</span>';
+                document.getElementById('companyLabel').textContent = tr.company;
+                document.getElementById('addressLabel').innerHTML = tr.address + ' <span class="required">*</span>';
+                document.getElementById('postalCodeLabel').innerHTML = tr.postalCode + ' <span class="required">*</span>';
+                document.getElementById('cityLabel').innerHTML = tr.city + ' <span class="required">*</span>';
+                document.getElementById('countryLabel').innerHTML = tr.country + ' <span class="required">*</span>';
+                document.getElementById('paymentTitle').textContent = tr.paymentTitle;
+                document.getElementById('termsLabel').innerHTML = tr.terms;
+                document.getElementById('submitText').textContent = plan === 'paid' ? tr.submitPaid : tr.submitFree;
+                document.getElementById('hasAccountText').textContent = tr.hasAccount;
+                document.getElementById('loginLink').textContent = tr.login;
+                document.getElementById('loginLink').href = 'login.html?lang=' + lang;
+                document.getElementById('monthlyLabel').textContent = tr.monthly;
+                document.getElementById('yearlyLabel').textContent = tr.yearly;
+                
+                // Update badge
+                if (plan === 'paid') {
+                    planBadge.textContent = billingSwitch.checked ? tr.paidBadgeYearly : tr.paidBadgeMonthly;
                 } else {
-                    confirmPassword.classList.add('error');
-                    passwordMatchMessage.textContent = messages.noMatch;
-                    passwordMatchMessage.classList.add('error');
-                    return false;
+                    planBadge.textContent = tr.freeBadge;
                 }
             }
-            
-            // Clear message if fields are empty
-            if (passwordValue.length === 0 && confirmPasswordValue.length === 0) {
-                passwordMatchMessage.textContent = '';
+
+            function updatePricing() {
+                const tr = t[lang] || t.fr;
+                const pricing = PRICING[currency];
+                const isYearly = billingSwitch.checked;
+                
+                document.getElementById('priceSymbol').textContent = pricing.symbol;
+                document.getElementById('priceValue').textContent = isYearly ? pricing.yearly : pricing.monthly;
+                document.getElementById('pricePeriod').textContent = isYearly ? tr.perYear : tr.perMonth;
+                
+                // Update toggle labels
+                document.getElementById('monthlyLabel').classList.toggle('active', !isYearly);
+                document.getElementById('yearlyLabel').classList.toggle('active', isYearly);
             }
-            
-            return passwordValue.length >= 8;
-        }
 
-        // Add event listeners for real-time validation
-        if (password && confirmPassword) {
-            password.addEventListener('input', validatePasswords);
-            confirmPassword.addEventListener('input', validatePasswords);
-        }
-
-        // Form submission handling
-        if (form) {
-            form.addEventListener('submit', function(event) {
-                event.preventDefault();
-                
-                // Validate passwords before submission
-                if (!validatePasswords()) {
-                    return false;
+            async function initStripe() {
+                try {
+                    const configResponse = await fetch('/api/config');
+                    const config = await configResponse.json();
+                    
+                    stripe = Stripe(config.stripePublishableKey);
+                    const elements = stripe.elements();
+                    
+                    cardElement = elements.create('card', {
+                        style: {
+                            base: {
+                                color: '#2A3439',
+                                fontFamily: 'Source Sans Pro, sans-serif',
+                                fontSize: '16px',
+                                '::placeholder': { color: '#8A9BA3' }
+                            },
+                            invalid: { color: '#E74C3C' }
+                        }
+                    });
+                    
+                    cardElement.mount('#payment-element');
+                    
+                    cardElement.on('change', (event) => {
+                        const errorEl = document.getElementById('card-errors');
+                        errorEl.textContent = event.error ? event.error.message : '';
+                    });
+                } catch (error) {
+                    console.error('Stripe init error:', error);
                 }
-                
-                // If passwords are valid, continue with form submission
-                console.log('Form validation passed, proceeding with submission');
-                
-                // Your existing form submission logic will be handled by form.js
-                // Just dispatch a custom event to indicate validation is complete
-                const validationCompleteEvent = new CustomEvent('passwordValidationComplete', {
-                    detail: { isValid: true }
-                });
-                form.dispatchEvent(validationCompleteEvent);
+            }
+
+            // Event listeners
+            langSelect.addEventListener('change', (e) => {
+                lang = e.target.value;
+                localStorage.setItem('selectedLanguage', lang);
+                document.documentElement.lang = lang;
+                updateContent();
+                updatePricing();
             });
-        }
 
-        // Initialize submit button
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.classList.remove('hidden');
-            submitButton.style.display = 'block';
-            console.log('Submit button initialized successfully');
-        }
-        
-        if (form) {
-            console.log('Registration form found and initialized');
-        }
-    });
+            billingSwitch.addEventListener('change', () => {
+                billing = billingSwitch.checked ? 'yearly' : 'monthly';
+                updateContent();
+                updatePricing();
+            });
+
+            // Country change updates currency
+            document.getElementById('country').addEventListener('change', (e) => {
+                const selectedCountry = e.target.value;
+                currency = GBP_COUNTRIES.includes(selectedCountry) ? 'GBP' : 'EUR';
+                updatePricing();
+            });
+
+            // Form submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const tr = t[lang] || t.fr;
+                const originalText = document.getElementById('submitText').textContent;
+                
+                submitButton.disabled = true;
+                document.getElementById('submitText').textContent = tr.processing;
+                
+                const errorEl = document.getElementById('errorMessage');
+                const successEl = document.getElementById('successMessage');
+                errorEl.classList.remove('show');
+                successEl.classList.remove('show');
+
+                try {
+                    const formData = {
+                        firstName: document.getElementById('firstName').value,
+                        lastName: document.getElementById('lastName').value,
+                        email: document.getElementById('email').value,
+                        company: document.getElementById('company').value,
+                        version: plan,
+                        billing: billing,
+                        currency: currency,
+                        language: lang
+                    };
+
+                    if (plan === 'paid') {
+                        formData.address = document.getElementById('address').value;
+                        formData.postalCode = document.getElementById('postalCode').value;
+                        formData.city = document.getElementById('city').value;
+                        formData.country = document.getElementById('country').value;
+                    }
+
+                    const response = await fetch('/api/send-activation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        if (result.requiresPayment && plan === 'paid' && stripe && cardElement) {
+                            const { error, paymentIntent } = await stripe.confirmCardPayment(
+                                result.clientSecret,
+                                {
+                                    payment_method: {
+                                        card: cardElement,
+                                        billing_details: {
+                                            name: formData.firstName + ' ' + formData.lastName,
+                                            email: formData.email
+                                        }
+                                    }
+                                }
+                            );
+
+                            if (error) {
+                                throw new Error(error.message);
+                            }
+                        }
+
+                        successEl.textContent = tr.success;
+                        successEl.classList.add('show');
+
+                        setTimeout(() => {
+                            window.location.href = 'success.html?lang=' + lang + (plan === 'paid' ? '&paid=true' : '');
+                        }, 2000);
+                    } else {
+                        throw new Error(result.message || tr.error);
+                    }
+                } catch (error) {
+                    console.error('Form error:', error);
+                    errorEl.textContent = error.message || tr.error;
+                    errorEl.classList.add('show');
+                } finally {
+                    submitButton.disabled = false;
+                    document.getElementById('submitText').textContent = originalText;
+                }
+            });
+
+            init();
+        });
     </script>
 </body>
 </html>

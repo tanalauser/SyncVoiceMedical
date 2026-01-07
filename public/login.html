@@ -4,412 +4,747 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SyncVoice Medical - Connexion</title>
-    <link rel="stylesheet" href="form.css">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <script src="languageDetection.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Developer mode styles */
-        .dev-mode-banner {
-            background: #ffc107;
-            color: #000;
-            padding: 10px;
-            text-align: center;
-            font-weight: bold;
-            display: none;
+        :root {
+            --primary-dark: #0D5C63;
+            --primary: #0E7C86;
+            --primary-light: #5DA399;
+            --accent: #2ECC71;
+            --accent-dark: #27AE60;
+            --white: #FFFFFF;
+            --off-white: #F7FAFA;
+            --gray-50: #F8FAFB;
+            --gray-100: #EEF2F4;
+            --gray-200: #DCE3E7;
+            --gray-300: #B8C5CC;
+            --gray-400: #8A9BA3;
+            --gray-500: #5A6A72;
+            --gray-600: #3D4A50;
+            --gray-700: #2A3439;
+            --gray-800: #1A2124;
+            --error: #E74C3C;
+            --success: #2ECC71;
+            --font-display: 'Playfair Display', Georgia, serif;
+            --font-body: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --shadow-md: 0 4px 6px rgba(13, 92, 99, 0.07), 0 2px 4px rgba(13, 92, 99, 0.06);
+            --shadow-lg: 0 10px 25px rgba(13, 92, 99, 0.1), 0 6px 10px rgba(13, 92, 99, 0.08);
+            --shadow-xl: 0 20px 40px rgba(13, 92, 99, 0.12), 0 10px 20px rgba(13, 92, 99, 0.08);
         }
-        .dev-mode .dev-mode-banner {
-            display: block;
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .dev-info {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 20px 0;
-            font-size: 0.9em;
-            display: none;
+
+        body {
+            font-family: var(--font-body);
+            background: linear-gradient(135deg, var(--off-white) 0%, var(--gray-50) 50%, rgba(93, 163, 153, 0.1) 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--gray-700);
+            line-height: 1.6;
         }
-        .dev-mode .dev-info {
-            display: block;
+
+        /* Navigation */
+        .nav {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-100);
         }
-        .dev-info h3 {
-            margin-top: 0;
-            color: #1a5f7a;
+
+        .logo img {
+            height: 40px;
+            width: auto;
         }
-        .test-email-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .return-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            color: var(--gray-600);
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .return-btn:hover {
+            background: var(--gray-100);
+            color: var(--primary);
+        }
+
+        .return-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .language-select {
+            padding: 0.5rem 1rem;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
             cursor: pointer;
-            font-size: 0.8em;
-            margin-left: 10px;
         }
-        .test-email-btn:hover {
-            background: #5a6268;
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .login-card {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .login-icon svg {
+            width: 32px;
+            height: 32px;
+            color: var(--white);
+        }
+
+        .login-title {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            color: var(--gray-500);
+            font-size: 0.95rem;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-family: var(--font-body);
+            font-size: 1rem;
+            color: var(--gray-800);
+            transition: all 0.2s ease;
+            background: var(--white);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(14, 124, 134, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: var(--gray-400);
+        }
+
+        /* Password field with toggle */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--gray-400);
+            padding: 0.25rem;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary);
+        }
+
+        /* Error/Success Messages */
+        .message {
+            padding: 0.875rem 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .message.error {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(231, 76, 60, 0.2);
+        }
+
+        .message.success {
+            background: rgba(46, 204, 113, 0.1);
+            color: var(--accent-dark);
+            border: 1px solid rgba(46, 204, 113, 0.2);
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: var(--font-body);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .submit-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Links */
+        .form-footer {
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .form-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .form-link:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+
+        .form-footer p {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--gray-200);
+        }
+
+        .divider span {
+            padding: 0 1rem;
+            color: var(--gray-400);
+            font-size: 0.85rem;
+        }
+
+        /* Footer */
+        .page-footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .nav {
+                padding: 1rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .login-card {
+                padding: 2rem 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="dev-mode-banner">
-        🔧 Developer Mode Active - Remove 'dev-mode' class from body for production
-    </div>
-    
-    <div class="container">
-        <nav class="nav">
-            <a href="index.html" class="logo">
-                <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical Logo">
+    <nav class="nav">
+        <a href="index.html" class="logo">
+            <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical">
+        </a>
+        <div class="nav-right">
+            <a href="index.html" id="returnBtn" class="return-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                <span id="returnText">Retour</span>
             </a>
-            <a href="index.html" id="returnBtn" class="return-btn">Retour</a>
-        </nav>
+            <select id="language-select" class="language-select">
+                <option value="fr">🇫🇷 FR</option>
+                <option value="en">🇬🇧 EN</option>
+                <option value="de">🇩🇪 DE</option>
+                <option value="es">🇪🇸 ES</option>
+                <option value="it">🇮🇹 IT</option>
+                <option value="pt">🇵🇹 PT</option>
+            </select>
+        </div>
+    </nav>
 
-        <main class="form-container">
-            <h1 id="pageTitle" class="form-title">Connexion</h1>
-            
-            <!-- Developer testing info -->
-            <div class="dev-info">
-                <h3>Test Accounts</h3>
-                <p><strong>Developer Emails:</strong></p>
-                <ul style="list-style: none; padding-left: 0;">
-                    <li>
-                        nicolas.tanala@v-stars3d.com 
-                        <button class="test-email-btn" onclick="fillTestEmail('nicolas.tanala@v-stars3d.com')">Use</button>
-                    </li>
-                    <li>
-                        nicolas.tanala@wanadoo.fr 
-                        <button class="test-email-btn" onclick="fillTestEmail('nicolas.tanala@wanadoo.fr')">Use</button>
-                    </li>
-                </ul>
-                <p><strong>Note:</strong> You must register first at <a href="form.html">form.html</a> to set your password.</p>
-                <p><strong>Recommended test password:</strong> DevTest2025! (min 8 chars)</p>
-            </div>
-            
-            <form id="loginForm" class="form">
-                <div class="form-group">
-                    <label for="email" id="emailLabel">Email:</label>
-                    <input type="email" id="email" name="email" required>
+    <main class="main-content">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <h1 class="login-title" id="pageTitle">Connexion</h1>
+                    <p class="login-subtitle" id="pageSubtitle">Accédez à votre espace de transcription</p>
                 </div>
 
-                <div class="form-group">
-                    <label for="password" id="passwordLabel">Mot de passe:</label>
-                    <input type="password" id="password" name="password" required>
+                <div id="errorMessage" class="message error"></div>
+                <div id="successMessage" class="message success"></div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email" class="form-label" id="emailLabel">Adresse email</label>
+                        <input type="email" id="email" name="email" class="form-input" placeholder="votre@email.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label" id="passwordLabel">Mot de passe</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" id="passwordToggle">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitButton" class="submit-btn">
+                        <span id="submitText">Se connecter</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </form>
+
+                <div class="form-footer">
+                    <p>
+                        <a href="#" id="forgotPasswordLink" class="form-link">Mot de passe oublié ?</a>
+                    </p>
+                    <div class="divider"><span id="orText">ou</span></div>
+                    <p>
+                        <span id="noAccountText">Pas encore de compte ?</span>
+                        <a href="form.html" id="registerLink" class="form-link">Créer un compte</a>
+                    </p>
                 </div>
-
-                <div id="errorMessage" class="error-message" style="display: none;"></div>
-                <div id="successMessage" class="success-message" style="display: none; color: #28a745;"></div>
-
-                <button type="submit" id="submitButton" class="submit-btn">Se connecter</button>
-            </form>
-            
-            <div class="form-footer">
-                <p id="forgotPasswordText">
-                    <a href="#" id="forgotPasswordLink">Mot de passe oublié?</a>
-                </p>
-                <p style="margin-top: 10px;">
-                    <span id="noAccountText">Pas de compte?</span> 
-                    <a href="form.html" id="registerLink">S'inscrire</a>
-                </p>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
+
+    <footer class="page-footer">
+        <p>&copy; 2025 SyncVoice Medical. <span id="footerRights">Tous droits réservés.</span></p>
+    </footer>
 
     <script>
-        // Helper function for dev mode
-        function fillTestEmail(email) {
-            document.getElementById('email').value = email;
-            document.getElementById('password').focus();
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            // Get URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Use languageDetection.js if available, otherwise fallback
-            let lang;
-            if (typeof detectUserLanguage === 'function') {
-                lang = detectUserLanguage();
-                saveLanguagePreference(lang);
-                updateUrlLanguage(lang);
-            } else {
-                // Fallback if languageDetection.js is not loaded
-                lang = urlParams.get('lang') || localStorage.getItem('selectedLanguage') || 'en';
-            }
-            
-            console.log('Login page - detected language:', lang);
-
-            // Check for dev mode in URL (can still enable via URL parameter)
-            if (urlParams.get('dev') === 'true') {
-                document.body.classList.add('dev-mode');
-            }
-
             // Translations
             const translations = {
                 fr: {
                     pageTitle: 'Connexion',
-                    emailLabel: 'Email:',
-                    passwordLabel: 'Mot de passe:',
-                    submitButton: 'Se connecter',
-                    returnButton: 'Retour',
-                    forgotPassword: 'Mot de passe oublié?',
-                    noAccount: 'Pas de compte?',
-                    register: 'S\'inscrire',
+                    pageSubtitle: 'Accédez à votre espace de transcription',
+                    emailLabel: 'Adresse email',
+                    passwordLabel: 'Mot de passe',
+                    submitText: 'Se connecter',
+                    returnText: 'Retour',
+                    forgotPassword: 'Mot de passe oublié ?',
+                    noAccount: 'Pas encore de compte ?',
+                    register: 'Créer un compte',
+                    orText: 'ou',
+                    footerRights: 'Tous droits réservés.',
+                    loading: 'Connexion...',
+                    loginSuccess: 'Connexion réussie ! Redirection...',
                     invalidCredentials: 'Email ou mot de passe incorrect',
-                    serverError: 'Erreur du serveur. Veuillez réessayer.',
-                    loading: 'Connexion en cours...',
-                    loginSuccess: 'Connexion réussie! Redirection...',
-                    // Forgot password translations
-                    enterEmailFirst: 'Veuillez d\'abord saisir votre adresse email, puis cliquer sur "Mot de passe oublié?"',
-                    invalidEmail: 'Veuillez saisir une adresse email valide.',
-                    confirmReset: 'Envoyer un lien de réinitialisation du mot de passe à',
-                    sending: 'Envoi...',
-                    resetLinkSent: 'Lien de réinitialisation envoyé ! Vérifiez votre email.',
-                    resetError: 'Erreur lors de l\'envoi du lien de réinitialisation.',
-                    networkError: 'Erreur réseau. Veuillez réessayer.'
+                    serverError: 'Erreur serveur. Veuillez réessayer.',
+                    enterEmail: 'Veuillez saisir votre email pour réinitialiser le mot de passe.',
+                    resetSent: 'Lien de réinitialisation envoyé ! Vérifiez votre email.',
+                    resetError: 'Erreur lors de l\'envoi. Veuillez réessayer.'
                 },
                 en: {
                     pageTitle: 'Login',
-                    emailLabel: 'Email:',
-                    passwordLabel: 'Password:',
-                    submitButton: 'Login',
-                    returnButton: 'Return',
+                    pageSubtitle: 'Access your transcription workspace',
+                    emailLabel: 'Email address',
+                    passwordLabel: 'Password',
+                    submitText: 'Sign in',
+                    returnText: 'Back',
                     forgotPassword: 'Forgot password?',
-                    noAccount: 'No account?',
-                    register: 'Register',
+                    noAccount: 'Don\'t have an account?',
+                    register: 'Create account',
+                    orText: 'or',
+                    footerRights: 'All rights reserved.',
+                    loading: 'Signing in...',
+                    loginSuccess: 'Login successful! Redirecting...',
                     invalidCredentials: 'Invalid email or password',
                     serverError: 'Server error. Please try again.',
-                    loading: 'Logging in...',
-                    loginSuccess: 'Login successful! Redirecting...',
-                    // Forgot password translations
-                    enterEmailFirst: 'Please enter your email address first, then click "Forgot password?"',
-                    invalidEmail: 'Please enter a valid email address.',
-                    confirmReset: 'Send password reset link to',
-                    sending: 'Sending...',
-                    resetLinkSent: 'Password reset link sent! Check your email.',
-                    resetError: 'Error sending reset link.',
-                    networkError: 'Network error. Please try again.'
+                    enterEmail: 'Please enter your email to reset your password.',
+                    resetSent: 'Reset link sent! Check your email.',
+                    resetError: 'Error sending reset link. Please try again.'
                 },
                 de: {
-                    pageTitle: 'Anmeldung',
-                    emailLabel: 'E-Mail:',
-                    passwordLabel: 'Passwort:',
-                    submitButton: 'Anmelden',
-                    returnButton: 'Zurück',
+                    pageTitle: 'Anmelden',
+                    pageSubtitle: 'Zugang zu Ihrem Transkriptionsbereich',
+                    emailLabel: 'E-Mail-Adresse',
+                    passwordLabel: 'Passwort',
+                    submitText: 'Anmelden',
+                    returnText: 'Zurück',
                     forgotPassword: 'Passwort vergessen?',
-                    noAccount: 'Kein Konto?',
-                    register: 'Registrieren',
+                    noAccount: 'Noch kein Konto?',
+                    register: 'Konto erstellen',
+                    orText: 'oder',
+                    footerRights: 'Alle Rechte vorbehalten.',
+                    loading: 'Anmeldung...',
+                    loginSuccess: 'Anmeldung erfolgreich! Weiterleitung...',
                     invalidCredentials: 'Ungültige E-Mail oder Passwort',
                     serverError: 'Serverfehler. Bitte versuchen Sie es erneut.',
-                    loading: 'Anmelden...',
-                    loginSuccess: 'Anmeldung erfolgreich! Weiterleitung...',
-                    // Forgot password translations
-                    enterEmailFirst: 'Bitte geben Sie zuerst Ihre E-Mail-Adresse ein und klicken Sie dann auf "Passwort vergessen?"',
-                    invalidEmail: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
-                    confirmReset: 'Passwort-Reset-Link an',
-                    sending: 'Senden...',
-                    resetLinkSent: 'Passwort-Reset-Link gesendet! Überprüfen Sie Ihre E-Mail.',
-                    resetError: 'Fehler beim Senden des Reset-Links.',
-                    networkError: 'Netzwerkfehler. Bitte versuchen Sie es erneut.'
+                    enterEmail: 'Bitte geben Sie Ihre E-Mail ein, um Ihr Passwort zurückzusetzen.',
+                    resetSent: 'Reset-Link gesendet! Überprüfen Sie Ihre E-Mail.',
+                    resetError: 'Fehler beim Senden. Bitte versuchen Sie es erneut.'
                 },
                 es: {
                     pageTitle: 'Iniciar sesión',
-                    emailLabel: 'Correo electrónico:',
-                    passwordLabel: 'Contraseña:',
-                    submitButton: 'Iniciar sesión',
-                    returnButton: 'Volver',
+                    pageSubtitle: 'Acceda a su espacio de transcripción',
+                    emailLabel: 'Correo electrónico',
+                    passwordLabel: 'Contraseña',
+                    submitText: 'Iniciar sesión',
+                    returnText: 'Volver',
                     forgotPassword: '¿Olvidó su contraseña?',
-                    noAccount: '¿Sin cuenta?',
-                    register: 'Registrarse',
-                    invalidCredentials: 'Correo electrónico o contraseña inválidos',
-                    serverError: 'Error del servidor. Por favor, inténtelo de nuevo.',
+                    noAccount: '¿No tiene cuenta?',
+                    register: 'Crear cuenta',
+                    orText: 'o',
+                    footerRights: 'Todos los derechos reservados.',
                     loading: 'Iniciando sesión...',
                     loginSuccess: '¡Inicio de sesión exitoso! Redirigiendo...',
-                    // Forgot password translations
-                    enterEmailFirst: 'Por favor, ingrese primero su dirección de correo electrónico, luego haga clic en "¿Olvidó su contraseña?"',
-                    invalidEmail: 'Por favor, ingrese una dirección de correo electrónico válida.',
-                    confirmReset: '¿Enviar enlace de restablecimiento de contraseña a',
-                    sending: 'Enviando...',
-                    resetLinkSent: '¡Enlace de restablecimiento enviado! Revise su correo.',
-                    resetError: 'Error al enviar el enlace de restablecimiento.',
-                    networkError: 'Error de red. Por favor, inténtelo de nuevo.'
+                    invalidCredentials: 'Correo o contraseña inválidos',
+                    serverError: 'Error del servidor. Por favor, inténtelo de nuevo.',
+                    enterEmail: 'Ingrese su correo para restablecer la contraseña.',
+                    resetSent: '¡Enlace enviado! Revise su correo.',
+                    resetError: 'Error al enviar. Por favor, inténtelo de nuevo.'
                 },
                 it: {
-                    pageTitle: 'Accesso',
-                    emailLabel: 'Email:',
-                    passwordLabel: 'Password:',
-                    submitButton: 'Accedi',
-                    returnButton: 'Indietro',
+                    pageTitle: 'Accedi',
+                    pageSubtitle: 'Accedi al tuo spazio di trascrizione',
+                    emailLabel: 'Indirizzo email',
+                    passwordLabel: 'Password',
+                    submitText: 'Accedi',
+                    returnText: 'Indietro',
                     forgotPassword: 'Password dimenticata?',
-                    noAccount: 'Nessun account?',
-                    register: 'Registrati',
-                    invalidCredentials: 'Email o password non validi',
-                    serverError: 'Errore del server. Si prega di riprovare.',
+                    noAccount: 'Non hai un account?',
+                    register: 'Crea account',
+                    orText: 'oppure',
+                    footerRights: 'Tutti i diritti riservati.',
                     loading: 'Accesso in corso...',
                     loginSuccess: 'Accesso riuscito! Reindirizzamento...',
-                    // Forgot password translations
-                    enterEmailFirst: 'Inserisci prima il tuo indirizzo email, poi clicca su "Password dimenticata?"',
-                    invalidEmail: 'Inserisci un indirizzo email valido.',
-                    confirmReset: 'Inviare link di ripristino password a',
-                    sending: 'Invio...',
-                    resetLinkSent: 'Link di ripristino inviato! Controlla la tua email.',
-                    resetError: 'Errore nell\'invio del link di ripristino.',
-                    networkError: 'Errore di rete. Si prega di riprovare.'
+                    invalidCredentials: 'Email o password non validi',
+                    serverError: 'Errore del server. Per favore riprova.',
+                    enterEmail: 'Inserisci la tua email per reimpostare la password.',
+                    resetSent: 'Link inviato! Controlla la tua email.',
+                    resetError: 'Errore nell\'invio. Per favore riprova.'
                 },
                 pt: {
                     pageTitle: 'Entrar',
-                    emailLabel: 'Email:',
-                    passwordLabel: 'Senha:',
-                    submitButton: 'Entrar',
-                    returnButton: 'Voltar',
+                    pageSubtitle: 'Acesse seu espaço de transcrição',
+                    emailLabel: 'Endereço de email',
+                    passwordLabel: 'Senha',
+                    submitText: 'Entrar',
+                    returnText: 'Voltar',
                     forgotPassword: 'Esqueceu a senha?',
-                    noAccount: 'Sem conta?',
-                    register: 'Registrar',
-                    invalidCredentials: 'Email ou senha inválidos',
-                    serverError: 'Erro do servidor. Por favor, tente novamente.',
+                    noAccount: 'Não tem uma conta?',
+                    register: 'Criar conta',
+                    orText: 'ou',
+                    footerRights: 'Todos os direitos reservados.',
                     loading: 'Entrando...',
                     loginSuccess: 'Login bem-sucedido! Redirecionando...',
-                    // Forgot password translations
-                    enterEmailFirst: 'Por favor, digite primeiro seu endereço de email, depois clique em "Esqueceu a senha?"',
-                    invalidEmail: 'Por favor, digite um endereço de email válido.',
-                    confirmReset: 'Enviar link de redefinição de senha para',
-                    sending: 'Enviando...',
-                    resetLinkSent: 'Link de redefinição enviado! Verifique seu email.',
-                    resetError: 'Erro ao enviar link de redefinição.',
-                    networkError: 'Erro de rede. Por favor, tente novamente.'
+                    invalidCredentials: 'Email ou senha inválidos',
+                    serverError: 'Erro do servidor. Por favor, tente novamente.',
+                    enterEmail: 'Digite seu email para redefinir a senha.',
+                    resetSent: 'Link enviado! Verifique seu email.',
+                    resetError: 'Erro ao enviar. Por favor, tente novamente.'
                 }
             };
 
-            // Update content based on language
-            const t = translations[lang] || translations.en;
-            document.getElementById('htmlLang').lang = lang;
-            document.getElementById('pageTitle').textContent = t.pageTitle;
-            document.getElementById('emailLabel').textContent = t.emailLabel;
-            document.getElementById('passwordLabel').textContent = t.passwordLabel;
-            document.getElementById('submitButton').textContent = t.submitButton;
-            document.getElementById('returnBtn').textContent = t.returnButton;
-            document.getElementById('returnBtn').href = `index.html?lang=${lang}`;
-            document.getElementById('forgotPasswordLink').textContent = t.forgotPassword;
-            document.getElementById('noAccountText').textContent = t.noAccount;
-            document.getElementById('registerLink').textContent = t.register;
-            document.getElementById('registerLink').href = `form.html?lang=${lang}`;
+            // Get language
+            const urlParams = new URLSearchParams(window.location.search);
+            let lang = urlParams.get('lang');
+            
+            if (!lang) {
+                try {
+                    lang = localStorage.getItem('selectedLanguage');
+                } catch (e) {}
+            }
+            
+            if (!lang || !translations[lang]) {
+                const browserLang = (navigator.language || 'fr').split('-')[0];
+                lang = translations[browserLang] ? browserLang : 'fr';
+            }
 
-            // Form elements
+            // Elements
+            const langSelect = document.getElementById('language-select');
             const form = document.getElementById('loginForm');
             const submitButton = document.getElementById('submitButton');
             const errorMessage = document.getElementById('errorMessage');
             const successMessage = document.getElementById('successMessage');
+            const passwordToggle = document.getElementById('passwordToggle');
+            const passwordInput = document.getElementById('password');
+
+            // Update content
+            function updateContent() {
+                const t = translations[lang];
+                document.documentElement.lang = lang;
+                langSelect.value = lang;
+                
+                document.getElementById('pageTitle').textContent = t.pageTitle;
+                document.getElementById('pageSubtitle').textContent = t.pageSubtitle;
+                document.getElementById('emailLabel').textContent = t.emailLabel;
+                document.getElementById('passwordLabel').textContent = t.passwordLabel;
+                document.getElementById('submitText').textContent = t.submitText;
+                document.getElementById('returnText').textContent = t.returnText;
+                document.getElementById('forgotPasswordLink').textContent = t.forgotPassword;
+                document.getElementById('noAccountText').textContent = t.noAccount;
+                document.getElementById('registerLink').textContent = t.register;
+                document.getElementById('orText').textContent = t.orText;
+                document.getElementById('footerRights').textContent = t.footerRights;
+                
+                // Update links
+                document.getElementById('returnBtn').href = `index.html?lang=${lang}`;
+                document.getElementById('registerLink').href = `form.html?lang=${lang}`;
+            }
+
+            updateContent();
+
+            // Language change
+            langSelect.addEventListener('change', (e) => {
+                lang = e.target.value;
+                try {
+                    localStorage.setItem('selectedLanguage', lang);
+                } catch (e) {}
+                
+                const url = new URL(window.location);
+                url.searchParams.set('lang', lang);
+                window.history.pushState({}, '', url);
+                
+                updateContent();
+            });
+
+            // Password toggle
+            passwordToggle.addEventListener('click', () => {
+                const type = passwordInput.type === 'password' ? 'text' : 'password';
+                passwordInput.type = type;
+            });
 
             // Form submission
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
-                const originalButtonText = submitButton.textContent;
+                const t = translations[lang];
+                const email = document.getElementById('email').value;
+                const password = passwordInput.value;
+                
+                // Reset messages
+                errorMessage.classList.remove('show');
+                successMessage.classList.remove('show');
+                
+                // Show loading
                 submitButton.disabled = true;
-                submitButton.textContent = t.loading;
-                errorMessage.style.display = 'none';
-                successMessage.style.display = 'none';
-
+                document.getElementById('submitText').textContent = t.loading;
+                
                 try {
-                    const formData = new FormData(form);
-                    const email = formData.get('email');
-                    const password = formData.get('password');
-
-                    console.log('Attempting login for:', email);
-
                     const response = await fetch('/api/login', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email, password })
                     });
-
+                    
                     const result = await response.json();
-                    console.log('Login response:', result);
-
+                    
                     if (response.ok && result.success) {
-                        // Store user session
                         sessionStorage.setItem('userEmail', email);
                         sessionStorage.setItem('userId', result.userId);
                         if (result.userInfo) {
                             sessionStorage.setItem('userInfo', JSON.stringify(result.userInfo));
                         }
                         
-                        // Show success message
                         successMessage.textContent = t.loginSuccess;
-                        successMessage.style.display = 'block';
+                        successMessage.classList.add('show');
                         
-                        // Redirect to appropriate page
                         setTimeout(() => {
-                            // Check if user has dashboard access, otherwise go to appForm.html
-                            // In login.html, after successful login:
-const redirectUrl = `account.html?lang=${lang}`;
-window.location.href = redirectUrl;
+                            const redirectUrl = result.userInfo?.version === 'paid'
+                                ? `dashboard.html?lang=${lang}`
+                                : `appForm.html?lang=${lang}&email=${encodeURIComponent(email)}`;
+                            window.location.href = redirectUrl;
                         }, 1500);
                     } else {
                         errorMessage.textContent = result.message || t.invalidCredentials;
-                        errorMessage.style.display = 'block';
+                        errorMessage.classList.add('show');
                     }
                 } catch (error) {
                     console.error('Login error:', error);
                     errorMessage.textContent = t.serverError;
-                    errorMessage.style.display = 'block';
+                    errorMessage.classList.add('show');
                 } finally {
                     submitButton.disabled = false;
-                    submitButton.textContent = originalButtonText;
+                    document.getElementById('submitText').textContent = t.submitText;
                 }
             });
 
-            // Forgot password link - UPDATED WITH FULL IMPLEMENTATION
-            document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+            // Forgot password
+            document.getElementById('forgotPasswordLink').addEventListener('click', async (e) => {
                 e.preventDefault();
                 
+                const t = translations[lang];
                 const email = document.getElementById('email').value;
                 
                 if (!email) {
-                    alert(t.enterEmailFirst);
+                    alert(t.enterEmail);
                     document.getElementById('email').focus();
                     return;
                 }
                 
-                // Validate email format
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    alert(t.invalidEmail);
-                    document.getElementById('email').focus();
-                    return;
-                }
-                
-                // Confirmation message
-                if (confirm(`${t.confirmReset} ${email}?`)) {
-                    // Show loading state
-                    const originalText = document.getElementById('forgotPasswordLink').textContent;
-                    document.getElementById('forgotPasswordLink').textContent = '⏳ ' + t.sending;
-                    
-                    // Call forgot password API
-                    fetch('/api/forgot-password', {
+                try {
+                    const response = await fetch('/api/forgot-password', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email })
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.success) {
-                            alert(t.resetLinkSent);
-                        } else {
-                            alert(result.message || t.resetError);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert(t.networkError);
-                    })
-                    .finally(() => {
-                        // Restore original text
-                        document.getElementById('forgotPasswordLink').textContent = originalText;
                     });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        successMessage.textContent = t.resetSent;
+                        successMessage.classList.add('show');
+                    } else {
+                        errorMessage.textContent = result.message || t.resetError;
+                        errorMessage.classList.add('show');
+                    }
+                } catch (error) {
+                    errorMessage.textContent = t.resetError;
+                    errorMessage.classList.add('show');
                 }
             });
         });
