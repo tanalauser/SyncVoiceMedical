@@ -1,4 +1,4 @@
-﻿// Load environment variables
+// Load environment variables
 require('dotenv').config();
 
 console.log('🔍 Deepgram Configuration Check:');
@@ -47,6 +47,11 @@ const envSchema = Joi.object({
     APP_DB_INSTANCE: Joi.string().required(),
     STRIPE_SECRET_KEY: Joi.string().required(),
     STRIPE_PRICE_ID: Joi.string().required(),
+    // New Stripe price IDs for different billing periods and currencies
+    STRIPE_PRICE_ID_MONTHLY_EUR: Joi.string().optional(),
+    STRIPE_PRICE_ID_MONTHLY_GBP: Joi.string().optional(),
+    STRIPE_PRICE_ID_YEARLY_EUR: Joi.string().optional(),
+    STRIPE_PRICE_ID_YEARLY_GBP: Joi.string().optional(),
     STRIPE_WEBHOOK_SECRET: Joi.string().required(),
     DEEPGRAM_API_KEY: Joi.string().optional(),
     JWT_SECRET: Joi.string().required(),
@@ -73,9 +78,72 @@ const userRoutes = require('./routes/userRoutes');
 // Constants
 const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB limit
 
-// Your functions and configuration
-function calculateValidationEndDate(version, startDate = new Date()) {
-    const daysToAdd = version === 'free' ? 7 : 30;
+// ============================================
+// PRICING CONFIGURATION - Yearly Pricing Support
+// ============================================
+
+// Pricing configuration for different currencies and billing periods
+const PRICING_CONFIG = {
+    EUR: {
+        monthly: { amount: 2500, currency: 'eur' },  // 25.00 EUR
+        yearly: { amount: 25000, currency: 'eur' }   // 250.00 EUR
+    },
+    GBP: {
+        monthly: { amount: 2100, currency: 'gbp' },  // 21.00 GBP
+        yearly: { amount: 21800, currency: 'gbp' }   // 218.00 GBP
+    }
+};
+
+// Countries that use GBP
+const GBP_COUNTRIES = ['United Kingdom', 'UK', 'GB', 'Isle of Man', 'Jersey', 'Guernsey'];
+
+// Helper function to get Stripe price ID based on billing and currency
+function getStripePriceId(billing = 'monthly', currency = 'EUR') {
+    const currencyUpper = currency.toUpperCase();
+    const billingLower = billing.toLowerCase();
+    
+    // Try to get specific price ID from env
+    const envKey = `STRIPE_PRICE_ID_${billingLower.toUpperCase()}_${currencyUpper}`;
+    if (process.env[envKey]) {
+        return process.env[envKey];
+    }
+    
+    // Fallback to default STRIPE_PRICE_ID for monthly EUR
+    if (billingLower === 'monthly' && currencyUpper === 'EUR') {
+        return process.env.STRIPE_PRICE_ID;
+    }
+    
+    // If no specific price ID, return null (will use amount-based payment)
+    return null;
+}
+
+// Helper function to get pricing based on billing and currency
+function getPricing(billing = 'monthly', currency = 'EUR') {
+    const currencyUpper = currency.toUpperCase();
+    const billingLower = billing.toLowerCase();
+    
+    const currencyConfig = PRICING_CONFIG[currencyUpper] || PRICING_CONFIG.EUR;
+    return currencyConfig[billingLower] || currencyConfig.monthly;
+}
+
+// Helper function to determine currency from country
+function getCurrencyFromCountry(country) {
+    if (!country) return 'EUR';
+    return GBP_COUNTRIES.some(c => country.toLowerCase().includes(c.toLowerCase())) ? 'GBP' : 'EUR';
+}
+
+// Calculate validation end date based on version and billing period
+function calculateValidationEndDate(version, billing = 'monthly', startDate = new Date()) {
+    let daysToAdd;
+    
+    if (version === 'free') {
+        daysToAdd = 7; // 7-day trial
+    } else if (billing === 'yearly') {
+        daysToAdd = 365; // Yearly subscription
+    } else {
+        daysToAdd = 30; // Monthly subscription
+    }
+    
     return new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
 }
 
@@ -1176,6 +1244,14 @@ app.post('/api/send-activation', async (req, res) => {
         
         // Handle paid version
         if (version === 'paid') {
+            // Extract billing and currency from request
+            const billing = otherData.billing || 'monthly';
+            const requestedCurrency = otherData.currency || getCurrencyFromCountry(otherData.country) || 'EUR';
+            const currencyUpper = requestedCurrency.toUpperCase();
+            
+            // Calculate validation end date based on billing period
+            const validationEndDate = calculateValidationEndDate('paid', billing);
+            
             const userData = {
                 firstName,
                 lastName,
@@ -1194,8 +1270,11 @@ app.post('/api/send-activation', async (req, res) => {
                 country: otherData.country,
                 autoRenewal: otherData.autoRenewal,
                 validationStartDate: new Date(),
-                validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                validationEndDate: validationEndDate,
                 downloadIntent: otherData.downloadIntent || false,
+                // Billing info
+                billingPeriod: billing,
+                billingCurrency: currencyUpper,
                 // TRACKING FIELDS
                 //trialStartDate: new Date(),
                 //source: otherData.source || 'website',
@@ -1222,7 +1301,9 @@ app.post('/api/send-activation', async (req, res) => {
                     name: `${firstName} ${lastName}`,
                     metadata: {
                         firstName,
-                        lastName
+                        lastName,
+                        billingPeriod: billing,
+                        currency: currencyUpper
                     }
                 });
                 userData.stripeCustomerId = customer.id;
@@ -1231,8 +1312,22 @@ app.post('/api/send-activation', async (req, res) => {
             
             await user.save();
 
-            const currency = otherData.currency || 'eur';
-            const amount = otherData.amount || 2500;
+            // Get pricing based on billing period and currency
+            const pricing = getPricing(billing, currencyUpper);
+            const amount = pricing.amount;
+            const currency = pricing.currency;
+            
+            // Determine subscription description
+            const subscriptionDesc = billing === 'yearly' 
+                ? 'SyncVoice Medical - Annual Subscription'
+                : 'SyncVoice Medical - Monthly Subscription';
+
+            logger.info('Creating payment intent:', {
+                billing,
+                currency: currencyUpper,
+                amount,
+                email: email.toLowerCase()
+            });
 
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
@@ -1243,9 +1338,11 @@ app.post('/api/send-activation', async (req, res) => {
                 metadata: {
                     userEmail: email.toLowerCase(),
                     userName: `${firstName} ${lastName}`,
-                    userId: user._id.toString()
+                    userId: user._id.toString(),
+                    billingPeriod: billing,
+                    billingCurrency: currencyUpper
                 },
-                description: 'SyncVoice Medical - Monthly Subscription'
+                description: subscriptionDesc
             });
 
             return res.json({
@@ -1253,7 +1350,10 @@ app.post('/api/send-activation', async (req, res) => {
                 requiresPayment: true,
                 clientSecret: paymentIntent.client_secret,
                 paymentIntentId: paymentIntent.id,
-                userId: user._id.toString()
+                userId: user._id.toString(),
+                billing: billing,
+                currency: currencyUpper,
+                amount: amount
             });
         }
 
@@ -1838,9 +1938,16 @@ async function handleSuccessfulPayment(paymentIntent) {
             const user = await User.findById(paymentIntent.metadata.userId);
             
             if (user) {
+                // Get billing period from metadata (default to monthly for backwards compatibility)
+                const billingPeriod = paymentIntent.metadata.billingPeriod || user.billingPeriod || 'monthly';
+                const billingCurrency = paymentIntent.metadata.billingCurrency || user.billingCurrency || 'EUR';
+                
+                // Calculate validation end date based on billing period
+                const validationEndDate = calculateValidationEndDate('paid', billingPeriod);
+                
                 if (!user.activationCode) {
                     user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                    user.activationCodeExpiry = validationEndDate;
                 }
                 
                 user.isPaid = true;
@@ -1848,10 +1955,19 @@ async function handleSuccessfulPayment(paymentIntent) {
                 user.paymentStatus = 'completed';
                 user.lastPaymentDate = new Date();
                 user.validationStartDate = new Date();
-                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                user.validationEndDate = validationEndDate;
+                user.billingPeriod = billingPeriod;
+                user.billingCurrency = billingCurrency;
+                user.subscriptionStatus = 'paid';
+                
+                // Update customer journey
+                if (user.customerJourney) {
+                    user.customerJourney.paidConversion = true;
+                    user.customerJourney.paidConversionDate = new Date();
+                }
                 
                 await user.save();
-                logger.info(`User ${user.email} marked as paid and active`);
+                logger.info(`User ${user.email} marked as paid and active (${billingPeriod} billing, expires ${validationEndDate.toISOString()})`);
                 
                 const lang = user.language || 'en';
                 const t = messages[lang] || messages.en;
