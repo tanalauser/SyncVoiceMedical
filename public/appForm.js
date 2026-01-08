@@ -634,7 +634,7 @@ function ensureCleanStart() {
 }
 
     
-    // Create elements for the countdown overlay - with better cleanup
+    // Create elements for the countdown overlay - smaller centered box
     const countdownOverlay = document.createElement('div');
 countdownOverlay.className = 'countdown-overlay';
 countdownOverlay.id = 'mainCountdownOverlay';
@@ -655,15 +655,18 @@ countdownOverlay.style.cssText = `
     font-size: 1.5em;
     border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    padding: 20px;
+    overflow: hidden;
 `;
     
     const countdownText = document.createElement('div');
     countdownText.id = 'countdownText';
-    countdownText.style.marginBottom = '20px';
+    countdownText.style.cssText = 'margin-bottom: 15px; font-size: 1.5em;';
     
     const countdownNumber = document.createElement('div');
     countdownNumber.id = 'countdownNumber';
-    countdownNumber.style.fontSize = '5em';
+    countdownNumber.style.cssText = 'font-size: 4em; font-weight: bold;';
     
     countdownOverlay.appendChild(countdownText);
     countdownOverlay.appendChild(countdownNumber);
@@ -1253,7 +1256,7 @@ countdownOverlay.style.cssText = `
     
     // Show "SPEAK NOW" very briefly then hide overlay immediately
     countdownText.textContent = t.speakNow || 'PARLEZ MAINTENANT';
-    countdownText.style.fontSize = '4em';
+    countdownText.style.fontSize = '2em';
     countdownText.style.color = '#4CAF50';
     countdownText.style.animation = 'speakNowPulse 1s infinite';
     countdownNumber.style.display = 'none';
@@ -2150,20 +2153,32 @@ function createTemplateSections(templateType) {
         animation: slideInDown 0.5s ease-out;
     `;
     
-    // Instruction text based on language
+    // Instruction text based on language - use actual button text
     const lang = currentLang || 'fr';
+    const langT = translations[lang] || translations.fr;
+    const speakButtonText = langT.speak || 'Speak';
+    
     const instructionTexts = {
-        fr: '📢 Cliquez sur "Commencer", attendez le compte à rebours, puis dictez section par section. Dites le nom de la section pour changer (ex: "motif", "antécédents", "examen", "conclusion")',
-        en: '📢 Click "Start", wait for countdown, then dictate section by section. Say the section name to switch (e.g. "reason", "history", "examination", "conclusion")',
-        de: '📢 Klicken Sie auf "Start", warten Sie auf den Countdown und diktieren Sie dann Abschnitt für Abschnitt. Sagen Sie den Abschnittsnamen zum Wechseln',
-        es: '📢 Haga clic en "Comenzar", espere la cuenta atrás, luego dicte sección por sección. Diga el nombre de la sección para cambiar',
-        it: '📢 Fai clic su "Inizia", aspetta il conto alla rovescia, poi detta sezione per sezione. Pronuncia il nome della sezione per cambiare',
-        pt: '📢 Clique em "Iniciar", aguarde a contagem regressiva, depois dite seção por seção. Diga o nome da seção para mudar'
+        fr: `📢 Cliquez sur "${speakButtonText}", attendez le compte à rebours, puis dictez section par section. Dites le nom de la section pour changer (ex: "motif", "antécédents", "examen", "conclusion")`,
+        en: `📢 Click "${speakButtonText}", wait for countdown, then dictate section by section. Say the section name to switch (e.g. "reason", "history", "examination", "conclusion")`,
+        de: `📢 Klicken Sie auf "${speakButtonText}", warten Sie auf den Countdown und diktieren Sie dann Abschnitt für Abschnitt. Sagen Sie den Abschnittsnamen zum Wechseln`,
+        es: `📢 Haga clic en "${speakButtonText}", espere la cuenta atrás, luego dicte sección por sección. Diga el nombre de la sección para cambiar`,
+        it: `📢 Fai clic su "${speakButtonText}", aspetta il conto alla rovescia, poi detta sezione per sezione. Pronuncia il nome della sezione per cambiare`,
+        pt: `📢 Clique em "${speakButtonText}", aguarde a contagem regressiva, depois dite seção por seção. Diga o nome da seção para mudar`
+    };
+    
+    const highlightTexts = {
+        fr: 'Section actuelle surlignée en bleu',
+        en: 'Current section highlighted in blue',
+        de: 'Aktueller Abschnitt blau hervorgehoben',
+        es: 'Sección actual resaltada en azul',
+        it: 'Sezione corrente evidenziata in blu',
+        pt: 'Seção atual destacada em azul'
     };
     
     templateInstruction.innerHTML = `
         <div style="margin-bottom: 10px;">${instructionTexts[lang] || instructionTexts['fr']}</div>
-        <div style="font-size: 0.9em; opacity: 0.8;">💡 ${lang === 'fr' ? 'Section actuelle surlignée en bleu' : 'Current section highlighted in blue'}</div>
+        <div style="font-size: 0.9em; opacity: 0.8;">💡 ${highlightTexts[lang] || highlightTexts['en']}</div>
     `;
     
     // Set the HTML content
@@ -2942,33 +2957,17 @@ setupInputFieldTracking();
 
     // Update template translations based on language
     function updateTemplateTranslations() {
-        console.log('updateTemplateTranslations called with language:', currentLang);
         const t = templateTranslations[currentLang] || templateTranslations.fr;
-        
-        // Update modal title
-        if (modalTitle) {
-            modalTitle.textContent = t.modalTitle;
-            console.log('Modal title updated to:', t.modalTitle);
-        }
+        modalTitle.textContent = t.modalTitle;
 
-        // Update template items - try multiple selectors
-        const items = document.querySelectorAll('.template-item');
-        console.log('Found template items:', items.length);
-        
-        items.forEach(item => {
+        templateItems.forEach(item => {
             const templateType = item.dataset.template;
             const titleElement = item.querySelector('h3');
             const descElement = item.querySelector('p');
-            
-            console.log('Processing template:', templateType, titleElement, descElement);
 
-            if (t.templates && t.templates[templateType]) {
-                if (titleElement) {
-                    titleElement.textContent = t.templates[templateType].title;
-                }
-                if (descElement) {
-                    descElement.textContent = t.templates[templateType].description;
-                }
+            if (t.templates[templateType]) {
+                titleElement.textContent = t.templates[templateType].title;
+                descElement.textContent = t.templates[templateType].description;
             }
         });
     }

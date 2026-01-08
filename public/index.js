@@ -873,7 +873,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         if (!userEmail) {
             if (confirm(t.downloadRequiresRegistration + '\n\n' + t.downloadConfirm)) {
-                window.location.href = `form.html?plan=paid&intent=download&lang=${currentLang}`;
+                // Changed to free trial registration with download intent
+                window.location.href = `form.html?plan=free&intent=download&lang=${currentLang}`;
             }
         } else {
             // Trigger download

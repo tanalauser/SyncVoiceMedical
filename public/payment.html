@@ -534,10 +534,18 @@
             document.getElementById('loadingText').textContent = t.loadingText;
             document.getElementById('backLink').href = `form.html?plan=paid&billing=${billing}&lang=${lang}`;
 
-            // Calculate and display total
-            const symbol = currency === 'GBP' ? '£' : '€';
+            // Calculate and display total with correct currency position
             const displayAmount = amount ? (parseInt(amount) / 100).toFixed(2) : (billing === 'yearly' ? '250.00' : '25.00');
-            document.getElementById('totalValue').textContent = `${symbol}${displayAmount}`;
+            
+            // GBP uses symbol before amount, EUR uses symbol after for most European languages
+            let formattedPrice;
+            if (currency === 'GBP') {
+                formattedPrice = `£${displayAmount}`;
+            } else {
+                // European convention: amount followed by € symbol
+                formattedPrice = `${displayAmount}€`;
+            }
+            document.getElementById('totalValue').textContent = formattedPrice;
         }
 
         updateContent();
