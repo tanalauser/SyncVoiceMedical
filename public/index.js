@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Pricing configuration
     const PRICING = {
         EUR: { symbol: '€', monthly: 25, yearly: 250 },
-        GBP: { symbol: '£', monthly: 21, yearly: 218 }
+        GBP: { symbol: '£', monthly: 25, yearly: 250 }
     };
 
     // ============================================
@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ============================================
     let currentLang = 'fr';
     let currentCurrency = 'EUR';
-    let isYearlyBilling = false;
     let userCountry = null;
 
     // ============================================
@@ -58,27 +57,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             step3Desc: 'Copiez ou exportez directement vers Word. Partagez avec vos collègues.',
             pricingTitle: 'Tarifs simples et transparents',
             pricingSubtitle: 'Sans engagement. Annulez quand vous voulez.',
-            toggleMonthly: 'Mensuel',
-            toggleYearly: 'Annuel',
-            savingsBadge: '-17%',
             freeTitle: 'Essai Gratuit',
             freePeriod: '7 jours',
             freeFeature1: '✓ Accès complet à la plateforme',
             freeFeature2: '✓ Dictées illimitées',
-            freeFeature3: '✓ Export Word',
-            freeFeature4: '✓ Support par email',
             freeBtnText: "Commencer l'essai",
+            monthlyTitle: 'Mensuel',
+            monthlyBtnText: 'Choisir mensuel',
+            yearlyTitle: 'Annuel',
+            yearlyBtnText: 'Choisir annuel',
+            yearlySavings: 'Économisez 50€ par an',
             popularBadge: 'Populaire',
-            proTitle: 'Professionnel',
             proPeriodMonthly: '/mois',
             proPeriodYearly: '/an',
             proNote: 'TTC',
-            proFeature1: "✓ Tout de l'essai gratuit",
-            proFeature2: '✓ Modèles médicaux',
-            proFeature3: '✓ Application Windows',
-            proFeature4: '✓ Support prioritaire',
-            proFeature5: '✓ Mises à jour incluses',
-            proBtnText: 'Commencer maintenant',
             desktopLabel: 'Application Bureau',
             desktopTitle: 'Travaillez directement dans Word, Excel, PowerPoint',
             desktopDesc: "Notre application Windows s'intègre parfaitement à vos outils quotidiens. Placez votre curseur, appuyez sur <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, et dictez directement.",
@@ -143,27 +135,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             step3Desc: 'Copy or export directly to Word. Share with colleagues.',
             pricingTitle: 'Simple, transparent pricing',
             pricingSubtitle: 'No commitment. Cancel anytime.',
-            toggleMonthly: 'Monthly',
-            toggleYearly: 'Yearly',
-            savingsBadge: '-17%',
             freeTitle: 'Free Trial',
             freePeriod: '7 days',
             freeFeature1: '✓ Full platform access',
             freeFeature2: '✓ Unlimited dictation',
-            freeFeature3: '✓ Word export',
-            freeFeature4: '✓ Email support',
             freeBtnText: 'Start trial',
+            monthlyTitle: 'Monthly',
+            monthlyBtnText: 'Choose monthly',
+            yearlyTitle: 'Yearly',
+            yearlyBtnText: 'Choose yearly',
+            yearlySavings: 'Save £50 per year',
             popularBadge: 'Popular',
-            proTitle: 'Professional',
             proPeriodMonthly: '/month',
             proPeriodYearly: '/year',
             proNote: 'VAT included',
-            proFeature1: '✓ Everything in free trial',
-            proFeature2: '✓ Medical templates',
-            proFeature3: '✓ Windows application',
-            proFeature4: '✓ Priority support',
-            proFeature5: '✓ Updates included',
-            proBtnText: 'Start now',
             desktopLabel: 'Desktop Application',
             desktopTitle: 'Work directly in Word, Excel, PowerPoint',
             desktopDesc: 'Our Windows app integrates seamlessly with your daily tools. Place your cursor, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, and dictate directly.',
@@ -228,27 +213,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             step3Desc: 'Kopieren oder direkt nach Word exportieren.',
             pricingTitle: 'Einfache, transparente Preise',
             pricingSubtitle: 'Keine Bindung. Jederzeit kündbar.',
-            toggleMonthly: 'Monatlich',
-            toggleYearly: 'Jährlich',
-            savingsBadge: '-17%',
             freeTitle: 'Kostenlose Testversion',
             freePeriod: '7 Tage',
             freeFeature1: '✓ Voller Plattformzugang',
             freeFeature2: '✓ Unbegrenzte Diktate',
-            freeFeature3: '✓ Word-Export',
-            freeFeature4: '✓ E-Mail-Support',
             freeBtnText: 'Test starten',
+            monthlyTitle: 'Monatlich',
+            monthlyBtnText: 'Monatlich wählen',
+            yearlyTitle: 'Jährlich',
+            yearlyBtnText: 'Jährlich wählen',
+            yearlySavings: '50€ pro Jahr sparen',
             popularBadge: 'Beliebt',
-            proTitle: 'Professionell',
             proPeriodMonthly: '/Monat',
             proPeriodYearly: '/Jahr',
             proNote: 'inkl. MwSt.',
-            proFeature1: '✓ Alles aus der Testversion',
-            proFeature2: '✓ Medizinische Vorlagen',
-            proFeature3: '✓ Windows-Anwendung',
-            proFeature4: '✓ Prioritärer Support',
-            proFeature5: '✓ Updates inklusive',
-            proBtnText: 'Jetzt starten',
             desktopLabel: 'Desktop-Anwendung',
             desktopTitle: 'Arbeiten Sie direkt in Word, Excel, PowerPoint',
             desktopDesc: 'Unsere Windows-App integriert sich nahtlos in Ihre Tools. Platzieren Sie Ihren Cursor, drücken Sie <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, und diktieren Sie direkt.',
@@ -313,27 +291,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             step3Desc: 'Copie o exporte directamente a Word.',
             pricingTitle: 'Precios simples y transparentes',
             pricingSubtitle: 'Sin compromiso. Cancele cuando quiera.',
-            toggleMonthly: 'Mensual',
-            toggleYearly: 'Anual',
-            savingsBadge: '-17%',
+            monthlyTitle: 'Mensual',
+            monthlyBtnText: 'Elegir mensual',
+            yearlyTitle: 'Anual',
+            yearlyBtnText: 'Elegir anual',
+            yearlySavings: 'Ahorra 50€ al año',
             freeTitle: 'Prueba Gratuita',
             freePeriod: '7 días',
             freeFeature1: '✓ Acceso completo',
             freeFeature2: '✓ Dictados ilimitados',
-            freeFeature3: '✓ Exportación a Word',
-            freeFeature4: '✓ Soporte por email',
             freeBtnText: 'Comenzar prueba',
             popularBadge: 'Popular',
-            proTitle: 'Profesional',
             proPeriodMonthly: '/mes',
             proPeriodYearly: '/año',
             proNote: 'IVA incluido',
-            proFeature1: '✓ Todo de la prueba gratuita',
-            proFeature2: '✓ Plantillas médicas',
-            proFeature3: '✓ Aplicación Windows',
-            proFeature4: '✓ Soporte prioritario',
-            proFeature5: '✓ Actualizaciones incluidas',
-            proBtnText: 'Comenzar ahora',
             desktopLabel: 'Aplicación de Escritorio',
             desktopTitle: 'Trabaje directamente en Word, Excel, PowerPoint',
             desktopDesc: 'Nuestra aplicación se integra perfectamente con sus herramientas. Coloque el cursor, presione <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, y dicte directamente.',
@@ -398,27 +369,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             step3Desc: 'Copia o esporta direttamente su Word.',
             pricingTitle: 'Prezzi semplici e trasparenti',
             pricingSubtitle: 'Senza impegno. Annulla quando vuoi.',
-            toggleMonthly: 'Mensile',
-            toggleYearly: 'Annuale',
-            savingsBadge: '-17%',
             freeTitle: 'Prova Gratuita',
             freePeriod: '7 giorni',
             freeFeature1: '✓ Accesso completo',
             freeFeature2: '✓ Dettature illimitate',
-            freeFeature3: '✓ Esportazione Word',
-            freeFeature4: '✓ Supporto email',
             freeBtnText: 'Inizia prova',
+            monthlyTitle: 'Mensile',
+            monthlyBtnText: 'Scegli mensile',
+            yearlyTitle: 'Annuale',
+            yearlyBtnText: 'Scegli annuale',
+            yearlySavings: 'Risparmia 50€ all\'anno',
             popularBadge: 'Popolare',
-            proTitle: 'Professionale',
             proPeriodMonthly: '/mese',
             proPeriodYearly: '/anno',
             proNote: 'IVA inclusa',
-            proFeature1: '✓ Tutto della prova gratuita',
-            proFeature2: '✓ Modelli medici',
-            proFeature3: '✓ Applicazione Windows',
-            proFeature4: '✓ Supporto prioritario',
-            proFeature5: '✓ Aggiornamenti inclusi',
-            proBtnText: 'Inizia ora',
             desktopLabel: 'Applicazione Desktop',
             desktopTitle: 'Lavora direttamente in Word, Excel, PowerPoint',
             desktopDesc: "La nostra app si integra perfettamente con i tuoi strumenti. Posiziona il cursore, premi <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, e detta direttamente.",
@@ -483,27 +447,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             step3Desc: 'Copie ou exporte diretamente para Word.',
             pricingTitle: 'Preços simples e transparentes',
             pricingSubtitle: 'Sem compromisso. Cancele quando quiser.',
-            toggleMonthly: 'Mensal',
-            toggleYearly: 'Anual',
-            savingsBadge: '-17%',
             freeTitle: 'Teste Gratuito',
             freePeriod: '7 dias',
             freeFeature1: '✓ Acesso completo',
             freeFeature2: '✓ Ditados ilimitados',
-            freeFeature3: '✓ Exportação Word',
-            freeFeature4: '✓ Suporte por email',
             freeBtnText: 'Começar teste',
+            monthlyTitle: 'Mensal',
+            monthlyBtnText: 'Escolher mensal',
+            yearlyTitle: 'Anual',
+            yearlyBtnText: 'Escolher anual',
+            yearlySavings: 'Economize 50€ por ano',
             popularBadge: 'Popular',
-            proTitle: 'Profissional',
             proPeriodMonthly: '/mês',
             proPeriodYearly: '/ano',
             proNote: 'IVA incluído',
-            proFeature1: '✓ Tudo do teste gratuito',
-            proFeature2: '✓ Modelos médicos',
-            proFeature3: '✓ Aplicativo Windows',
-            proFeature4: '✓ Suporte prioritário',
-            proFeature5: '✓ Atualizações incluídas',
-            proBtnText: 'Começar agora',
             desktopLabel: 'Aplicativo Desktop',
             desktopTitle: 'Trabalhe diretamente no Word, Excel, PowerPoint',
             desktopDesc: 'Nosso aplicativo se integra perfeitamente às suas ferramentas. Posicione o cursor, pressione <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, e dite diretamente.',
@@ -753,29 +710,36 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Pricing
         updateText('pricingTitle', t.pricingTitle);
         updateText('pricingSubtitle', t.pricingSubtitle);
-        updateText('toggleMonthly', t.toggleMonthly);
-        updateText('toggleYearly', t.toggleYearly);
-        updateText('savingsBadge', t.savingsBadge);
+        
+        // Free Trial
         updateText('freeTitle', t.freeTitle);
         updateText('freePeriod', t.freePeriod);
         updateText('freeCurrency', pricing.symbol);
         updateText('freeFeature1', t.freeFeature1);
         updateText('freeFeature2', t.freeFeature2);
-        updateText('freeFeature3', t.freeFeature3);
-        updateText('freeFeature4', t.freeFeature4);
         updateText('freeBtnText', t.freeBtnText);
-        updateText('popularBadge', t.popularBadge);
-        updateText('proTitle', t.proTitle);
-        updateText('proNote', t.proNote);
-        updateText('proFeature1', t.proFeature1);
-        updateText('proFeature2', t.proFeature2);
-        updateText('proFeature3', t.proFeature3);
-        updateText('proFeature4', t.proFeature4);
-        updateText('proFeature5', t.proFeature5);
-        updateText('proBtnText', t.proBtnText);
         
-        // Update pricing based on billing period
-        updatePricing();
+        // Monthly
+        updateText('monthlyTitle', t.monthlyTitle);
+        updateText('monthlyAmount', pricing.monthly);
+        updateText('monthlyCurrency', pricing.symbol);
+        updateText('monthlyPeriod', t.proPeriodMonthly);
+        updateText('monthlyNote', t.proNote);
+        updateText('monthlyFeature1', t.freeFeature1);
+        updateText('monthlyFeature2', t.freeFeature2);
+        updateText('monthlyBtnText', t.monthlyBtnText);
+        
+        // Yearly
+        updateText('popularBadge', t.popularBadge);
+        updateText('yearlyTitle', t.yearlyTitle);
+        updateText('yearlyAmount', pricing.yearly);
+        updateText('yearlyCurrency', pricing.symbol);
+        updateText('yearlyPeriod', t.proPeriodYearly);
+        updateText('yearlyNote', t.proNote);
+        updateText('yearlySavings', t.yearlySavings);
+        updateText('yearlyFeature1', t.freeFeature1);
+        updateText('yearlyFeature2', t.freeFeature2);
+        updateText('yearlyBtnText', t.yearlyBtnText);
         
         // Desktop App
         updateText('desktopLabel', t.desktopLabel);
@@ -832,25 +796,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         updateLinks();
     }
 
-    function updatePricing() {
-        const t = translations[currentLang] || translations.fr;
-        const pricing = PRICING[currentCurrency];
-        
-        console.log('💲 updatePricing() - lang:', currentLang, 'isYearly:', isYearlyBilling);
-        console.log('💲 proPeriodMonthly:', t.proPeriodMonthly, 'proPeriodYearly:', t.proPeriodYearly);
-        
-        const amount = isYearlyBilling ? pricing.yearly : pricing.monthly;
-        const period = isYearlyBilling ? t.proPeriodYearly : t.proPeriodMonthly;
-        
-        console.log('💲 Setting period to:', period);
-        
-        updateText('proAmount', amount);
-        updateText('proCurrency', pricing.symbol);
-        updateText('proPeriod', period);
-    }
-
     function updateLinks() {
-        const billing = isYearlyBilling ? 'yearly' : 'monthly';
         const currency = currentCurrency.toLowerCase();
         
         // Free trial link
@@ -859,10 +805,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             freeBtn.href = `form.html?plan=free&lang=${currentLang}`;
         }
         
-        // Paid link
-        const proBtn = document.getElementById('proBtn');
-        if (proBtn) {
-            proBtn.href = `form.html?plan=paid&billing=${billing}&currency=${currency}&lang=${currentLang}`;
+        // Monthly link
+        const monthlyBtn = document.getElementById('monthlyBtn');
+        if (monthlyBtn) {
+            monthlyBtn.href = `form.html?plan=paid&billing=monthly&currency=${currency}&lang=${currentLang}`;
+        }
+        
+        // Yearly link
+        const yearlyBtn = document.getElementById('yearlyBtn');
+        if (yearlyBtn) {
+            yearlyBtn.href = `form.html?plan=paid&billing=yearly&currency=${currency}&lang=${currentLang}`;
         }
         
         // CTA free link
@@ -892,16 +844,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 window.history.pushState({}, '', url);
                 
                 updateContent();
-            });
-        }
-        
-        // Billing toggle
-        const billingToggle = document.getElementById('billingToggle');
-        if (billingToggle) {
-            billingToggle.addEventListener('change', (e) => {
-                isYearlyBilling = e.target.checked;
-                updatePricing();
-                updateLinks();
             });
         }
         

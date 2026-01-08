@@ -155,16 +155,6 @@
         <div class="container">
             <h2 class="section-title" id="pricingTitle">Tarifs simples et transparents</h2>
             <p class="section-subtitle" id="pricingSubtitle">Sans engagement. Annulez quand vous voulez.</p>
-            
-            <div class="pricing-toggle">
-                <span class="toggle-label" id="toggleMonthly">Mensuel</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="billingToggle">
-                    <span class="toggle-slider"></span>
-                </label>
-                <span class="toggle-label" id="toggleYearly">Annuel</span>
-                <span class="savings-badge" id="savingsBadge">-17%</span>
-            </div>
 
             <div class="pricing-cards">
                 <!-- Free Trial -->
@@ -180,35 +170,51 @@
                     <ul class="features-list">
                         <li id="freeFeature1">✓ Accès complet à la plateforme</li>
                         <li id="freeFeature2">✓ Dictées illimitées</li>
-                        <li id="freeFeature3">✓ Export Word</li>
-                        <li id="freeFeature4">✓ Support par email</li>
                     </ul>
                     <a href="form.html?plan=free" class="btn btn-secondary btn-block" id="freeBtn">
                         <span id="freeBtnText">Commencer l'essai</span>
                     </a>
                 </div>
 
-                <!-- Monthly/Yearly -->
+                <!-- Monthly -->
+                <div class="pricing-card">
+                    <div class="card-header">
+                        <h3 id="monthlyTitle">Mensuel</h3>
+                        <div class="price">
+                            <span class="amount" id="monthlyAmount">25</span>
+                            <span class="currency" id="monthlyCurrency">€</span>
+                            <span class="period" id="monthlyPeriod">/mois</span>
+                        </div>
+                        <p class="price-note" id="monthlyNote">TTC</p>
+                    </div>
+                    <ul class="features-list">
+                        <li id="monthlyFeature1">✓ Accès complet à la plateforme</li>
+                        <li id="monthlyFeature2">✓ Dictées illimitées</li>
+                    </ul>
+                    <a href="form.html?plan=paid&billing=monthly" class="btn btn-secondary btn-block" id="monthlyBtn">
+                        <span id="monthlyBtnText">Choisir mensuel</span>
+                    </a>
+                </div>
+
+                <!-- Yearly - Featured -->
                 <div class="pricing-card featured">
                     <div class="popular-badge" id="popularBadge">Populaire</div>
                     <div class="card-header">
-                        <h3 id="proTitle">Professionnel</h3>
+                        <h3 id="yearlyTitle">Annuel</h3>
                         <div class="price">
-                            <span class="amount" id="proAmount">25</span>
-                            <span class="currency" id="proCurrency">€</span>
-                            <span class="period" id="proPeriod">/mois</span>
+                            <span class="amount" id="yearlyAmount">250</span>
+                            <span class="currency" id="yearlyCurrency">€</span>
+                            <span class="period" id="yearlyPeriod">/an</span>
                         </div>
-                        <p class="price-note" id="proNote">TTC</p>
+                        <p class="price-note" id="yearlyNote">TTC</p>
+                        <p class="savings-note" id="yearlySavings">Économisez 50€ par an</p>
                     </div>
                     <ul class="features-list">
-                        <li id="proFeature1">✓ Tout de l'essai gratuit</li>
-                        <li id="proFeature2">✓ Modèles médicaux</li>
-                        <li id="proFeature3">✓ Application Windows</li>
-                        <li id="proFeature4">✓ Support prioritaire</li>
-                        <li id="proFeature5">✓ Mises à jour incluses</li>
+                        <li id="yearlyFeature1">✓ Accès complet à la plateforme</li>
+                        <li id="yearlyFeature2">✓ Dictées illimitées</li>
                     </ul>
-                    <a href="form.html?plan=paid&billing=monthly" class="btn btn-primary btn-block" id="proBtn">
-                        <span id="proBtnText">Commencer maintenant</span>
+                    <a href="form.html?plan=paid&billing=yearly" class="btn btn-primary btn-block" id="yearlyBtn">
+                        <span id="yearlyBtnText">Choisir annuel</span>
                     </a>
                 </div>
             </div>

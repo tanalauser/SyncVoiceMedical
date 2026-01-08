@@ -89,8 +89,8 @@ const PRICING_CONFIG = {
         yearly: { amount: 25000, currency: 'eur' }   // 250.00 EUR
     },
     GBP: {
-        monthly: { amount: 2100, currency: 'gbp' },  // 21.00 GBP
-        yearly: { amount: 21800, currency: 'gbp' }   // 218.00 GBP
+        monthly: { amount: 2500, currency: 'gbp' },  // 25.00 GBP
+        yearly: { amount: 25000, currency: 'gbp' }   // 250.00 GBP
     }
 };
 
