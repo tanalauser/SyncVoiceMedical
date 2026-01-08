@@ -140,6 +140,10 @@ const DEV_EMAILS = [
 // Create Express app instance
 const app = express();
 
+// Trust proxy - Required for Render.com and other reverse proxy setups
+// This fixes the express-rate-limit X-Forwarded-For warning
+app.set('trust proxy', 1);
+
 // CORS configuration
 const allowedOrigins = process.env.NODE_ENV === 'production' 
   ? [
@@ -2200,7 +2204,7 @@ app.get('/api/check-activation', async (req, res) => {
             success: false,
             message: error.message
         });
-    });
+    }
 });
 
 // User details route
