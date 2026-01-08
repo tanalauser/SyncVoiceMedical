@@ -1282,7 +1282,7 @@ app.post('/api/send-activation', async (req, res) => {
                 emailSentAt: new Date(),
                 signupSource: 'website',  // New field name not restricted by enum
                 paymentStatus: 'pending',
-                subscriptionStatus: 'pending_payment',
+                subscriptionStatus: 'prospect',  // Use valid enum value, will change to 'paid' after payment
                 customerJourney: {
                     signupDate: new Date(),
                     emailOpened: false,

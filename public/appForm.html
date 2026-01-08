@@ -1,240 +1,482 @@
 <!DOCTYPE html>
-<html id="htmlLang" lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SyncVoice Medical - Application</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>SyncVoice Medical - Voice Transcription</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="appForm.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.2.2/docx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --primary: #0e7c86;
+            --primary-dark: #0a5a62;
+            --primary-light: #12a3b0;
+            --accent: #2ecc71;
+            --accent-dark: #27ae60;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --white: #ffffff;
+            --error: #ef4444;
+            --font-display: 'DM Serif Display', serif;
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--gray-50);
+            min-height: 100vh;
+            color: var(--gray-700);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--white);
+            padding: 0.75rem 2rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--gray-800);
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+        }
+
+        .logo-text { font-family: var(--font-display); font-size: 1.1rem; }
+        .logo-text span { color: var(--primary); }
+
+        .user-info { display: flex; align-items: center; gap: 1.5rem; }
+
+        .user-badge { display: flex; align-items: center; gap: 0.75rem; }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-details { display: flex; flex-direction: column; gap: 0.1rem; }
+        .user-name { font-weight: 600; font-size: 0.9rem; color: var(--gray-700); }
+
+        .account-type {
+            font-size: 0.75rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        .trial-badge { background: #fef3c7; color: #d97706; }
+        .premium-badge { background: #dcfce7; color: #16a34a; }
+
+        .nav-links { display: flex; gap: 1rem; }
+
+        .nav-link {
+            color: var(--gray-600);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover { color: var(--primary); }
+
+        .main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        .page-header { text-align: center; margin-bottom: 2rem; }
+
+        .page-title {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            color: var(--gray-800);
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle { color: var(--gray-500); font-size: 1rem; }
+
+        .transcription-wrapper { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; }
+
+        .transcription-container {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-md);
+            padding: 1.5rem;
+        }
+
+        .form-group { margin-bottom: 1.5rem; }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: var(--gray-50);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--white);
+        }
+
+        .transcription-area { position: relative; }
+
+        .transcription-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .char-count { font-size: 0.8rem; color: var(--gray-400); }
+        .ai-disclaimer { font-size: 0.75rem; color: var(--gray-400); font-style: italic; }
+
+        .transcription-text {
+            width: 100%;
+            min-height: 300px;
+            padding: 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.2s;
+        }
+
+        .transcription-text:focus { outline: none; border-color: var(--primary); }
+
+        .action-buttons { display: flex; flex-direction: column; gap: 0.75rem; }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.25rem;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn .icon { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--white);
+        }
+
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+        .btn-secondary {
+            background: var(--white);
+            color: var(--gray-600);
+            border: 2px solid var(--gray-200);
+        }
+
+        .btn-secondary:hover { background: var(--gray-50); border-color: var(--gray-300); }
+
+        .btn-danger {
+            background: var(--white);
+            color: var(--error);
+            border: 2px solid var(--error);
+        }
+
+        .btn-danger:hover { background: #fef2f2; }
+        .btn-text { white-space: nowrap; }
+        .divider { height: 1px; background: var(--gray-200); margin: 0.5rem 0; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .modal-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--gray-800);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: 0.25rem;
+            line-height: 1;
+        }
+
+        .close-modal:hover { color: var(--gray-600); }
+        .modal-body { padding: 1.5rem; }
+
+        .template-item {
+            padding: 1rem 1.25rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .template-item:hover {
+            border-color: var(--primary);
+            background: rgba(14, 124, 134, 0.05);
+        }
+
+        .template-item:last-child { margin-bottom: 0; }
+        .template-item h3 { font-size: 1rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.25rem; }
+        .template-item p { font-size: 0.85rem; color: var(--gray-500); }
+
+        .footer { text-align: center; padding: 2rem; color: var(--gray-400); font-size: 0.85rem; }
+
+        @media (max-width: 900px) {
+            .transcription-wrapper { grid-template-columns: 1fr; }
+            .action-buttons { flex-direction: row; flex-wrap: wrap; }
+            .btn { flex: 1; min-width: 150px; }
+        }
+
+        @media (max-width: 600px) {
+            .header { padding: 0.75rem 1rem; }
+            .user-info { gap: 0.75rem; }
+            .nav-links { gap: 0.5rem; }
+            .main { padding: 1rem; }
+        }
+    </style>
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <header class="app-header">
-        <a href="index.html" class="app-logo navbar-brand" id="logoLink">
-            <img src="SyncVoiceMedicalLogo.png" alt="SyncVoice Medical">
+    <header class="header">
+        <a href="index.html" class="logo">
+            <div class="logo-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+            </div>
+            <span class="logo-text">SyncVoice <span>Medical</span></span>
         </a>
+
         <div class="user-info">
-            <div class="user-details">
+            <div class="user-badge">
                 <div class="user-avatar" id="userAvatar">U</div>
-                <div class="user-meta">
-                    <span class="user-name" id="userEmail">Utilisateur</span>
-                    <span class="user-badge trial" id="accountTypeBadge">Essai gratuit</span>
+                <div class="user-details">
+                    <span class="user-name" id="userLabel">User</span>
+                    <span class="account-type trial-badge" id="accountTypeBadge">Free Trial</span>
                 </div>
             </div>
-            <div class="days-remaining" id="daysRemainingContainer" style="display: none;">
-                <span class="days-label" id="daysLabel">Jours restants:</span>
-                <span class="days-value" id="daysRemaining">-</span>
-            </div>
-            <nav class="nav-links navbar-menu">
-                <a href="account.html" class="nav-link" id="myAccountLink">Mon Compte</a>
-                <a href="form.html?plan=paid" class="nav-link upgrade-link" id="upgradeLink" style="display: none;">Passer à Premium</a>
-                <a href="#" class="nav-link logout-link" id="logoutLink">Se déconnecter</a>
+            <nav class="nav-links">
+                <a href="#" class="nav-link" id="myAccountLink">My Account</a>
+                <a href="#" class="nav-link" id="logoutLink">Logout</a>
             </nav>
+            <a href="#" class="nav-link" id="upgradeLink" style="display:none;">Upgrade</a>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="app-main">
-        <!-- Title Section -->
-        <div class="app-title-section">
-            <h1 class="app-title" id="appTitle">Transcription Vocale</h1>
-            <p class="app-subtitle" id="appSubtitle">Commencez à dicter pour transcrire votre texte</p>
+    <main class="main">
+        <div class="page-header">
+            <h1 class="page-title" id="appTitle">Voice Transcription</h1>
+            <p class="page-subtitle" id="appSubtitle">Start dictating to transcribe your text</p>
         </div>
 
-        <!-- Voice Form -->
-        <form class="voice-form" id="voiceForm">
-            <!-- Subject Input -->
-            <div class="subject-section form-group">
-                <label for="subjectInput" class="subject-label form-label" id="subjectLabel">Sujet / Référence:</label>
-                <input type="text" id="subjectInput" class="subject-input form-input" placeholder="Ex: Consultation du 31/07/2025">
-            </div>
+        <div class="transcription-wrapper">
+            <div class="transcription-container">
+                <div class="form-group">
+                    <label class="form-label" id="subjectLabel">Subject / Reference:</label>
+                    <input type="text" class="form-input" id="subjectInput" placeholder="Ex: Consultation on 07/31/2025">
+                </div>
 
-            <!-- Transcription Wrapper - New 80/20 Layout -->
-            <div class="transcription-wrapper">
-                <!-- Transcription Area (80%) -->
-                <div class="transcription-section">
-                    <label for="transcriptionText" class="transcription-label form-label" id="transcriptionLabel">Transcription:</label>
-                    <div class="transcription-container">
-                        <textarea 
-                            id="transcriptionText" 
-                            class="transcription-textarea form-textarea" 
-                            placeholder="Appuyez sur le bouton 'Parlez en Français', attendez que le compte à rebours se termine, puis parlez. Votre transcription apparaîtra ici..."
-                        ></textarea>
-                        <div class="transcription-footer">
-                            <span class="char-count" id="charCount">0 caractères</span>
-                            <span class="ai-notice" id="AICanMakeMistakes_message">* L'IA peut faire des erreurs. Veuillez vérifier la transcription.</span>
+                <div class="transcription-area">
+                    <div class="transcription-header">
+                        <label class="form-label" id="transcriptionLabel">Transcription:</label>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <span class="char-count"><span id="charCount">0</span> characters</span>
+                            <span class="ai-disclaimer" id="AICanMakeMistakes_message">* AI can make mistakes. Please verify.</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- Control Buttons Panel (18%) - Vertical Stack -->
-                <div class="controls-panel controls">
-                    <!-- Recording Status Indicator -->
-                    <div class="recording-status recording-indicator" id="recordingIndicator">
-                        <div class="recording-dot"></div>
-                        <span class="recording-text" id="recordingText">Enregistrement en cours...</span>
-                    </div>
-
-                    <!-- Primary Action - Start Speaking -->
-                    <button type="button" id="startButton" class="control-btn primary start-btn btn">
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                        </svg>
-                        <span class="btn-text" id="startBtnText">Parlez en Français</span>
-                    </button>
-
-                    <!-- Pause Button -->
-                    <button type="button" id="pauseButton" class="control-btn secondary pause stop-btn btn" disabled>
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                        </svg>
-                        <span class="btn-text" id="pauseBtnText">Pause</span>
-                    </button>
-
-                    <!-- Stop Button -->
-                    <button type="button" id="stopButton" class="control-btn secondary stop stop-btn btn" disabled>
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M6 6h12v12H6z"/>
-                        </svg>
-                        <span class="btn-text" id="stopBtnText">Stop</span>
-                    </button>
-
-                    <div class="controls-divider"></div>
-
-                    <!-- Copy Button -->
-                    <button type="button" id="copyButton" class="control-btn action copy copy-btn btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2"/>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                        <span class="btn-text" id="copyBtnText">Copiez tout</span>
-                    </button>
-
-                    <!-- Template Button -->
-                    <button type="button" id="templateButton" class="control-btn action action-btn btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
-                        </svg>
-                        <span class="btn-text">Modèle Word</span>
-                    </button>
-
-                    <!-- Clear Button -->
-                    <button type="button" id="clearButton" class="control-btn action action-btn btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                        </svg>
-                        <span class="btn-text">Tout Effacer</span>
-                    </button>
-
-                    <div class="controls-divider"></div>
-
-                    <!-- Quit Button -->
-                    <button type="button" id="quitButton" class="control-btn quit action-btn btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                            <polyline points="16 17 21 12 16 7"/>
-                            <line x1="21" y1="12" x2="9" y2="12"/>
-                        </svg>
-                        <span class="btn-text">Quitter</span>
-                    </button>
+                    <textarea class="transcription-text" id="transcriptionText" placeholder="Transcribed text will appear here..."></textarea>
                 </div>
             </div>
 
-            <!-- Status Message (for errors/success) -->
-            <div id="statusMessage" class="status-message"></div>
-        </form>
+            <div class="action-buttons">
+                <button type="button" class="btn btn-primary" id="startButton">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <span class="btn-text">Speak in English</span>
+                </button>
+
+                <button type="button" class="btn btn-secondary" id="pauseButton" disabled>
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16"/>
+                        <rect x="14" y="4" width="4" height="16"/>
+                    </svg>
+                    <span class="btn-text">Pause</span>
+                </button>
+
+                <button type="button" class="btn btn-secondary" id="stopButton" disabled>
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="4" y="4" width="16" height="16"/>
+                    </svg>
+                    <span class="btn-text">Stop</span>
+                </button>
+
+                <div class="divider"></div>
+
+                <button type="button" class="btn btn-secondary" id="copyButton">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    <span class="btn-text">Copy all to<br>clipboard</span>
+                </button>
+
+                <button type="button" class="btn btn-secondary" id="templateButton">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    <span class="btn-text">Use a Word<br>template</span>
+                </button>
+
+                <button type="button" class="btn btn-secondary" id="clearAllButton">Clear All</button>
+
+                <div class="divider"></div>
+
+                <button type="button" class="btn btn-danger" id="quitButton">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    <span class="btn-text">Quit</span>
+                </button>
+            </div>
+        </div>
     </main>
 
-    <!-- Template Modal (keeping original structure for compatibility) -->
-    <div id="templateModal" class="template-modal">
-        <div class="template-modal-content modal-content">
-            <div class="template-modal-header modal-header">
-                <h2 class="template-modal-title" id="templateModalTitle">Choisissez un modèle</h2>
-                <button class="template-modal-close close-modal">&times;</button>
+    <footer class="footer">
+        <p>&copy; 2025 SyncVoice Medical. <span id="footerText">All rights reserved.</span></p>
+    </footer>
+
+    <!-- Template Modal -->
+    <div class="modal" id="templateModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="templateModalTitle">Choose a template</h2>
+                <button class="close-modal" aria-label="Close">&times;</button>
             </div>
-            <div class="template-list template-grid">
+            <div class="modal-body">
                 <div class="template-item" data-template="consultation">
-                    <h4>Consultation Médicale</h4>
-                    <p>Modèle pour une consultation médicale standard</p>
+                    <h3>Medical Consultation</h3>
+                    <p>Template for a standard medical consultation</p>
                 </div>
                 <div class="template-item" data-template="specialist">
-                    <h4>Consultation Spécialisée</h4>
-                    <p>Modèle pour une consultation avec un spécialiste</p>
+                    <h3>Specialist Consultation</h3>
+                    <p>Template for a consultation with a specialist</p>
                 </div>
                 <div class="template-item" data-template="surgery">
-                    <h4>Chirurgie</h4>
-                    <p>Modèle pour un rapport chirurgical</p>
+                    <h3>Surgery</h3>
+                    <p>Template for a surgical report</p>
                 </div>
                 <div class="template-item" data-template="prescription">
-                    <h4>Ordonnance</h4>
-                    <p>Modèle pour une ordonnance médicale</p>
+                    <h3>Prescription</h3>
+                    <p>Template for a medical prescription</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Countdown Overlay -->
-    <div id="countdownOverlay" class="countdown-overlay">
-        <div class="countdown-number" id="countdownNumber">3</div>
-        <div class="countdown-text" id="countdownText">Préparation...</div>
-    </div>
+    <span id="statusLabel" style="display:none;">Status</span>
+    <span id="daysLabel" style="display:none;">Days remaining</span>
 
-    <!-- Footer -->
-    <footer class="app-footer footer">
-        <p>&copy; 2025 SyncVoice Medical. <span id="footerText">Tous droits réservés.</span></p>
-    </footer>
-
-    <!-- Include the language detection module if available -->
-    <script src="languageDetection.js"></script>
-
-    <!-- DocX library for Word export -->
-    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    
-    <!-- Main application JavaScript (your existing file) -->
     <script src="appForm.js"></script>
-    
-    <!-- Character counter enhancement -->
-    <script>
-        // Character counter
-        document.addEventListener('DOMContentLoaded', function() {
-            const textarea = document.getElementById('transcriptionText');
-            const charCount = document.getElementById('charCount');
-            
-            if (textarea && charCount) {
-                function updateCount() {
-                    const count = textarea.value.length;
-                    charCount.textContent = count + ' caractères';
-                }
-                
-                textarea.addEventListener('input', updateCount);
-                
-                // Watch for programmatic changes
-                const observer = new MutationObserver(updateCount);
-                observer.observe(textarea, { childList: true, characterData: true, subtree: true });
-                
-                // Also poll periodically for speech recognition updates
-                setInterval(updateCount, 500);
-                
-                updateCount();
-            }
-            
-            // User avatar initialization
-            const userEmail = document.getElementById('userEmail');
-            const userAvatar = document.getElementById('userAvatar');
-            if (userEmail && userAvatar) {
-                const email = userEmail.textContent || 'U';
-                userAvatar.textContent = email.charAt(0).toUpperCase();
-            }
-        });
-    </script>
 </body>
 </html>
