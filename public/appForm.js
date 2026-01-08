@@ -645,28 +645,36 @@ countdownOverlay.id = 'mainCountdownOverlay';
 countdownOverlay.style.cssText = `
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.85);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    background-color: rgba(0, 0, 0, 0.9);
     z-index: 9999;
     justify-content: center;
     align-items: center;
     flex-direction: column;
     color: white;
-    font-size: 2em;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 `;
     
     const countdownText = document.createElement('div');
     countdownText.id = 'countdownText';
-    countdownText.style.marginBottom = '20px';
+    countdownText.style.cssText = `
+        margin-bottom: 10px;
+        font-size: 0.9em;
+        text-align: center;
+        padding: 0 10px;
+    `;
     
     const countdownNumber = document.createElement('div');
     countdownNumber.id = 'countdownNumber';
-    countdownNumber.style.fontSize = '5em';
+    countdownNumber.style.cssText = `
+        font-size: 3em;
+        font-weight: bold;
+    `;
     
     countdownOverlay.appendChild(countdownText);
     countdownOverlay.appendChild(countdownNumber);
@@ -1585,14 +1593,14 @@ function showRecordingIndicator() {
                 hasUsedSpeechBefore = true; // Only set flag for normal mode
             }
             
-            // Enhanced countdown display - REDUCED FONT SIZES BY 50%
+            // Enhanced countdown display - REDUCED FONT SIZES TO FIT 200x200 BOX
             countdownText.textContent = t.countdown;
-            countdownText.style.fontSize = '1.25em';
+            countdownText.style.fontSize = '0.85em';
             countdownText.style.fontWeight = 'bold';
             countdownText.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)';
             
             countdownNumber.textContent = '3';
-            countdownNumber.style.fontSize = '4em';
+            countdownNumber.style.fontSize = '3.5em';
             countdownNumber.style.fontWeight = 'bold';
             countdownNumber.style.color = '#ff6b35';
             countdownNumber.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
@@ -1615,7 +1623,7 @@ function showRecordingIndicator() {
                     
                     // Update to "Getting ready..." message
                     countdownText.textContent = t.gettingReady || "Getting ready...";
-                    countdownText.style.fontSize = '1em';
+                    countdownText.style.fontSize = '0.8em';
                     countdownNumber.style.display = 'none';
                     
                     // Add a preparation delay before starting recognition
@@ -1702,85 +1710,14 @@ function handleRecognitionStartError(error) {
     showNotification(startErrorMessages[lang] || startErrorMessages['fr'], 'error');
 }
 
-    // Function to process template transcript with improved section detection
+    // Function to process template transcript - SIMPLIFIED to use cursor position
     function processTemplateTranscript(transcript) {
         console.log("Processing template transcript:", transcript);
-        const originalTranscript = transcript; // Keep a copy of the original
         
-        // Check if transcript contains "Examens complémentaires" or similar variations
-        const containsExams = transcript.toLowerCase().match(/examens?\s+compl[ée]mentaires?|examens?\s+additionnels?/i);
-        
-        // Special handling for section keywords
-        let sectionDetected = false;
-        let newSection = '';
-        
-        // First check for "Examens complémentaires" specifically
-        if (containsExams) {
-            newSection = 'additionalExams';
-            sectionDetected = true;
-            console.log(`Detected "Examens complémentaires" - switching to additionalExams section`);
-        }
-        // Check for specific handling for common misrecognitions of "Antécédents"
-        else if (transcript.toLowerCase().match(/antécédents?|antecedents?|là tsé\s*,?\s*dent|excédents?|en cédant|en tsé dent|en tsé dent/i)) {
-            newSection = 'history';
-            sectionDetected = true;
-            console.log(`Detected "Antécédents" (or similar) - switching to history section`);
-        }
-        // Check for "motif de consultation"
-        else if (transcript.toLowerCase().includes('motif de consultation')) {
-            newSection = 'reason';
-            sectionDetected = true;
-            console.log(`Detected "Motif de consultation" - switching to reason section`);
-        } 
-        // Check for all other section keywords systematically
-        else {
-            // Check exact matches first
-            const exactCommands = exactSectionCommands[currentLang];
-            
-            for (const [section, phrases] of Object.entries(exactCommands)) {
-                for (const phrase of phrases) {
-                    if (transcript.toLowerCase().includes(phrase.toLowerCase())) {
-                        newSection = section;
-                        sectionDetected = true;
-                        console.log(`Exact match detected: "${phrase}" - switching to ${section} section`);
-                        break;
-                    }
-                }
-                if (sectionDetected) break;
-            }
-            
-            // If no exact match found, try partial matches
-            if (!sectionDetected) {
-                const partialCommands = sectionCommands[currentLang];
-                
-                for (const [section, phrases] of Object.entries(partialCommands)) {
-                    for (const phrase of phrases) {
-                        if (transcript.toLowerCase().includes(phrase.toLowerCase())) {
-                            newSection = section;
-                            sectionDetected = true;
-                            console.log(`Partial match detected: "${phrase}" - switching to ${section} section`);
-                            break;
-                        }
-                    }
-                    if (sectionDetected) break;
-                }
-            }
-        }
-        
-        // If a section keyword was found, change section
-        if (sectionDetected) {
-            // Change to the detected section
-            highlightSection(newSection);
-            const previousSection = currentSection;
-            currentSection = newSection;
-            
-            console.log(`Changed section from ${previousSection} to ${currentSection}`);
-        }
-        
-        // Always add the complete transcript to the current section
-        // This ensures we don't lose any text including section keywords
-        addContentToCurrentSection(originalTranscript);
-        console.log(`Added to ${currentSection}: "${originalTranscript}"`);
+        // Simply add the transcript to the current section (determined by cursor position)
+        // The currentSection is updated when user clicks/focuses on a section
+        addContentToCurrentSection(transcript);
+        console.log(`Added to ${currentSection}: "${transcript}"`);
     }
     
     // Function to update the sectionContent object from editable divs
@@ -2031,6 +1968,109 @@ function createTemplateSections(templateType) {
     // Set the HTML content
     templateContainer.appendChild(templateInstruction);
     templateContainer.innerHTML += templateHTML;
+    
+    // Add CSS styles for template sections
+    const templateStyles = document.createElement('style');
+    templateStyles.id = 'template-styles';
+    templateStyles.textContent = `
+        .template-container {
+            margin-top: 1rem;
+        }
+        
+        .section-header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-header {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #334155;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            transition: color 0.2s;
+        }
+        
+        .section-header:hover {
+            color: #0e7c86;
+        }
+        
+        .section-header.active-section {
+            color: #0e7c86;
+        }
+        
+        .section-content {
+            width: 100%;
+            min-height: 60px;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            line-height: 1.6;
+            background: #f8fafc;
+            transition: all 0.2s;
+            outline: none;
+        }
+        
+        .section-content:focus {
+            border-color: #0e7c86;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(14, 124, 134, 0.1);
+        }
+        
+        .section-content.active-section {
+            border-color: #0e7c86;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(14, 124, 134, 0.1);
+        }
+        
+        .clear-section-btn {
+            background: none;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .clear-section-btn:hover {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        
+        #generateWordBtn {
+            background: #69B578 !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        #generateWordBtn:hover {
+            background: #5a9d68 !important;
+        }
+        
+        #exitTemplateBtn {
+            background: #d32f2f !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        #exitTemplateBtn:hover {
+            background: #b71c1c !important;
+        }
+    `;
+    
+    // Remove existing template styles if present
+    const existingStyles = document.getElementById('template-styles');
+    if (existingStyles) {
+        existingStyles.remove();
+    }
+    document.head.appendChild(templateStyles);
     
     // Add the template container to the transcription area
     const transcriptionContainer = document.querySelector('.transcription-container');

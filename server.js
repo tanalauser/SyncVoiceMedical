@@ -47,11 +47,6 @@ const envSchema = Joi.object({
     APP_DB_INSTANCE: Joi.string().required(),
     STRIPE_SECRET_KEY: Joi.string().required(),
     STRIPE_PRICE_ID: Joi.string().required(),
-    // New Stripe price IDs for different billing periods and currencies
-    STRIPE_PRICE_ID_MONTHLY_EUR: Joi.string().optional(),
-    STRIPE_PRICE_ID_MONTHLY_GBP: Joi.string().optional(),
-    STRIPE_PRICE_ID_YEARLY_EUR: Joi.string().optional(),
-    STRIPE_PRICE_ID_YEARLY_GBP: Joi.string().optional(),
     STRIPE_WEBHOOK_SECRET: Joi.string().required(),
     DEEPGRAM_API_KEY: Joi.string().optional(),
     JWT_SECRET: Joi.string().required(),
@@ -78,72 +73,9 @@ const userRoutes = require('./routes/userRoutes');
 // Constants
 const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB limit
 
-// ============================================
-// PRICING CONFIGURATION - Yearly Pricing Support
-// ============================================
-
-// Pricing configuration for different currencies and billing periods
-const PRICING_CONFIG = {
-    EUR: {
-        monthly: { amount: 2500, currency: 'eur' },  // 25.00 EUR
-        yearly: { amount: 25000, currency: 'eur' }   // 250.00 EUR
-    },
-    GBP: {
-        monthly: { amount: 2500, currency: 'gbp' },  // 25.00 GBP
-        yearly: { amount: 25000, currency: 'gbp' }   // 250.00 GBP
-    }
-};
-
-// Countries that use GBP
-const GBP_COUNTRIES = ['United Kingdom', 'UK', 'GB', 'Isle of Man', 'Jersey', 'Guernsey'];
-
-// Helper function to get Stripe price ID based on billing and currency
-function getStripePriceId(billing = 'monthly', currency = 'EUR') {
-    const currencyUpper = currency.toUpperCase();
-    const billingLower = billing.toLowerCase();
-    
-    // Try to get specific price ID from env
-    const envKey = `STRIPE_PRICE_ID_${billingLower.toUpperCase()}_${currencyUpper}`;
-    if (process.env[envKey]) {
-        return process.env[envKey];
-    }
-    
-    // Fallback to default STRIPE_PRICE_ID for monthly EUR
-    if (billingLower === 'monthly' && currencyUpper === 'EUR') {
-        return process.env.STRIPE_PRICE_ID;
-    }
-    
-    // If no specific price ID, return null (will use amount-based payment)
-    return null;
-}
-
-// Helper function to get pricing based on billing and currency
-function getPricing(billing = 'monthly', currency = 'EUR') {
-    const currencyUpper = currency.toUpperCase();
-    const billingLower = billing.toLowerCase();
-    
-    const currencyConfig = PRICING_CONFIG[currencyUpper] || PRICING_CONFIG.EUR;
-    return currencyConfig[billingLower] || currencyConfig.monthly;
-}
-
-// Helper function to determine currency from country
-function getCurrencyFromCountry(country) {
-    if (!country) return 'EUR';
-    return GBP_COUNTRIES.some(c => country.toLowerCase().includes(c.toLowerCase())) ? 'GBP' : 'EUR';
-}
-
-// Calculate validation end date based on version and billing period
-function calculateValidationEndDate(version, billing = 'monthly', startDate = new Date()) {
-    let daysToAdd;
-    
-    if (version === 'free') {
-        daysToAdd = 7; // 7-day trial
-    } else if (billing === 'yearly') {
-        daysToAdd = 365; // Yearly subscription
-    } else {
-        daysToAdd = 30; // Monthly subscription
-    }
-    
+// Your functions and configuration
+function calculateValidationEndDate(version, startDate = new Date()) {
+    const daysToAdd = version === 'free' ? 7 : 30;
     return new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
 }
 
@@ -516,13 +448,6 @@ app.get('/api/health', (req, res) => {
             users: '/api/check-email',
             status: '/api/status'
         }
-    });
-});
-
-// Stripe configuration endpoint - returns publishable key for frontend
-app.get('/api/stripe-config', (req, res) => {
-    res.json({
-        publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || ''
     });
 });
 
@@ -1251,14 +1176,6 @@ app.post('/api/send-activation', async (req, res) => {
         
         // Handle paid version
         if (version === 'paid') {
-            // Extract billing and currency from request
-            const billing = otherData.billing || 'monthly';
-            const requestedCurrency = otherData.currency || getCurrencyFromCountry(otherData.country) || 'EUR';
-            const currencyUpper = requestedCurrency.toUpperCase();
-            
-            // Calculate validation end date based on billing period
-            const validationEndDate = calculateValidationEndDate('paid', billing);
-            
             const userData = {
                 firstName,
                 lastName,
@@ -1277,11 +1194,8 @@ app.post('/api/send-activation', async (req, res) => {
                 country: otherData.country,
                 autoRenewal: otherData.autoRenewal,
                 validationStartDate: new Date(),
-                validationEndDate: validationEndDate,
+                validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 downloadIntent: otherData.downloadIntent || false,
-                // Billing info
-                billingPeriod: billing,
-                billingCurrency: currencyUpper,
                 // TRACKING FIELDS
                 //trialStartDate: new Date(),
                 //source: otherData.source || 'website',
@@ -1289,7 +1203,7 @@ app.post('/api/send-activation', async (req, res) => {
                 emailSentAt: new Date(),
                 signupSource: 'website',  // New field name not restricted by enum
                 paymentStatus: 'pending',
-                subscriptionStatus: 'prospect',  // Use valid enum value, will change to 'paid' after payment
+                subscriptionStatus: 'pending_payment',
                 customerJourney: {
                     signupDate: new Date(),
                     emailOpened: false,
@@ -1308,9 +1222,7 @@ app.post('/api/send-activation', async (req, res) => {
                     name: `${firstName} ${lastName}`,
                     metadata: {
                         firstName,
-                        lastName,
-                        billingPeriod: billing,
-                        currency: currencyUpper
+                        lastName
                     }
                 });
                 userData.stripeCustomerId = customer.id;
@@ -1319,22 +1231,8 @@ app.post('/api/send-activation', async (req, res) => {
             
             await user.save();
 
-            // Get pricing based on billing period and currency
-            const pricing = getPricing(billing, currencyUpper);
-            const amount = pricing.amount;
-            const currency = pricing.currency;
-            
-            // Determine subscription description
-            const subscriptionDesc = billing === 'yearly' 
-                ? 'SyncVoice Medical - Annual Subscription'
-                : 'SyncVoice Medical - Monthly Subscription';
-
-            logger.info('Creating payment intent:', {
-                billing,
-                currency: currencyUpper,
-                amount,
-                email: email.toLowerCase()
-            });
+            const currency = otherData.currency || 'eur';
+            const amount = otherData.amount || 2500;
 
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
@@ -1345,11 +1243,9 @@ app.post('/api/send-activation', async (req, res) => {
                 metadata: {
                     userEmail: email.toLowerCase(),
                     userName: `${firstName} ${lastName}`,
-                    userId: user._id.toString(),
-                    billingPeriod: billing,
-                    billingCurrency: currencyUpper
+                    userId: user._id.toString()
                 },
-                description: subscriptionDesc
+                description: 'SyncVoice Medical - Monthly Subscription'
             });
 
             return res.json({
@@ -1357,10 +1253,7 @@ app.post('/api/send-activation', async (req, res) => {
                 requiresPayment: true,
                 clientSecret: paymentIntent.client_secret,
                 paymentIntentId: paymentIntent.id,
-                userId: user._id.toString(),
-                billing: billing,
-                currency: currencyUpper,
-                amount: amount
+                userId: user._id.toString()
             });
         }
 
@@ -1860,76 +1753,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-
-        const analyticsDB = mongoose.createConnection(
-            process.env.MONGODB_URI || process.env.APP_DB_INSTANCE,
-            {
-                dbName: 'analytics' // Specify analytics database
-            }
-        );
-
-        // Create Analytics User model
-        const AnalyticsUser = analyticsDB.model('User', new mongoose.Schema({
-            // Basic user info
-            email: { type: String, unique: true, required: true },
-            firstName: String,
-            lastName: String,
-            password: String,
-            
-            // Subscription info
-            version: { type: String, default: 'free' }, // free, paid, prospect
-            isActive: { type: Boolean, default: true },
-            isPaid: { type: Boolean, default: false },
-            
-            // Email campaign tracking
-            emailCampaigns: {
-                totalEmailsSent: { type: Number, default: 0 },
-                totalEmailsOpened: { type: Number, default: 0 },
-                lastEmailSent: Date,
-                lastEmailOpened: Date,
-                lastCampaignName: String,
-                lastOpenedCampaignName: String,
-                emailOpenRate: { type: Number, default: 0 },
-                campaigns: [{
-                    name: String,
-                    sentAt: Date,
-                    opened: { type: Boolean, default: false },
-                    openedAt: Date,
-                    clicked: { type: Boolean, default: false },
-                    clickedAt: Date
-                }]
-            },
-            
-            // Conversion tracking
-            conversion: {
-                source: { type: String, default: 'direct' },
-                campaignName: String,
-                signupDate: Date,
-                trialStartDate: Date,
-                paidConversionDate: Date,
-                daysToConversion: Number
-            },
-            
-            // Engagement metrics
-            engagement: {
-                lastActivity: Date,
-                totalLogins: { type: Number, default: 0 },
-                lastEmailClick: Date,
-                websiteVisits: { type: Number, default: 0 }
-            },
-            
-            // Validation dates
-            validationStartDate: Date,
-            validationEndDate: Date,
-            activationCode: String,
-            activationCodeExpiry: Date,
-            
-            // Timestamps
-            createdAt: { type: Date, default: Date.now },
-            updatedAt: { type: Date, default: Date.now }
-        }));
-
-
 // Webhook handlers
 async function handleSuccessfulPayment(paymentIntent) {
     try {
@@ -1945,16 +1768,9 @@ async function handleSuccessfulPayment(paymentIntent) {
             const user = await User.findById(paymentIntent.metadata.userId);
             
             if (user) {
-                // Get billing period from metadata (default to monthly for backwards compatibility)
-                const billingPeriod = paymentIntent.metadata.billingPeriod || user.billingPeriod || 'monthly';
-                const billingCurrency = paymentIntent.metadata.billingCurrency || user.billingCurrency || 'EUR';
-                
-                // Calculate validation end date based on billing period
-                const validationEndDate = calculateValidationEndDate('paid', billingPeriod);
-                
                 if (!user.activationCode) {
                     user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-                    user.activationCodeExpiry = validationEndDate;
+                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
                 }
                 
                 user.isPaid = true;
@@ -1962,19 +1778,10 @@ async function handleSuccessfulPayment(paymentIntent) {
                 user.paymentStatus = 'completed';
                 user.lastPaymentDate = new Date();
                 user.validationStartDate = new Date();
-                user.validationEndDate = validationEndDate;
-                user.billingPeriod = billingPeriod;
-                user.billingCurrency = billingCurrency;
-                user.subscriptionStatus = 'paid';
-                
-                // Update customer journey
-                if (user.customerJourney) {
-                    user.customerJourney.paidConversion = true;
-                    user.customerJourney.paidConversionDate = new Date();
-                }
+                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
                 
                 await user.save();
-                logger.info(`User ${user.email} marked as paid and active (${billingPeriod} billing, expires ${validationEndDate.toISOString()})`);
+                logger.info(`User ${user.email} marked as paid and active`);
                 
                 const lang = user.language || 'en';
                 const t = messages[lang] || messages.en;
@@ -2430,11 +2237,10 @@ app.get('/api/test-deepgram', async (req, res) => {
 // Desktop download endpoint
 app.get('/api/download-desktop', async (req, res) => {
     try {
-        const { lang = 'fr', email, code, source } = req.query;
+        const { lang, email, code, source } = req.query;
         
         logger.info('Desktop download request:', { lang, email, code, source });
         
-        // Optional: Validate user credentials if provided
         if (email && code) {
             const user = await User.findOne({ 
                 email: email.toLowerCase(),
@@ -2449,18 +2255,43 @@ app.get('/api/download-desktop', async (req, res) => {
             }
         }
         
-        // REDIRECT TO GITHUB RELEASE - CORRECT URL
-        res.redirect('https://github.com/tanalauser/SyncVoiceMedical/releases/download/v1.0.0/SyncVoice.Medical.Desktop.Setup.1.0.0.exe');
+        // Serve the file directly from your server
+        const filePath = path.join(__dirname, 'public', 'downloads', 'SyncVoiceMedical-Setup.exe');
+        
+        // Check if file exists
+        if (!fs.existsSync(filePath)) {
+            logger.error('Desktop installer file not found at:', filePath);
+            return res.status(404).json({
+                success: false,
+                message: 'Desktop application file not found. Please contact support.'
+            });
+        }
+        
+        // Set appropriate headers for download
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', 'attachment; filename="SyncVoiceMedical-Setup.exe"');
+        
+        // Send the file
+        res.download(filePath, 'SyncVoiceMedical-Setup.exe', (err) => {
+            if (err) {
+                logger.error('Error sending file:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        success: false,
+                        message: 'Error downloading file. Please try again.'
+                    });
+                }
+            }
+        });
         
     } catch (error) {
         logger.error('Desktop download error:', error);
         res.status(500).json({
             success: false,
-            message: 'Download service temporarily unavailable.'
+            message: 'Download service temporarily unavailable. Please try again later.'
         });
     }
 });
-
 
 // Keep alive ping (for free tier hosting)
 if (process.env.NODE_ENV === 'production') {
@@ -2585,50 +2416,94 @@ wss.on('connection', (ws, req) => {
             switch (data.type) {
                 case 'auth':
                     const { email, activationCode, clientType } = data;
-                    const user = await User.findOne({ 
-                        email: email.toLowerCase(),
-                        activationCode: activationCode
-                    });
                     
-                    if (user && user.isActive) {
-                        connection.authenticated = true;
-                        connection.email = email.toLowerCase();
-                        connection.language = user.language || 'en';
-                        connection.clientType = clientType || 'desktop';
-                        
-                        let daysRemaining = 0;
-                        try {
-                            if (user.daysUntilExpiration && typeof user.daysUntilExpiration === 'function') {
-                                daysRemaining = user.daysUntilExpiration();
-                            } else if (user.validationEndDate) {
-                                const now = new Date();
-                                const endDate = new Date(user.validationEndDate);
-                                daysRemaining = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)));
-                            }
-                        } catch (dateError) {
-                            logger.warn('Error calculating days remaining:', dateError.message);
-                            daysRemaining = 0;
-                        }
-                        
-                        ws.send(JSON.stringify({
-                            type: 'auth',
-                            status: 'success',
-                            user: {
-                                firstName: user.firstName,
-                                lastName: user.lastName,
-                                email: user.email,
-                                daysRemaining: daysRemaining
-                            },
-                            language: connection.language,
-                            clientType: connection.clientType
-                        }));
-                    } else {
+                    // Enhanced logging for debugging connection issues
+                    logger.info(`🔐 Auth attempt - Email: ${email}, Code: ${activationCode ? activationCode.substring(0, 2) + '***' : 'missing'}, ClientType: ${clientType}`);
+                    
+                    // First, find user by email only to check if account exists
+                    const userByEmail = await User.findOne({ email: email.toLowerCase() });
+                    
+                    if (!userByEmail) {
+                        logger.warn(`❌ Auth failed - No user found with email: ${email}`);
                         ws.send(JSON.stringify({
                             type: 'auth',
                             status: 'error',
-                            message: 'Invalid credentials or inactive account'
+                            message: 'No account found with this email'
                         }));
+                        break;
                     }
+                    
+                    // Check if activation code matches (case-insensitive comparison)
+                    const codeMatches = userByEmail.activationCode && 
+                        userByEmail.activationCode.toUpperCase() === activationCode.toUpperCase();
+                    
+                    if (!codeMatches) {
+                        logger.warn(`❌ Auth failed - Code mismatch for ${email}. Expected: ${userByEmail.activationCode}, Received: ${activationCode}`);
+                        ws.send(JSON.stringify({
+                            type: 'auth',
+                            status: 'error',
+                            message: 'Invalid activation code'
+                        }));
+                        break;
+                    }
+                    
+                    // Check if account is active
+                    if (!userByEmail.isActive) {
+                        logger.warn(`❌ Auth failed - Account not activated for ${email}`);
+                        ws.send(JSON.stringify({
+                            type: 'auth',
+                            status: 'error',
+                            message: 'Account not activated. Please click the activation link in your email.'
+                        }));
+                        break;
+                    }
+                    
+                    // Check if account is expired
+                    if (userByEmail.isCodeExpired && userByEmail.isCodeExpired()) {
+                        logger.warn(`❌ Auth failed - Account expired for ${email}`);
+                        ws.send(JSON.stringify({
+                            type: 'auth',
+                            status: 'error',
+                            message: 'Your subscription has expired. Please renew to continue.'
+                        }));
+                        break;
+                    }
+                    
+                    // All checks passed - authenticate
+                    const user = userByEmail;
+                    connection.authenticated = true;
+                    connection.email = email.toLowerCase();
+                    connection.language = user.language || 'en';
+                    connection.clientType = clientType || 'desktop';
+                    
+                    let daysRemaining = 0;
+                    try {
+                        if (user.daysUntilExpiration && typeof user.daysUntilExpiration === 'function') {
+                            daysRemaining = user.daysUntilExpiration();
+                        } else if (user.validationEndDate) {
+                            const now = new Date();
+                            const endDate = new Date(user.validationEndDate);
+                            daysRemaining = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)));
+                        }
+                    } catch (dateError) {
+                        logger.warn('Error calculating days remaining:', dateError.message);
+                        daysRemaining = 0;
+                    }
+                    
+                    logger.info(`✅ Auth success - ${email} connected (${daysRemaining} days remaining)`);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'auth',
+                        status: 'success',
+                        user: {
+                            firstName: user.firstName,
+                            lastName: user.lastName,
+                            email: user.email,
+                            daysRemaining: daysRemaining
+                        },
+                        language: connection.language,
+                        clientType: connection.clientType
+                    }));
                     break;
 
                 case 'updateLanguage':
