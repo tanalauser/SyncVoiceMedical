@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             proBtnText: 'Commencer maintenant',
             desktopLabel: 'Application Bureau',
             desktopTitle: 'Travaillez directement dans Word, Excel, PowerPoint',
-            desktopDesc: "Notre application Windows s'intègre parfaitement à vos outils quotidiens.",
+            desktopDesc: "Notre application Windows s'intègre parfaitement à vos outils quotidiens. Placez votre curseur, appuyez sur <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, et dictez directement.",
             offlineTitle: '100% Hors ligne',
             offlineDesc: 'Aucune connexion requise',
             secureTitle: 'Données locales',
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             proBtnText: 'Start now',
             desktopLabel: 'Desktop Application',
             desktopTitle: 'Work directly in Word, Excel, PowerPoint',
-            desktopDesc: 'Our Windows app integrates seamlessly with your daily tools.',
+            desktopDesc: 'Our Windows app integrates seamlessly with your daily tools. Place your cursor, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, and dictate directly.',
             offlineTitle: '100% Offline',
             offlineDesc: 'No connection required',
             secureTitle: 'Local data',
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             proBtnText: 'Jetzt starten',
             desktopLabel: 'Desktop-Anwendung',
             desktopTitle: 'Arbeiten Sie direkt in Word, Excel, PowerPoint',
-            desktopDesc: 'Unsere Windows-App integriert sich nahtlos in Ihre Tools.',
+            desktopDesc: 'Unsere Windows-App integriert sich nahtlos in Ihre Tools. Platzieren Sie Ihren Cursor, drücken Sie <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, und diktieren Sie direkt.',
             offlineTitle: '100% Offline',
             offlineDesc: 'Keine Verbindung erforderlich',
             secureTitle: 'Lokale Daten',
@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             proBtnText: 'Comenzar ahora',
             desktopLabel: 'Aplicación de Escritorio',
             desktopTitle: 'Trabaje directamente en Word, Excel, PowerPoint',
-            desktopDesc: 'Nuestra aplicación se integra perfectamente con sus herramientas.',
+            desktopDesc: 'Nuestra aplicación se integra perfectamente con sus herramientas. Coloque el cursor, presione <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, y dicte directamente.',
             offlineTitle: '100% Sin conexión',
             offlineDesc: 'No requiere conexión',
             secureTitle: 'Datos locales',
@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             proBtnText: 'Inizia ora',
             desktopLabel: 'Applicazione Desktop',
             desktopTitle: 'Lavora direttamente in Word, Excel, PowerPoint',
-            desktopDesc: "La nostra app si integra perfettamente con i tuoi strumenti.",
+            desktopDesc: "La nostra app si integra perfettamente con i tuoi strumenti. Posiziona il cursore, premi <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, e detta direttamente.",
             offlineTitle: '100% Offline',
             offlineDesc: 'Nessuna connessione richiesta',
             secureTitle: 'Dati locali',
@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             proBtnText: 'Começar agora',
             desktopLabel: 'Aplicativo Desktop',
             desktopTitle: 'Trabalhe diretamente no Word, Excel, PowerPoint',
-            desktopDesc: 'Nosso aplicativo se integra perfeitamente às suas ferramentas.',
+            desktopDesc: 'Nosso aplicativo se integra perfeitamente às suas ferramentas. Posicione o cursor, pressione <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, e dite diretamente.',
             offlineTitle: '100% Offline',
             offlineDesc: 'Sem conexão necessária',
             secureTitle: 'Dados locais',
@@ -592,6 +592,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (GBP_COUNTRIES.includes(countryCode.toUpperCase())) return 'GBP';
         return 'EUR';
     }
+    
+    // Detect language based on country code
+    function detectLanguageFromCountry(countryCode) {
+        if (!countryCode) return null;
+        const code = countryCode.toUpperCase();
+        
+        // English-speaking countries
+        if (['GB', 'UK', 'US', 'AU', 'NZ', 'CA', 'IE', 'IM', 'JE', 'GG'].includes(code)) return 'en';
+        // German-speaking countries
+        if (['DE', 'AT', 'CH', 'LI'].includes(code)) return 'de';
+        // Spanish-speaking countries
+        if (['ES', 'MX', 'AR', 'CO', 'PE', 'CL', 'EC', 'VE'].includes(code)) return 'es';
+        // Italian-speaking countries
+        if (['IT', 'SM', 'VA'].includes(code)) return 'it';
+        // Portuguese-speaking countries
+        if (['PT', 'BR', 'AO', 'MZ'].includes(code)) return 'pt';
+        // French-speaking countries
+        if (['FR', 'BE', 'CH', 'LU', 'MC', 'CA'].includes(code)) return 'fr';
+        
+        return null;
+    }
 
     async function initializeLocalization() {
         // Check URL params first
@@ -610,13 +631,29 @@ document.addEventListener('DOMContentLoaded', async function() {
         userCountry = await detectCountry();
         console.log('Detected country:', userCountry);
         
-        // Set language: URL > stored > browser
+        // Set language: URL > stored (only if matches country) > country-based > browser
+        const countryLang = detectLanguageFromCountry(userCountry);
+        
         if (urlLang && translations[urlLang]) {
             currentLang = urlLang;
         } else if (storedLang && translations[storedLang]) {
-            currentLang = storedLang;
+            // Only use stored language if it makes sense for the detected country
+            // or if no country was detected
+            if (!countryLang || storedLang === countryLang) {
+                currentLang = storedLang;
+            } else {
+                // Country changed - use country-based language
+                currentLang = countryLang;
+                // Clear the old stored preference
+                try { localStorage.removeItem('selectedLanguage'); } catch(e) {}
+            }
         } else {
-            currentLang = detectLanguageFromBrowser();
+            // Try country-based language first, then browser
+            if (countryLang && translations[countryLang]) {
+                currentLang = countryLang;
+            } else {
+                currentLang = detectLanguageFromBrowser();
+            }
         }
         
         // Set currency: stored > country-based
@@ -626,7 +663,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             currentCurrency = detectCurrencyFromCountry(userCountry);
         }
         
-        console.log('Language:', currentLang, 'Currency:', currentCurrency);
+        console.log('Language:', currentLang, 'Currency:', currentCurrency, 'Country:', userCountry);
         
         // Save preferences
         try {
