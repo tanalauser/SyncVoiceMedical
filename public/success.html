@@ -1,488 +1,271 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SyncVoice Medical - Success</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f0f4f3;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+        :root {
+            --primary: #0e7c86;
+            --primary-dark: #0a5a62;
+            --accent: #2ecc71;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --white: #ffffff;
+            --font-display: 'DM Serif Display', serif;
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
+            --radius-xl: 1rem;
         }
-        .success-container {
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--gray-700);
+        }
+
+        .success-card {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            padding: 3rem;
             text-align: center;
             max-width: 500px;
+            width: 100%;
         }
+
         .success-icon {
-            font-size: 72px;
-            color: #69B578;
-            margin-bottom: 20px;
+            width: 80px;
+            height: 80px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            animation: scaleIn 0.5s ease-out;
         }
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
+
+        @keyframes scaleIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
-        p {
-            color: #666;
-            font-size: 18px;
-            line-height: 1.6;
-            margin-bottom: 30px;
-        }
-        .btn {
-            display: inline-block;
-            padding: 15px 30px;
-            background-color: #69B578;
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
             color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 16px;
-            transition: background-color 0.3s;
-            margin: 10px;
-            border: none;
-            cursor: pointer;
         }
-        .btn:hover {
-            background-color: #5a9d68;
+
+        .success-title {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            color: var(--gray-800);
+            margin-bottom: 1rem;
         }
-        /* Download button styles */
-        .download-btn {
-            background-color: #296396;
-            font-weight: 600;
+
+        .success-message {
+            color: var(--gray-500);
+            margin-bottom: 2rem;
+            line-height: 1.6;
         }
-        .download-btn:hover {
-            background-color: #1e4d73;
-        }
-        .download-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .paid-info {
-            background-color: #e8f5e9;
-            padding: 20px;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        /* Download section styles */
-        .download-section {
-            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-            border: 1px solid #2196F3;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            color: #1565C0;
-        }
-        .download-section h3 {
-            margin-top: 0;
-            color: #1565C0;
-        }
-        .button-group {
-            margin-top: 20px;
-        }
-        .loading {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-        /* Debug info styles */
-        .debug-info {
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            margin-top: 20px;
-            font-size: 12px;
+
+        .info-box {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
             text-align: left;
-            display: none;
         }
-        .debug-info h4 {
-            margin-top: 0;
-            color: #666;
+
+        .info-box h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 1rem;
         }
-        .debug-info pre {
-            margin: 5px 0;
-            overflow-x: auto;
+
+        .info-box p {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-bottom: 0.5rem;
         }
-        /* Manual code entry styles */
-        #manualCode {
-            padding: 8px 12px;
-            margin-right: 10px;
-            text-transform: uppercase;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
+
+        .info-box strong {
+            color: var(--gray-700);
         }
-        .validate-btn {
-            padding: 8px 15px;
-            font-size: 14px;
-            background-color: #69B578;
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
         }
-        .validate-btn:hover {
-            background-color: #5a9d68;
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(14, 124, 134, 0.2);
         }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            text-decoration: none;
+            color: var(--gray-800);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+        }
+
+        .logo-text {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+        }
+
+        .logo-text span { color: var(--primary); }
     </style>
 </head>
 <body>
-    <div class="success-container">
-        <div class="success-icon">✓</div>
-        <h1 id="successTitle">Succès!</h1>
-        <p id="successMessage">Veuillez vérifier votre email pour le code d'activation.</p>
-        
-        <!-- Download section for desktop app -->
-        <div id="downloadSection" class="download-section" style="display: none;">
-            <h3 id="downloadTitle">📥 Votre application desktop est prête!</h3>
-            <p id="downloadMessage">Cliquez ci-dessous pour télécharger l'application SyncVoice Medical pour Windows.</p>
-            
-            <!-- Add manual code entry option -->
-            <div id="manualCodeEntry" style="display: none; margin: 15px 0;">
-                <p id="manualCodePrompt" style="margin-bottom: 10px;">Entrez votre code d'activation reçu par email:</p>
-                <input type="text" id="manualCode" placeholder="Exemple: A1B2C3" style="padding: 8px 12px; margin-right: 10px; text-transform: uppercase; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
-                <button class="btn validate-btn" onclick="saveManualCode()">Valider</button>
-            </div>
-            
-            <button id="downloadBtn" class="btn download-btn" type="button">
-                <span id="downloadBtnText">Télécharger pour Windows</span>
-            </button>
-            <p><small id="downloadNote">Système requis: Windows 10 ou supérieur</small></p>
+    <a href="index.html" class="logo">
+        <div class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+        </div>
+        <span class="logo-text">SyncVoice <span>Medical</span></span>
+    </a>
+
+    <div class="success-card">
+        <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
         </div>
         
-        <div id="paidInfo" class="paid-info" style="display: none;">
-            <p id="paidMessage">Votre paiement a été effectué avec succès. Vous pouvez maintenant accéder à toutes les fonctionnalités.</p>
-        </div>
+        <h1 class="success-title" id="successTitle">Registration successful!</h1>
         
-        <div class="button-group">
-            <a href="index.html" class="btn" id="homeBtn">Retour à l'accueil</a>
+        <p class="success-message" id="successMessage">
+            Thank you for registering. We have sent an activation code to your email address. 
+            Please check your inbox and use the code to access the application.
+        </p>
+
+        <div class="info-box">
+            <h3 id="nextStepsTitle">Next steps</h3>
+            <p id="step1">1. Check your email for the activation code</p>
+            <p id="step2">2. Click the link in the email to access the app</p>
+            <p id="step3">3. Enter the activation code when prompted</p>
         </div>
 
-        <!-- Debug info section (hidden by default) -->
-        <div id="debugInfo" class="debug-info">
-            <h4>Debug Information:</h4>
-            <pre id="debugContent"></pre>
-        </div>
+        <a href="index.html" class="btn" id="homeBtn">
+            <span id="homeBtnText">Back to home</span>
+        </a>
     </div>
 
     <script>
-        // Enable debug mode by adding ?debug=true to URL
-        const enableDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
-        
-        // Get URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const lang = urlParams.get('lang') || 'fr';
-        const isPaid = urlParams.get('paid') === 'true';
-        const hasDownloadIntent = urlParams.get('download') === 'true';
-        
-        // Get user data from multiple sources (URL, sessionStorage, localStorage)
-        let userEmail = urlParams.get('email') || 
-                       sessionStorage.getItem('userEmail') || 
-                       localStorage.getItem('userEmail');
-        
-        let activationCode = sessionStorage.getItem('activationCode') || 
-                            localStorage.getItem('activationCode');
-        
-        const userId = urlParams.get('userId') || 
-                      sessionStorage.getItem('userId') || 
-                      localStorage.getItem('userId');
-
-        // Translations (moved to global scope)
         const translations = {
-            fr: {
-                title: 'Succès!',
-                message: 'Veuillez vérifier votre email pour le code d\'activation.',
-                paidMessage: 'Votre paiement a été effectué avec succès. Vous pouvez maintenant accéder à toutes les fonctionnalités.',
-                homeBtn: 'Retour à l\'accueil',
-                downloadTitle: '📥 Votre application desktop est prête!',
-                downloadMessage: 'Cliquez ci-dessous pour télécharger l\'application SyncVoice Medical pour Windows.',
-                downloadBtnText: 'Télécharger pour Windows',
-                downloadNote: 'Système requis: Windows 10 ou supérieur',
-                downloadingText: 'Téléchargement en cours...',
-                downloadError: 'Erreur de téléchargement. Veuillez réessayer.',
-                missingCredentials: 'Veuillez d\'abord vérifier votre email pour obtenir le code d\'activation.',
-                checkingCredentials: 'Vérification des informations...',
-                manualCodePrompt: 'Entrez votre code d\'activation reçu par email:',
-                validateBtn: 'Valider',
-                invalidCode: 'Veuillez entrer un code valide (6 caractères minimum)'
-            },
             en: {
-                title: 'Success!',
-                message: 'Please check your email for the activation code.',
-                paidMessage: 'Your payment was successful. You can now access all features.',
-                homeBtn: 'Back to Home',
-                downloadTitle: '📥 Your desktop application is ready!',
-                downloadMessage: 'Click below to download the SyncVoice Medical application for Windows.',
-                downloadBtnText: 'Download for Windows',
-                downloadNote: 'System requirements: Windows 10 or higher',
-                downloadingText: 'Downloading...',
-                downloadError: 'Download error. Please try again.',
-                missingCredentials: 'Please check your email first to get the activation code.',
-                checkingCredentials: 'Checking credentials...',
-                manualCodePrompt: 'Enter your activation code received by email:',
-                validateBtn: 'Validate',
-                invalidCode: 'Please enter a valid code (minimum 6 characters)'
+                successTitle: 'Registration successful!',
+                successMessage: 'Thank you for registering. We have sent an activation code to your email address. Please check your inbox and use the code to access the application.',
+                nextStepsTitle: 'Next steps',
+                step1: '1. Check your email for the activation code',
+                step2: '2. Click the link in the email to access the app',
+                step3: '3. Enter the activation code when prompted',
+                homeBtnText: 'Back to home'
+            },
+            fr: {
+                successTitle: 'Inscription réussie !',
+                successMessage: "Merci pour votre inscription. Nous avons envoyé un code d'activation à votre adresse email. Veuillez vérifier votre boîte de réception et utiliser le code pour accéder à l'application.",
+                nextStepsTitle: 'Prochaines étapes',
+                step1: "1. Vérifiez votre email pour le code d'activation",
+                step2: "2. Cliquez sur le lien dans l'email pour accéder à l'app",
+                step3: "3. Entrez le code d'activation lorsque demandé",
+                homeBtnText: "Retour à l'accueil"
             },
             de: {
-                title: 'Erfolg!',
-                message: 'Bitte überprüfen Sie Ihre E-Mail für den Aktivierungscode.',
-                paidMessage: 'Ihre Zahlung war erfolgreich. Sie können jetzt auf alle Funktionen zugreifen.',
-                homeBtn: 'Zurück zur Startseite',
-                downloadTitle: '📥 Ihre Desktop-Anwendung ist bereit!',
-                downloadMessage: 'Klicken Sie unten, um die SyncVoice Medical Anwendung für Windows herunterzuladen.',
-                downloadBtnText: 'Für Windows herunterladen',
-                downloadNote: 'Systemanforderungen: Windows 10 oder höher',
-                downloadingText: 'Wird heruntergeladen...',
-                downloadError: 'Download-Fehler. Bitte versuchen Sie es erneut.',
-                missingCredentials: 'Bitte überprüfen Sie zuerst Ihre E-Mail, um den Aktivierungscode zu erhalten.',
-                checkingCredentials: 'Anmeldeinformationen werden überprüft...',
-                manualCodePrompt: 'Geben Sie Ihren per E-Mail erhaltenen Aktivierungscode ein:',
-                validateBtn: 'Validieren',
-                invalidCode: 'Bitte geben Sie einen gültigen Code ein (mindestens 6 Zeichen)'
+                successTitle: 'Registrierung erfolgreich!',
+                successMessage: 'Vielen Dank für Ihre Registrierung. Wir haben einen Aktivierungscode an Ihre E-Mail-Adresse gesendet. Bitte überprüfen Sie Ihren Posteingang und verwenden Sie den Code, um auf die Anwendung zuzugreifen.',
+                nextStepsTitle: 'Nächste Schritte',
+                step1: '1. Überprüfen Sie Ihre E-Mail auf den Aktivierungscode',
+                step2: '2. Klicken Sie auf den Link in der E-Mail, um auf die App zuzugreifen',
+                step3: '3. Geben Sie den Aktivierungscode ein, wenn Sie dazu aufgefordert werden',
+                homeBtnText: 'Zurück zur Startseite'
             },
             es: {
-                title: '¡Éxito!',
-                message: 'Por favor, revise su correo electrónico para el código de activación.',
-                paidMessage: 'Su pago fue exitoso. Ahora puede acceder a todas las funciones.',
-                homeBtn: 'Volver al inicio',
-                downloadTitle: '📥 ¡Su aplicación de escritorio está lista!',
-                downloadMessage: 'Haga clic abajo para descargar la aplicación SyncVoice Medical para Windows.',
-                downloadBtnText: 'Descargar para Windows',
-                downloadNote: 'Requisitos del sistema: Windows 10 o superior',
-                downloadingText: 'Descargando...',
-                downloadError: 'Error de descarga. Por favor, inténtelo de nuevo.',
-                missingCredentials: 'Por favor, revise su correo electrónico primero para obtener el código de activación.',
-                checkingCredentials: 'Verificando credenciales...',
-                manualCodePrompt: 'Ingrese su código de activación recibido por correo electrónico:',
-                validateBtn: 'Validar',
-                invalidCode: 'Por favor ingrese un código válido (mínimo 6 caracteres)'
+                successTitle: '¡Registro exitoso!',
+                successMessage: 'Gracias por registrarse. Hemos enviado un código de activación a su dirección de correo electrónico. Revise su bandeja de entrada y use el código para acceder a la aplicación.',
+                nextStepsTitle: 'Próximos pasos',
+                step1: '1. Revise su correo electrónico para el código de activación',
+                step2: '2. Haga clic en el enlace del correo para acceder a la app',
+                step3: '3. Ingrese el código de activación cuando se le solicite',
+                homeBtnText: 'Volver al inicio'
             },
             it: {
-                title: 'Successo!',
-                message: 'Controlla la tua email per il codice di attivazione.',
-                paidMessage: 'Il tuo pagamento è andato a buon fine. Ora puoi accedere a tutte le funzionalità.',
-                homeBtn: 'Torna alla home',
-                downloadTitle: '📥 La tua applicazione desktop è pronta!',
-                downloadMessage: 'Clicca qui sotto per scaricare l\'applicazione SyncVoice Medical per Windows.',
-                downloadBtnText: 'Scarica per Windows',
-                downloadNote: 'Requisiti di sistema: Windows 10 o superiore',
-                downloadingText: 'Scaricando...',
-                downloadError: 'Errore di download. Riprova.',
-                missingCredentials: 'Controlla prima la tua email per ottenere il codice di attivazione.',
-                checkingCredentials: 'Verifica delle credenziali...',
-                manualCodePrompt: 'Inserisci il tuo codice di attivazione ricevuto via email:',
-                validateBtn: 'Valida',
-                invalidCode: 'Inserisci un codice valido (minimo 6 caratteri)'
+                successTitle: 'Registrazione riuscita!',
+                successMessage: "Grazie per la registrazione. Abbiamo inviato un codice di attivazione al tuo indirizzo email. Controlla la tua casella di posta e usa il codice per accedere all'applicazione.",
+                nextStepsTitle: 'Prossimi passi',
+                step1: "1. Controlla la tua email per il codice di attivazione",
+                step2: "2. Clicca sul link nell'email per accedere all'app",
+                step3: '3. Inserisci il codice di attivazione quando richiesto',
+                homeBtnText: 'Torna alla home'
             },
             pt: {
-                title: 'Sucesso!',
-                message: 'Por favor, verifique seu email para o código de ativação.',
-                paidMessage: 'Seu pagamento foi bem-sucedido. Agora você pode acessar todos os recursos.',
-                homeBtn: 'Voltar ao início',
-                downloadTitle: '📥 Sua aplicação desktop está pronta!',
-                downloadMessage: 'Clique abaixo para baixar a aplicação SyncVoice Medical para Windows.',
-                downloadBtnText: 'Baixar para Windows',
-                downloadNote: 'Requisitos do sistema: Windows 10 ou superior',
-                downloadingText: 'Baixando...',
-                downloadError: 'Erro de download. Tente novamente.',
-                missingCredentials: 'Por favor, verifique seu e-mail primeiro para obter o código de ativação.',
-                checkingCredentials: 'Verificando credenciais...',
-                manualCodePrompt: 'Digite seu código de ativação recebido por e-mail:',
-                validateBtn: 'Validar',
-                invalidCode: 'Por favor, digite um código válido (mínimo de 6 caracteres)'
+                successTitle: 'Registro bem-sucedido!',
+                successMessage: 'Obrigado pelo seu registro. Enviamos um código de ativação para o seu endereço de e-mail. Verifique sua caixa de entrada e use o código para acessar o aplicativo.',
+                nextStepsTitle: 'Próximos passos',
+                step1: '1. Verifique seu e-mail para o código de ativação',
+                step2: '2. Clique no link do e-mail para acessar o app',
+                step3: '3. Digite o código de ativação quando solicitado',
+                homeBtnText: 'Voltar ao início'
             }
         };
 
-        // Get translations for current language
-        const t = translations[lang] || translations.fr;
-        
-        // Debug logging
-        const debugData = {
-            timestamp: new Date().toISOString(),
-            urlParams: Object.fromEntries(urlParams.entries()),
-            lang,
-            isPaid,
-            hasDownloadIntent,
-            userEmail,
-            userId,
-            activationCode: activationCode ? activationCode.substring(0, 3) + '***' : null,
-            sessionStorage: {
-                userEmail: sessionStorage.getItem('userEmail'),
-                activationCode: sessionStorage.getItem('activationCode') ? 'present' : 'missing',
-                userId: sessionStorage.getItem('userId')
-            },
-            localStorage: {
-                userEmail: localStorage.getItem('userEmail'),
-                activationCode: localStorage.getItem('activationCode') ? 'present' : 'missing',
-                userId: localStorage.getItem('userId')
-            }
-        };
-        
-        console.log('Success page loaded with:', debugData);
-        
-        // Show debug info if enabled
-        if (enableDebug) {
-            const debugInfoEl = document.getElementById('debugInfo');
-            const debugContentEl = document.getElementById('debugContent');
-            if (debugInfoEl && debugContentEl) {
-                debugInfoEl.style.display = 'block';
-                debugContentEl.textContent = JSON.stringify(debugData, null, 2);
-            }
-        }
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'en';
+        const t = translations[lang] || translations.en;
 
-        // Function to save manual code (moved to global scope)
-        function saveManualCode() {
-            const manualCode = document.getElementById('manualCode').value.trim().toUpperCase();
-            if (manualCode && manualCode.length >= 6) {
-                sessionStorage.setItem('activationCode', manualCode);
-                localStorage.setItem('activationCode', manualCode);
-                activationCode = manualCode; // Update the global variable
-                console.log('Manual code saved:', manualCode);
-                
-                // Hide the manual entry
-                document.getElementById('manualCodeEntry').style.display = 'none';
-                
-                // Try download again
-                if (userEmail) {
-                    initiateDownload(userEmail, manualCode);
-                }
-            } else {
-                alert(t.invalidCode);
-            }
-        }
-
-        // Make saveManualCode globally accessible
-        window.saveManualCode = saveManualCode;
-
-        // Apply translations
-        document.getElementById('successTitle').textContent = t.title;
-        document.getElementById('successMessage').textContent = t.message;
-        document.getElementById('paidMessage').textContent = t.paidMessage;
-        document.getElementById('homeBtn').textContent = t.homeBtn;
+        document.getElementById('successTitle').textContent = t.successTitle;
+        document.getElementById('successMessage').textContent = t.successMessage;
+        document.getElementById('nextStepsTitle').textContent = t.nextStepsTitle;
+        document.getElementById('step1').textContent = t.step1;
+        document.getElementById('step2').textContent = t.step2;
+        document.getElementById('step3').textContent = t.step3;
+        document.getElementById('homeBtnText').textContent = t.homeBtnText;
         document.getElementById('homeBtn').href = `index.html?lang=${lang}`;
-
-        // Apply download translations
-        document.getElementById('downloadTitle').textContent = t.downloadTitle;
-        document.getElementById('downloadMessage').textContent = t.downloadMessage;
-        document.getElementById('downloadBtnText').textContent = t.downloadBtnText;
-        document.getElementById('downloadNote').textContent = t.downloadNote;
-        
-        // Apply manual code entry translations
-        const manualCodePrompt = document.getElementById('manualCodePrompt');
-        if (manualCodePrompt) {
-            manualCodePrompt.textContent = t.manualCodePrompt;
-        }
-
-        // Show paid info if applicable
-        if (isPaid) {
-            document.getElementById('paidInfo').style.display = 'block';
-        }
-
-        // Show download section if user came from download intent
-        if (hasDownloadIntent) {
-            console.log('Download intent detected, showing download section');
-            document.getElementById('downloadSection').style.display = 'block';
-        }
-
-        // Set page language
-        document.documentElement.lang = lang;
-
-        // Function to initiate download (moved to global scope)
-        function initiateDownload(email, code) {
-            const downloadBtn = document.getElementById('downloadBtn');
-            const downloadBtnText = document.getElementById('downloadBtnText');
-            const originalText = downloadBtnText.textContent;
-            
-            console.log('Initiating download with:', {
-                email: email,
-                code: code,
-                lang: lang
-            });
-            
-            // Update button state
-            downloadBtn.classList.add('loading');
-            downloadBtn.disabled = true;
-            downloadBtnText.textContent = t.downloadingText;
-            
-            // Build download URL with credentials
-            const downloadUrl = `/api/download-desktop?lang=${lang}&email=${encodeURIComponent(email)}&code=${code}&source=success`;
-            
-            console.log('Redirecting to:', downloadUrl);
-            
-            // Redirect to download endpoint
-            window.location.href = downloadUrl;
-            
-            // Reset button after 5 seconds (in case download doesn't redirect)
-            setTimeout(() => {
-                downloadBtn.classList.remove('loading');
-                downloadBtn.disabled = false;
-                downloadBtnText.textContent = originalText;
-            }, 5000);
-        }
-
-        // Handle desktop app download
-        const downloadBtn = document.getElementById('downloadBtn');
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', async function(e) {
-                e.preventDefault();
-                
-                const downloadBtnText = document.getElementById('downloadBtnText');
-                const originalText = downloadBtnText.textContent;
-                
-                console.log('Download button clicked');
-                console.log('Current credentials:', {
-                    email: userEmail,
-                    activationCode: activationCode ? 'present' : 'missing',
-                    userId: userId
-                });
-                
-                // Check if we need to wait for activation code
-                if (!activationCode && userEmail) {
-                    console.log('No activation code found, showing manual entry...');
-                    
-                    // Show manual code entry option immediately
-                    const manualEntry = document.getElementById('manualCodeEntry');
-                    if (manualEntry) {
-                        manualEntry.style.display = 'block';
-                    }
-                    
-                    alert(t.missingCredentials);
-                    return;
-                }
-                
-                // If we have credentials, proceed with download
-                if (!userEmail || !activationCode) {
-                    // Show manual code entry option
-                    const manualEntry = document.getElementById('manualCodeEntry');
-                    if (manualEntry) {
-                        manualEntry.style.display = 'block';
-                    }
-                    
-                    alert(t.missingCredentials);
-                    console.error('Missing credentials:', { userEmail, activationCode });
-                    return;
-                }
-                
-                initiateDownload(userEmail, activationCode);
-            });
-        }
-
-        // Auto-save email if it comes from URL but isn't in storage
-        if (userEmail && urlParams.get('email')) {
-            if (!sessionStorage.getItem('userEmail')) {
-                sessionStorage.setItem('userEmail', userEmail);
-            }
-            if (!localStorage.getItem('userEmail')) {
-                localStorage.setItem('userEmail', userEmail);
-            }
-        }
-
-        // Log final state
-        console.log('Success page initialization complete');
     </script>
 </body>
 </html>

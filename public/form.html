@@ -720,7 +720,9 @@
                     
                     if (result.success) {
                         if (result.requiresPayment) {
-                            window.location.href = `/payment.html?clientSecret=${result.clientSecret}&lang=${currentLang}`;
+                            // Pass all relevant info to payment page
+                            const paymentUrl = `/payment.html?clientSecret=${result.clientSecret}&lang=${currentLang}&billing=${currentBilling}&currency=${result.currency || (currentCurrency === '£' ? 'GBP' : 'EUR')}&amount=${result.amount || ''}`;
+                            window.location.href = paymentUrl;
                         } else {
                             window.location.href = `/success.html?lang=${currentLang}`;
                         }

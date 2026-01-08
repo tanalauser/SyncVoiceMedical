@@ -641,19 +641,20 @@ countdownOverlay.id = 'mainCountdownOverlay';
 countdownOverlay.style.cssText = `
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.85);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+    background: linear-gradient(135deg, rgba(14, 124, 134, 0.95), rgba(10, 90, 98, 0.95));
     z-index: 9999;
     justify-content: center;
     align-items: center;
     flex-direction: column;
     color: white;
-    font-size: 2em;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    font-size: 1.5em;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 `;
     
     const countdownText = document.createElement('div');

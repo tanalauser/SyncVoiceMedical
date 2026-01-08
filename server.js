@@ -519,6 +519,13 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Stripe configuration endpoint - returns publishable key for frontend
+app.get('/api/stripe-config', (req, res) => {
+    res.json({
+        publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || ''
+    });
+});
+
 app.get('/api/status', (req, res) => {
     try {
         const dbState = checkMongoConnection();
