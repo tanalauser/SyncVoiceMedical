@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             noCode: 'Succès du code d\'activation.',
             aiCanMakeMistakes: "* L'IA peut faire des erreurs. Veuillez vérifier la transcription.",
             libraryNotLoaded: 'Erreur : La bibliothèque de génération de documents n\'est pas chargée.',
+            generating: 'Génération...',
+            loading: 'Chargement...',
             noText: 'Veuillez d\'abord ajouter du texte à transcrire.',
             docError: 'Erreur lors de la génération du document : ',
             modalTitle: 'Choisissez un modèle',
@@ -81,6 +83,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             noCode: 'Successful activation code.',
             aiCanMakeMistakes: "* AI can make mistakes. Please verify the transcription.",
             libraryNotLoaded: 'Error: Document generation library not loaded.',
+            generating: 'Generating...',
+            loading: 'Loading...',
             noText: 'Please add text to transcribe first.',
             docError: 'Error generating document: ',
             modalTitle: 'Choose a template',
@@ -634,39 +638,35 @@ function ensureCleanStart() {
 }
 
     
-    // Create elements for the countdown overlay - smaller centered box
+    // Create elements for the countdown overlay - with better cleanup
     const countdownOverlay = document.createElement('div');
 countdownOverlay.className = 'countdown-overlay';
 countdownOverlay.id = 'mainCountdownOverlay';
 countdownOverlay.style.cssText = `
     display: none;
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 300px;
-    height: 300px;
-    background: linear-gradient(135deg, rgba(14, 124, 134, 0.95), rgba(10, 90, 98, 0.95));
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
     z-index: 9999;
     justify-content: center;
     align-items: center;
     flex-direction: column;
     color: white;
-    font-size: 1.5em;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    text-align: center;
-    padding: 20px;
-    overflow: hidden;
+    font-size: 2em;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
 `;
     
     const countdownText = document.createElement('div');
     countdownText.id = 'countdownText';
-    countdownText.style.cssText = 'margin-bottom: 15px; font-size: 1.5em;';
+    countdownText.style.marginBottom = '20px';
     
     const countdownNumber = document.createElement('div');
     countdownNumber.id = 'countdownNumber';
-    countdownNumber.style.cssText = 'font-size: 4em; font-weight: bold;';
+    countdownNumber.style.fontSize = '5em';
     
     countdownOverlay.appendChild(countdownText);
     countdownOverlay.appendChild(countdownNumber);
@@ -1256,7 +1256,7 @@ countdownOverlay.style.cssText = `
     
     // Show "SPEAK NOW" very briefly then hide overlay immediately
     countdownText.textContent = t.speakNow || 'PARLEZ MAINTENANT';
-    countdownText.style.fontSize = '2em';
+    countdownText.style.fontSize = '4em';
     countdownText.style.color = '#4CAF50';
     countdownText.style.animation = 'speakNowPulse 1s infinite';
     countdownNumber.style.display = 'none';
@@ -1585,17 +1585,17 @@ function showRecordingIndicator() {
                 hasUsedSpeechBefore = true; // Only set flag for normal mode
             }
             
-            // Enhanced countdown display
+            // Enhanced countdown display - REDUCED FONT SIZES BY 50%
             countdownText.textContent = t.countdown;
-            countdownText.style.fontSize = '2.5em';
+            countdownText.style.fontSize = '1.25em';
             countdownText.style.fontWeight = 'bold';
-            countdownText.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
+            countdownText.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)';
             
             countdownNumber.textContent = '3';
-            countdownNumber.style.fontSize = '8em';
+            countdownNumber.style.fontSize = '4em';
             countdownNumber.style.fontWeight = 'bold';
             countdownNumber.style.color = '#ff6b35';
-            countdownNumber.style.textShadow = '4px 4px 8px rgba(0,0,0,0.5)';
+            countdownNumber.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
             
             // Show overlay with improved visibility
             countdownOverlay.style.display = 'flex';
@@ -1615,7 +1615,7 @@ function showRecordingIndicator() {
                     
                     // Update to "Getting ready..." message
                     countdownText.textContent = t.gettingReady || "Getting ready...";
-                    countdownText.style.fontSize = '2em';
+                    countdownText.style.fontSize = '1em';
                     countdownNumber.style.display = 'none';
                     
                     // Add a preparation delay before starting recognition
@@ -1886,146 +1886,6 @@ function handleRecognitionStartError(error) {
 function createTemplateSections(templateType) {
     console.log('Creating template sections for:', templateType);
     
-    // Add template CSS if not already added
-    if (!document.getElementById('template-styles')) {
-        const templateStyles = document.createElement('style');
-        templateStyles.id = 'template-styles';
-        templateStyles.textContent = `
-            .template-container {
-                background: #ffffff;
-                border-radius: 12px;
-                padding: 1.5rem;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            
-            .section-header-container {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                margin-top: 1.5rem;
-                margin-bottom: 0.5rem;
-                padding: 0.75rem 1rem;
-                background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-                border-radius: 8px;
-                border-left: 4px solid #0e7c86;
-            }
-            
-            .template-container > .section-header-container:first-of-type {
-                margin-top: 0;
-            }
-            
-            .section-header {
-                font-weight: 700;
-                font-size: 0.95rem;
-                color: #334155;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            
-            .section-header.active-section {
-                color: #0e7c86;
-            }
-            
-            .clear-section-btn {
-                padding: 0.4rem 0.8rem;
-                font-size: 0.8rem;
-                font-weight: 500;
-                color: #64748b;
-                background: #ffffff;
-                border: 1px solid #cbd5e1;
-                border-radius: 6px;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-            
-            .clear-section-btn:hover {
-                background: #fee2e2;
-                border-color: #ef4444;
-                color: #dc2626;
-            }
-            
-            .section-content {
-                min-height: 80px;
-                padding: 1rem;
-                margin-bottom: 0.5rem;
-                background: #ffffff;
-                border: 2px solid #e2e8f0;
-                border-radius: 8px;
-                font-size: 1rem;
-                line-height: 1.6;
-                color: #334155;
-                transition: all 0.2s ease;
-                outline: none;
-            }
-            
-            .section-content:focus {
-                border-color: #0e7c86;
-                box-shadow: 0 0 0 3px rgba(14, 124, 134, 0.1);
-            }
-            
-            .section-content.active-section {
-                border-color: #0e7c86;
-                background: rgba(14, 124, 134, 0.02);
-            }
-            
-            .section-content[contenteditable="true"]:empty:before {
-                content: attr(placeholder);
-                color: #94a3b8;
-                font-style: italic;
-            }
-            
-            .template-instruction {
-                background: linear-gradient(135deg, #e3f2fd, #bbdefb) !important;
-                border: 2px solid #1976d2 !important;
-                border-radius: 12px !important;
-                padding: 1.5rem !important;
-                margin-bottom: 1.5rem !important;
-                font-weight: 600 !important;
-                color: #1976d2 !important;
-                text-align: center !important;
-            }
-            
-            #generateWordBtn {
-                background: linear-gradient(135deg, #2ecc71, #27ae60) !important;
-                color: white !important;
-                border: none !important;
-                padding: 0.75rem 1.5rem !important;
-                border-radius: 8px !important;
-                font-weight: 600 !important;
-                cursor: pointer !important;
-                transition: all 0.2s ease !important;
-                display: inline-flex !important;
-                align-items: center !important;
-                gap: 0.5rem !important;
-            }
-            
-            #generateWordBtn:hover {
-                transform: translateY(-2px) !important;
-                box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3) !important;
-            }
-            
-            #exitTemplateBtn {
-                background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-                color: white !important;
-                border: none !important;
-                padding: 0.75rem 1.5rem !important;
-                border-radius: 8px !important;
-                font-weight: 600 !important;
-                cursor: pointer !important;
-                transition: all 0.2s ease !important;
-                display: inline-flex !important;
-                align-items: center !important;
-                gap: 0.5rem !important;
-            }
-            
-            #exitTemplateBtn:hover {
-                transform: translateY(-2px) !important;
-                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
-            }
-        `;
-        document.head.appendChild(templateStyles);
-    }
-    
     templateMode = true;
     selectedTemplate = templateType;
     
@@ -2052,16 +1912,16 @@ function createTemplateSections(templateType) {
         case 'consultation':
             templateHTML = `
                 ${createSectionHeader('reason', t.consultationReason)}
-                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder="Décrivez le motif de la consultation..."></div>
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('history', t.consultationHistory)}
-                <div id="history-content" class="section-content" data-section="history" contenteditable="true" placeholder="Antécédents médicaux du patient..."></div>
+                <div id="history-content" class="section-content" data-section="history" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('exam', t.consultationExam)}
-                <div id="exam-content" class="section-content" data-section="exam" contenteditable="true" placeholder="Résultats de l'examen clinique..."></div>
+                <div id="exam-content" class="section-content" data-section="exam" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('conclusion', t.consultationConclusion)}
-                <div id="conclusion-content" class="section-content" data-section="conclusion" contenteditable="true" placeholder="Diagnostic et recommandations..."></div>
+                <div id="conclusion-content" class="section-content" data-section="conclusion" contenteditable="true" placeholder=""></div>
             `;
             currentSection = 'reason';
             break;
@@ -2069,19 +1929,19 @@ function createTemplateSections(templateType) {
         case 'specialist':
             templateHTML = `
                 ${createSectionHeader('specialty', t.specialistSpecialty)}
-                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true" placeholder="Spécialité médicale..."></div>
+                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('reason', t.specialistReason)}
-                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder="Motif de la consultation spécialisée..."></div>
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('additionalExams', t.specialistExams)}
-                <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true" placeholder="Examens complémentaires réalisés..."></div>
+                <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
-                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true" placeholder="Diagnostic du spécialiste..."></div>
+                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('recommendations', t.specialistRecommendations)}
-                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true" placeholder="Recommandations et traitement..."></div>
+                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true" placeholder=""></div>
             `;
             currentSection = 'specialty';
             break;
@@ -2089,19 +1949,19 @@ function createTemplateSections(templateType) {
         case 'surgery':
             templateHTML = `
                 ${createSectionHeader('specialty', t.specialistSpecialty)}
-                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true" placeholder="Spécialité chirurgicale..."></div>
+                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('reason', t.specialistReason)}
-                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder="Indication chirurgicale..."></div>
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('additionalExams', t.specialistExams)}
-                <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true" placeholder="Examens préopératoires..."></div>
+                <div id="additionalExams-content" class="section-content" data-section="additionalExams" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
-                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true" placeholder="Diagnostic chirurgical..."></div>
+                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('recommendations', t.specialistRecommendations)}
-                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true" placeholder="Suites opératoires et recommandations..."></div>
+                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true" placeholder=""></div>
             `;
             currentSection = 'specialty';
             break;
@@ -2109,16 +1969,16 @@ function createTemplateSections(templateType) {
         case 'prescription':
             templateHTML = `
                 ${createSectionHeader('specialty', t.specialistSpecialty)}
-                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true" placeholder="Spécialité médicale..."></div>
+                <div id="specialty-content" class="section-content" data-section="specialty" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('reason', t.specialistReason)}
-                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder="Motif de la prescription..."></div>
+                <div id="reason-content" class="section-content" data-section="reason" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('diagnosis', t.specialistDiagnosis)}
-                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true" placeholder="Diagnostic..."></div>
+                <div id="diagnosis-content" class="section-content" data-section="diagnosis" contenteditable="true" placeholder=""></div>
                 
                 ${createSectionHeader('recommendations', t.specialistRecommendations)}
-                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true" placeholder="Prescription et posologie..."></div>
+                <div id="recommendations-content" class="section-content" data-section="recommendations" contenteditable="true" placeholder=""></div>
             `;
             currentSection = 'specialty';
             break;
@@ -2153,32 +2013,19 @@ function createTemplateSections(templateType) {
         animation: slideInDown 0.5s ease-out;
     `;
     
-    // Instruction text based on language - use actual button text
+    // Instruction text based on language
     const lang = currentLang || 'fr';
-    const langT = translations[lang] || translations.fr;
-    const speakButtonText = langT.speak || 'Speak';
-    
     const instructionTexts = {
-        fr: `📢 Cliquez sur "${speakButtonText}", attendez le compte à rebours, puis dictez section par section. Dites le nom de la section pour changer (ex: "motif", "antécédents", "examen", "conclusion")`,
-        en: `📢 Click "${speakButtonText}", wait for countdown, then dictate section by section. Say the section name to switch (e.g. "reason", "history", "examination", "conclusion")`,
-        de: `📢 Klicken Sie auf "${speakButtonText}", warten Sie auf den Countdown und diktieren Sie dann Abschnitt für Abschnitt. Sagen Sie den Abschnittsnamen zum Wechseln`,
-        es: `📢 Haga clic en "${speakButtonText}", espere la cuenta atrás, luego dicte sección por sección. Diga el nombre de la sección para cambiar`,
-        it: `📢 Fai clic su "${speakButtonText}", aspetta il conto alla rovescia, poi detta sezione per sezione. Pronuncia il nome della sezione per cambiare`,
-        pt: `📢 Clique em "${speakButtonText}", aguarde a contagem regressiva, depois dite seção por seção. Diga o nome da seção para mudar`
-    };
-    
-    const highlightTexts = {
-        fr: 'Section actuelle surlignée en bleu',
-        en: 'Current section highlighted in blue',
-        de: 'Aktueller Abschnitt blau hervorgehoben',
-        es: 'Sección actual resaltada en azul',
-        it: 'Sezione corrente evidenziata in blu',
-        pt: 'Seção atual destacada em azul'
+        fr: '📢 Cliquez sur "Commencer", attendez le compte à rebours, placez votre curseur dans la section concernée et dictez section par section.',
+        en: '📢 Click "Speak in English", wait for countdown, put your cursor in the relevant section and dictate section by section.',
+        de: '📢 Klicken Sie auf "Start", warten Sie auf den Countdown, setzen Sie den Cursor in den entsprechenden Abschnitt und diktieren Sie Abschnitt für Abschnitt.',
+        es: '📢 Haga clic en "Comenzar", espere la cuenta atrás, coloque el cursor en la sección correspondiente y dicte sección por sección.',
+        it: '📢 Fai clic su "Inizia", aspetta il conto alla rovescia, posiziona il cursore nella sezione pertinente e detta sezione per sezione.',
+        pt: '📢 Clique em "Iniciar", aguarde a contagem regressiva, coloque o cursor na seção relevante e dite seção por seção.'
     };
     
     templateInstruction.innerHTML = `
         <div style="margin-bottom: 10px;">${instructionTexts[lang] || instructionTexts['fr']}</div>
-        <div style="font-size: 0.9em; opacity: 0.8;">💡 ${highlightTexts[lang] || highlightTexts['en']}</div>
     `;
     
     // Set the HTML content
@@ -2603,20 +2450,109 @@ function createTemplateSections(templateType) {
         }
     });
 
-    // Function to generate Word document
-    function generateWordDocument(templateType) {
-    try {
-        if (typeof docx === 'undefined') {
-            console.error('docx library not loaded');
-            alert(translations[currentLang].libraryNotLoaded);
-            return;
-        }
+    // Function to load docx library dynamically
+    function loadDocxLibrary() {
+        return new Promise((resolve, reject) => {
+            // Check if already loaded
+            if (typeof docx !== 'undefined') {
+                console.log('docx library already loaded');
+                resolve();
+                return;
+            }
+            
+            // Try multiple CDN sources
+            const cdnUrls = [
+                'https://unpkg.com/docx@8.5.0/build/index.umd.js',
+                'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js'
+            ];
+            
+            let urlIndex = 0;
+            
+            function tryNextUrl() {
+                if (urlIndex >= cdnUrls.length) {
+                    reject(new Error('Failed to load docx library from all CDN sources'));
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = cdnUrls[urlIndex];
+                script.async = true;
+                
+                script.onload = () => {
+                    console.log('docx library loaded successfully from:', cdnUrls[urlIndex]);
+                    resolve();
+                };
+                
+                script.onerror = () => {
+                    console.warn('Failed to load docx from:', cdnUrls[urlIndex]);
+                    urlIndex++;
+                    tryNextUrl();
+                };
+                
+                document.head.appendChild(script);
+            }
+            
+            tryNextUrl();
+        });
+    }
+    
+    // Function to load FileSaver library dynamically
+    function loadFileSaverLibrary() {
+        return new Promise((resolve, reject) => {
+            // Check if already loaded
+            if (typeof saveAs !== 'undefined') {
+                console.log('FileSaver library already loaded');
+                resolve();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js';
+            script.async = true;
+            
+            script.onload = () => {
+                console.log('FileSaver library loaded successfully');
+                resolve();
+            };
+            
+            script.onerror = () => {
+                reject(new Error('Failed to load FileSaver library'));
+            };
+            
+            document.head.appendChild(script);
+        });
+    }
 
-        // Show loading state
+    // Function to generate Word document
+    async function generateWordDocument(templateType) {
+    try {
+        // Show loading state immediately
         const generateBtn = document.getElementById('generateWordBtn');
         const originalText = generateBtn.innerHTML;
         generateBtn.disabled = true;
-        generateBtn.innerHTML = `<span class="btn-text">${translations[currentLang].loading || 'Generating...'}</span>`;
+        generateBtn.innerHTML = `<span class="btn-text">${translations[currentLang].loading || 'Loading...'}</span>`;
+        
+        // Load libraries if not already loaded
+        try {
+            await Promise.all([loadDocxLibrary(), loadFileSaverLibrary()]);
+        } catch (loadError) {
+            console.error('Failed to load libraries:', loadError);
+            alert(translations[currentLang].libraryNotLoaded);
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = originalText;
+            return;
+        }
+        
+        if (typeof docx === 'undefined') {
+            console.error('docx library not loaded');
+            alert(translations[currentLang].libraryNotLoaded);
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = originalText;
+            return;
+        }
+
+        generateBtn.innerHTML = `<span class="btn-text">${translations[currentLang].generating || 'Generating...'}</span>`;
 
         // Update section content from the DOM before generating the document
         updateSectionContentFromDOM();
@@ -2641,6 +2577,13 @@ function createTemplateSections(templateType) {
     } catch (error) {
         console.error('Error generating document:', error);
         alert(`${translations[currentLang].docError}${error.message}`);
+        
+        // Restore button state
+        const generateBtn = document.getElementById('generateWordBtn');
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = `<span class="btn-text">${translations[currentLang].generateWord || 'Generate Word'}</span>`;
+        }
     }
 }
 
