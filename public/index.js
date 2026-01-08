@@ -685,18 +685,33 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     function updateText(elementId, text) {
         const el = document.getElementById(elementId);
-        if (el) {
-            if (text.includes('<')) {
-                el.innerHTML = text;
-            } else {
-                el.textContent = text;
-            }
+        if (!el) {
+            console.warn(`Element not found: ${elementId}`);
+            return;
+        }
+        if (text === undefined || text === null) {
+            console.warn(`Text is undefined/null for: ${elementId}`);
+            return;
+        }
+        
+        // Convert to string in case it's a number
+        const textStr = String(text);
+        
+        if (textStr.includes('<')) {
+            el.innerHTML = textStr;
+        } else {
+            el.textContent = textStr;
         }
     }
 
     function updateContent() {
+        console.log('🔄 updateContent() called with lang:', currentLang, 'currency:', currentCurrency);
+        
         const t = translations[currentLang] || translations.fr;
         const pricing = PRICING[currentCurrency];
+        
+        console.log('📝 Using translations for:', currentLang);
+        console.log('💰 Using pricing for:', currentCurrency, pricing);
         
         // Update HTML lang
         document.documentElement.lang = currentLang;
@@ -821,8 +836,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         const t = translations[currentLang] || translations.fr;
         const pricing = PRICING[currentCurrency];
         
+        console.log('💲 updatePricing() - lang:', currentLang, 'isYearly:', isYearlyBilling);
+        console.log('💲 proPeriodMonthly:', t.proPeriodMonthly, 'proPeriodYearly:', t.proPeriodYearly);
+        
         const amount = isYearlyBilling ? pricing.yearly : pricing.monthly;
         const period = isYearlyBilling ? t.proPeriodYearly : t.proPeriodMonthly;
+        
+        console.log('💲 Setting period to:', period);
         
         updateText('proAmount', amount);
         updateText('proCurrency', pricing.symbol);
@@ -924,10 +944,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ============================================
     
     async function init() {
+        console.log('🚀 init() starting...');
         await initializeLocalization();
+        console.log('✅ Localization complete, calling updateContent()...');
         updateContent();
+        console.log('✅ Content updated, setting up event listeners...');
         setupEventListeners();
-        console.log('✅ SyncVoice Medical initialized');
+        console.log('✅ SyncVoice Medical fully initialized');
     }
 
     init();
