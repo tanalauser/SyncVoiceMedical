@@ -2123,6 +2123,86 @@ app.get('/api/version', (req, res) => {
     });
 });
 
+// DIAGNOSTIC ENDPOINT - Check activation code status
+// Usage: GET /api/check-activation?email=user@example.com&code=ABC123
+app.get('/api/check-activation', async (req, res) => {
+    try {
+        const { email, code } = req.query;
+        
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email parameter required',
+                usage: '/api/check-activation?email=user@example.com&code=ABC123'
+            });
+        }
+        
+        const dbState = checkMongoConnection();
+        if (!dbState.isConnected) {
+            return res.status(503).json({
+                success: false,
+                message: 'Database connection unavailable'
+            });
+        }
+        
+        const user = await User.findOne({ email: email.toLowerCase() });
+        
+        if (!user) {
+            return res.json({
+                success: false,
+                diagnostic: {
+                    emailFound: false,
+                    message: `No user found with email: ${email}`
+                }
+            });
+        }
+        
+        // Build diagnostic info
+        const diagnostic = {
+            emailFound: true,
+            email: user.email,
+            storedActivationCode: user.activationCode,
+            providedCode: code || 'NOT PROVIDED',
+            codeMatch: code ? (user.activationCode?.toUpperCase() === code.toUpperCase()) : 'NOT TESTED',
+            isActive: user.isActive,
+            version: user.version,
+            activationCodeExpiry: user.activationCodeExpiry,
+            isExpired: user.isCodeExpired ? user.isCodeExpired() : 'Unknown',
+            daysRemaining: user.daysUntilExpiration ? user.daysUntilExpiration() : 'Unknown',
+            createdAt: user.createdAt,
+            lastLoginAt: user.lastLoginAt
+        };
+        
+        // Add recommendation
+        let recommendation = '';
+        if (!user.activationCode) {
+            recommendation = 'No activation code set. User may need to re-register or request a new code.';
+        } else if (code && user.activationCode.toUpperCase() !== code.toUpperCase()) {
+            recommendation = `Code mismatch! Expected: "${user.activationCode}", Received: "${code}". Check for typos or extra spaces.`;
+        } else if (!user.isActive) {
+            recommendation = 'Account not activated. User needs to click the activation link in their email.';
+        } else if (diagnostic.isExpired) {
+            recommendation = 'Account has expired. User needs to renew their subscription.';
+        } else if (code && diagnostic.codeMatch) {
+            recommendation = 'All checks passed! Code should work. Check if desktop app is sending the code correctly.';
+        }
+        
+        diagnostic.recommendation = recommendation;
+        
+        return res.json({
+            success: true,
+            diagnostic
+        });
+        
+    } catch (error) {
+        logger.error('Diagnostic endpoint error:', error);
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    });
+});
+
 // User details route
 app.get('/api/user-details/:email', async (req, res) => {
     try {
