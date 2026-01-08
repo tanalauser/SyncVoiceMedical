@@ -550,6 +550,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         return 'EUR';
     }
     
+    // Get currency based on language (European languages use €, English uses country-based)
+    function getCurrencyFromLanguage(lang, countryCode) {
+        // European languages always use Euro
+        if (['de', 'fr', 'es', 'it', 'pt'].includes(lang)) {
+            return 'EUR';
+        }
+        // English uses country-based currency (£ for UK, € for others)
+        if (lang === 'en' && countryCode && GBP_COUNTRIES.includes(countryCode.toUpperCase())) {
+            return 'GBP';
+        }
+        return 'EUR';
+    }
+    
     // Detect language based on country code
     function detectLanguageFromCountry(countryCode) {
         if (!countryCode) return null;
@@ -613,12 +626,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
         
-        // Set currency: stored > country-based
-        if (storedCurrency && PRICING[storedCurrency]) {
-            currentCurrency = storedCurrency;
-        } else {
-            currentCurrency = detectCurrencyFromCountry(userCountry);
-        }
+        // Set currency based on language (not just country)
+        currentCurrency = getCurrencyFromLanguage(currentLang, userCountry);
         
         console.log('Language:', currentLang, 'Currency:', currentCurrency, 'Country:', userCountry);
         
@@ -736,7 +745,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         updateText('yearlyCurrency', pricing.symbol);
         updateText('yearlyPeriod', t.proPeriodYearly);
         updateText('yearlyNote', t.proNote);
-        updateText('yearlySavings', t.yearlySavings);
+        
+        // Dynamic yearly savings text based on currency
+        let savingsText = t.yearlySavings;
+        if (currentLang === 'en') {
+            savingsText = currentCurrency === 'GBP' ? 'Save £50 per year' : 'Save €50 per year';
+        }
+        updateText('yearlySavings', savingsText);
+        
         updateText('yearlyFeature1', t.freeFeature1);
         updateText('yearlyFeature2', t.freeFeature2);
         updateText('yearlyBtnText', t.yearlyBtnText);
@@ -834,8 +850,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (langSelect) {
             langSelect.addEventListener('change', (e) => {
                 currentLang = e.target.value;
+                // Update currency when language changes
+                currentCurrency = getCurrencyFromLanguage(currentLang, userCountry);
+                
                 try {
                     localStorage.setItem('selectedLanguage', currentLang);
+                    localStorage.setItem('selectedCurrency', currentCurrency);
                 } catch (e) {}
                 
                 // Update URL
