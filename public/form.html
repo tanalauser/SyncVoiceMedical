@@ -616,6 +616,19 @@
             return ['GB', 'UK'].includes(code.toUpperCase()) ? '£' : '€';
         }
 
+        // Get currency based on language (European languages use €, English uses country-based)
+        function getCurrencyFromLanguage(lang, countryCode) {
+            // European languages always use Euro
+            if (['de', 'fr', 'es', 'it', 'pt'].includes(lang)) {
+                return '€';
+            }
+            // English uses country-based currency (£ for UK, € for others)
+            if (lang === 'en' && countryCode && ['GB', 'UK'].includes(countryCode.toUpperCase())) {
+                return '£';
+            }
+            return '€';
+        }
+
         function updateContent() {
             const t = translations[currentLang] || translations.en;
             document.documentElement.lang = currentLang;
@@ -674,14 +687,20 @@
             const urlLang = urlParams.get('lang');
             
             currentLang = (urlLang && translations[urlLang]) ? urlLang : getLanguageFromCountry(countryCode);
-            currentCurrency = getCurrencyFromCountry(countryCode);
+            // Use language-based currency instead of country-based
+            currentCurrency = getCurrencyFromLanguage(currentLang, countryCode);
             currentPlan = urlParams.get('plan') === 'paid' ? 'paid' : 'free';
+            
+            // Store country code for later use when changing language
+            window.detectedCountryCode = countryCode;
             
             updateContent();
             initBillingToggle();
             
             document.getElementById('languageSelect').addEventListener('change', (e) => {
                 currentLang = e.target.value;
+                // Update currency when language changes
+                currentCurrency = getCurrencyFromLanguage(currentLang, window.detectedCountryCode);
                 updateContent();
                 const url = new URL(window.location);
                 url.searchParams.set('lang', currentLang);
