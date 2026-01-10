@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SyncVoice Medical - Voice Transcription</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,6 +40,11 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+
         body {
             font-family: var(--font-body);
             background: var(--gray-50);
@@ -58,6 +63,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            width: 100%;
         }
 
         .logo {
@@ -66,6 +72,7 @@
             gap: 0.75rem;
             text-decoration: none;
             color: var(--gray-800);
+            flex-shrink: 0;
         }
 
         .logo-icon {
@@ -77,12 +84,13 @@
             align-items: center;
             justify-content: center;
             color: var(--white);
+            flex-shrink: 0;
         }
 
-        .logo-text { font-family: var(--font-display); font-size: 1.1rem; }
+        .logo-text { font-family: var(--font-display); font-size: 1.1rem; white-space: nowrap; }
         .logo-text span { color: var(--primary); }
 
-        .user-info { display: flex; align-items: center; gap: 1.5rem; }
+        .user-info { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
 
         .user-badge { display: flex; align-items: center; gap: 0.75rem; }
 
@@ -97,6 +105,7 @@
             color: var(--white);
             font-weight: 600;
             font-size: 0.9rem;
+            flex-shrink: 0;
         }
 
         .user-details { display: flex; flex-direction: column; gap: 0.1rem; }
@@ -107,23 +116,30 @@
             padding: 0.15rem 0.5rem;
             border-radius: 9999px;
             font-weight: 500;
+            white-space: nowrap;
         }
 
         .trial-badge { background: #fef3c7; color: #d97706; }
         .premium-badge { background: #dcfce7; color: #16a34a; }
 
-        .nav-links { display: flex; gap: 1rem; }
+        .nav-links { display: flex; gap: 1rem; flex-wrap: wrap; }
 
         .nav-link {
             color: var(--gray-600);
             text-decoration: none;
             font-size: 0.9rem;
             transition: color 0.2s;
+            white-space: nowrap;
         }
 
         .nav-link:hover { color: var(--primary); }
 
-        .main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .main { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 2rem;
+            width: 100%;
+        }
 
         .page-header { text-align: center; margin-bottom: 2rem; }
 
@@ -136,13 +152,20 @@
 
         .page-subtitle { color: var(--gray-500); font-size: 1rem; }
 
-        .transcription-wrapper { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; }
+        .transcription-wrapper { 
+            display: grid; 
+            grid-template-columns: 1fr 280px; 
+            gap: 2rem;
+            width: 100%;
+        }
 
         .transcription-container {
             background: var(--white);
             border-radius: var(--radius-xl);
             box-shadow: var(--shadow-md);
             padding: 1.5rem;
+            width: 100%;
+            min-width: 0; /* Allow shrinking */
         }
 
         .form-group { margin-bottom: 1.5rem; }
@@ -178,6 +201,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
         .char-count { font-size: 0.8rem; color: var(--gray-400); }
@@ -197,7 +222,12 @@
 
         .transcription-text:focus { outline: none; border-color: var(--primary); }
 
-        .action-buttons { display: flex; flex-direction: column; gap: 0.75rem; }
+        .action-buttons { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 0.75rem;
+            width: 100%;
+        }
 
         .btn {
             display: flex;
@@ -212,9 +242,10 @@
             cursor: pointer;
             transition: all 0.2s;
             text-align: center;
+            width: 100%;
         }
 
-        .btn .icon { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; }
+        .btn .icon { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; flex-shrink: 0; }
 
         .btn-primary {
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
@@ -238,7 +269,7 @@
         }
 
         .btn-danger:hover { background: #fef2f2; }
-        .btn-text { white-space: nowrap; }
+        .btn-text { white-space: normal; word-wrap: break-word; }
         .divider { height: 1px; background: var(--gray-200); margin: 0.5rem 0; }
 
         /* Modal */
@@ -253,6 +284,7 @@
             z-index: 1000;
             align-items: center;
             justify-content: center;
+            padding: 1rem;
         }
 
         .modal.show { display: flex; }
@@ -261,7 +293,7 @@
             background: var(--white);
             border-radius: var(--radius-xl);
             max-width: 500px;
-            width: 90%;
+            width: 100%;
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: var(--shadow-xl);
@@ -314,17 +346,346 @@
 
         .footer { text-align: center; padding: 2rem; color: var(--gray-400); font-size: 0.85rem; }
 
-        @media (max-width: 900px) {
-            .transcription-wrapper { grid-template-columns: 1fr; }
-            .action-buttons { flex-direction: row; flex-wrap: wrap; }
-            .btn { flex: 1; min-width: 150px; }
+        /* Template Sections - Medical Form Layout */
+        .template-sections-container {
+            width: 100%;
         }
 
-        @media (max-width: 600px) {
-            .header { padding: 0.75rem 1rem; }
-            .user-info { gap: 0.75rem; }
-            .nav-links { gap: 0.5rem; }
+        .template-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .template-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            flex-wrap: nowrap;
+            gap: 0.5rem;
+        }
+
+        .template-section-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--primary-dark);
+            flex: 1;
+            min-width: 0;
+            word-wrap: break-word;
+        }
+
+        .template-section-clear {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .template-section-clear:hover {
+            background: var(--error);
+            color: var(--white);
+            border-color: var(--error);
+        }
+
+        .template-section-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--primary-light);
+            border-radius: var(--radius-md);
+            font-family: var(--font-body);
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--gray-800);
+            resize: vertical;
+            transition: all 0.2s ease;
+        }
+
+        .template-section-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(14, 124, 134, 0.15);
+        }
+
+        .template-section-textarea.active-section {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+        }
+
+        /* ============================================
+           Responsive Design - IMPROVED FOR MOBILE
+           ============================================ */
+        
+        /* Tablets and below - stack layout */
+        @media (max-width: 900px) {
+            .transcription-wrapper { 
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .action-buttons { 
+                flex-direction: row; 
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .btn { 
+                flex: 1 1 calc(50% - 0.5rem); 
+                min-width: 140px;
+            }
+        }
+
+        /* Small tablets */
+        @media (max-width: 768px) {
+            .header { 
+                padding: 0.75rem 1rem;
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: stretch;
+            }
+            
+            .logo {
+                justify-content: center;
+            }
+            
+            .user-info { 
+                justify-content: space-between;
+                width: 100%;
+                gap: 0.75rem;
+            }
+            
+            .nav-links { 
+                gap: 0.5rem;
+                justify-content: center;
+            }
+            
             .main { padding: 1rem; }
+            
+            .page-title { font-size: 1.5rem; }
+            
+            .transcription-container {
+                padding: 1rem;
+            }
+            
+            .transcription-text {
+                min-height: 200px;
+            }
+            
+            .btn {
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .template-section-header {
+                flex-wrap: nowrap;
+            }
+            
+            .template-section-title {
+                font-size: 0.9rem;
+            }
+            
+            .template-section-clear {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Mobile phones */
+        @media (max-width: 600px) {
+            .header { 
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .logo-text {
+                font-size: 1rem;
+            }
+            
+            .logo-icon {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .user-info { 
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            
+            .user-badge {
+                justify-content: center;
+            }
+            
+            .nav-links { 
+                justify-content: center;
+                gap: 0.5rem;
+            }
+            
+            .nav-link {
+                font-size: 0.85rem;
+                padding: 0.5rem;
+            }
+            
+            .main { padding: 0.75rem; }
+            
+            .page-header {
+                margin-bottom: 1rem;
+            }
+            
+            .page-title { font-size: 1.25rem; }
+            .page-subtitle { font-size: 0.85rem; }
+            
+            .transcription-container {
+                padding: 0.75rem;
+                border-radius: var(--radius-md);
+            }
+            
+            .form-input {
+                padding: 0.625rem 0.75rem;
+                font-size: 0.95rem;
+            }
+            
+            .transcription-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .transcription-text {
+                min-height: 180px;
+                font-size: 0.95rem;
+                padding: 0.75rem;
+            }
+            
+            /* CRITICAL: Stack buttons vertically on mobile */
+            .action-buttons { 
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .btn { 
+                flex: none;
+                width: 100%;
+                min-width: 0;
+                padding: 0.875rem 1rem;
+            }
+            
+            .btn-text {
+                white-space: normal;
+            }
+            
+            /* Template sections */
+            .template-section {
+                margin-bottom: 1rem;
+            }
+            
+            .template-section-header {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .template-section-title {
+                font-size: 0.85rem;
+            }
+            
+            .template-section-textarea {
+                min-height: 70px;
+                padding: 0.75rem;
+                font-size: 0.95rem;
+            }
+            
+            /* Modal responsive */
+            .modal {
+                padding: 0.5rem;
+            }
+            
+            .modal-content {
+                max-height: 85vh;
+            }
+            
+            .modal-header {
+                padding: 1rem;
+            }
+            
+            .modal-title {
+                font-size: 1.25rem;
+            }
+            
+            .modal-body {
+                padding: 1rem;
+            }
+            
+            .template-item {
+                padding: 0.75rem 1rem;
+            }
+            
+            .template-item h3 {
+                font-size: 0.9rem;
+            }
+            
+            .template-item p {
+                font-size: 0.8rem;
+            }
+            
+            .footer {
+                padding: 1rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Very small phones */
+        @media (max-width: 380px) {
+            .header {
+                padding: 0.5rem;
+            }
+            
+            .main {
+                padding: 0.5rem;
+            }
+            
+            .logo-text {
+                font-size: 0.9rem;
+            }
+            
+            .user-avatar {
+                width: 30px;
+                height: 30px;
+                font-size: 0.8rem;
+            }
+            
+            .user-name {
+                font-size: 0.85rem;
+            }
+            
+            .account-type {
+                font-size: 0.7rem;
+                padding: 0.1rem 0.4rem;
+            }
+            
+            .nav-link {
+                font-size: 0.8rem;
+            }
+            
+            .page-title {
+                font-size: 1.1rem;
+            }
+            
+            .transcription-text {
+                min-height: 150px;
+            }
+            
+            .btn {
+                padding: 0.75rem 0.75rem;
+                font-size: 0.85rem;
+            }
+            
+            .btn .icon {
+                width: 18px;
+                height: 18px;
+            }
         }
     </style>
 </head>
@@ -371,7 +732,7 @@
                 <div class="transcription-area">
                     <div class="transcription-header">
                         <label class="form-label" id="transcriptionLabel">Transcription:</label>
-                        <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                             <span class="char-count"><span id="charCount">0</span> characters</span>
                             <span class="ai-disclaimer" id="AICanMakeMistakes_message">* AI can make mistakes. Please verify.</span>
                         </div>
@@ -413,7 +774,7 @@
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                     </svg>
-                    <span class="btn-text">Copy all to<br>clipboard</span>
+                    <span class="btn-text">Copy all to clipboard</span>
                 </button>
 
                 <button type="button" class="btn btn-secondary" id="templateButton">
@@ -423,7 +784,7 @@
                         <line x1="16" y1="13" x2="8" y2="13"/>
                         <line x1="16" y1="17" x2="8" y2="17"/>
                     </svg>
-                    <span class="btn-text">Use a Word<br>template</span>
+                    <span class="btn-text">Use a Word template</span>
                 </button>
 
                 <button type="button" class="btn btn-secondary" id="clearButton">Clear All</button>
