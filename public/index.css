@@ -1235,7 +1235,6 @@ a:hover { color: var(--primary-dark); }
     
     .pricing-card.featured {
         transform: none;
-        order: -1;
     }
     
     .pricing-card.featured:hover {
