@@ -1589,7 +1589,7 @@ app.post('/api/send-activation', async (req, res) => {
     }
 
     try {
-        const { email, firstName, lastName, version, language, termsAccepted, ...otherData } = req.body;
+        const { email, firstName, lastName, version, language, termsAccepted, company, address, postalCode, city, country, ...otherData } = req.body;
         const t = messages[language] || messages.en;
 
         // Handle paid version
@@ -1608,7 +1608,13 @@ app.post('/api/send-activation', async (req, res) => {
                 const customer = await stripe.customers.create({
                     email: email.toLowerCase(),
                     name: `${firstName} ${lastName}`,
-                    metadata: { firstName, lastName }
+                    metadata: { firstName, lastName, company: company || '' },
+                    address: {
+                        line1: address || '',
+                        city: city || '',
+                        postal_code: postalCode || '',
+                        country: country || ''
+                    }
                 });
                 stripeCustomerId = customer.id;
             }
@@ -1617,6 +1623,11 @@ app.post('/api/send-activation', async (req, res) => {
                 email: email.toLowerCase(),
                 first_name: firstName,
                 last_name: lastName,
+                company: company || null,
+                address: address || null,
+                postal_code: postalCode || null,
+                city: city || null,
+                country: country || null,
                 status: 'lead',
                 subscription_type: 'monthly',
                 language,
@@ -1738,6 +1749,11 @@ app.post('/api/send-activation', async (req, res) => {
             email: email.toLowerCase(),
             first_name: firstName,
             last_name: lastName,
+            company: company || null,
+            address: address || null,
+            postal_code: postalCode || null,
+            city: city || null,
+            country: country || null,
             activation_code: activationCode,
             status: 'trial',
             subscription_type: 'free',
