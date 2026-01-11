@@ -882,6 +882,110 @@ app.get('/api/analytics/summary', async (req, res) => {
     }
 });
 
+// Admin subscription stats endpoint
+app.get('/api/admin/subscription-stats', async (req, res) => {
+    try {
+        // Get counts by status
+        const { data: statusCounts, error: statusError } = await supabase
+            .from('users')
+            .select('status');
+
+        if (statusError) throw statusError;
+
+        // Get paid users with subscription type breakdown
+        const { data: paidUsers, error: paidError } = await supabase
+            .from('users')
+            .select('subscription_type, created_at')
+            .eq('status', 'paid');
+
+        if (paidError) throw paidError;
+
+        // Calculate status breakdown
+        const statusBreakdown = statusCounts.reduce((acc, user) => {
+            acc[user.status] = (acc[user.status] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Calculate subscription type breakdown for paid users
+        const subscriptionBreakdown = paidUsers.reduce((acc, user) => {
+            const type = user.subscription_type || 'unknown';
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Calculate estimated revenue
+        const monthlyCount = subscriptionBreakdown.monthly || 0;
+        const yearlyCount = subscriptionBreakdown.yearly || 0;
+        const estimatedMRR = (monthlyCount * 29) + (yearlyCount * (199 / 12));
+        const estimatedARR = estimatedMRR * 12;
+
+        // Get recent signups (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: recentSignups, error: recentError } = await supabase
+            .from('users')
+            .select('status, subscription_type, created_at')
+            .gte('created_at', thirtyDaysAgo.toISOString());
+
+        const recentStats = recentSignups ? {
+            total: recentSignups.length,
+            trials: recentSignups.filter(u => u.status === 'trial').length,
+            paid: recentSignups.filter(u => u.status === 'paid').length,
+            monthly: recentSignups.filter(u => u.subscription_type === 'monthly').length,
+            yearly: recentSignups.filter(u => u.subscription_type === 'yearly').length
+        } : null;
+
+        // Get list of paid subscribers with details
+        const { data: subscribers, error: subError } = await supabase
+            .from('users')
+            .select('email, first_name, last_name, subscription_type, subscription_end, created_at')
+            .eq('status', 'paid')
+            .order('created_at', { ascending: false });
+
+        res.json({
+            success: true,
+            timestamp: new Date().toISOString(),
+            overview: {
+                totalUsers: statusCounts.length,
+                byStatus: {
+                    leads: statusBreakdown.lead || 0,
+                    trials: statusBreakdown.trial || 0,
+                    paid: statusBreakdown.paid || 0,
+                    churned: statusBreakdown.churned || 0,
+                    unsubscribed: statusBreakdown.unsubscribed || 0
+                }
+            },
+            subscriptions: {
+                total: paidUsers.length,
+                byType: {
+                    monthly: monthlyCount,
+                    yearly: yearlyCount,
+                    unknown: subscriptionBreakdown.unknown || 0
+                }
+            },
+            revenue: {
+                estimatedMRR: `$${estimatedMRR.toFixed(2)}`,
+                estimatedARR: `$${estimatedARR.toFixed(2)}`,
+                breakdown: {
+                    monthlyRevenue: `$${(monthlyCount * 29).toFixed(2)}/month`,
+                    yearlyRevenue: `$${(yearlyCount * 199).toFixed(2)}/year`
+                }
+            },
+            last30Days: recentStats,
+            subscribers: subscribers || []
+        });
+
+    } catch (error) {
+        logger.error('Admin subscription stats error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch subscription stats',
+            error: error.message
+        });
+    }
+});
+
 // Churn detection
 app.post('/api/detect-churns', async (req, res) => {
     try {
