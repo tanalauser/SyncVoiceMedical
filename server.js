@@ -10,7 +10,6 @@ console.log('  - Key starts with:', process.env.DEEPGRAM_API_KEY?.substring(0, 1
 const fs = require('fs');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
-const mongoose = require('mongoose');
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
@@ -21,6 +20,9 @@ const Joi = require('joi');
 const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const winston = require('winston');
+
+// Supabase import
+const { supabase, testConnection, checkSupabaseConnection } = require('./config/supabase');
 
 // Create logger
 const logger = winston.createLogger({
@@ -42,9 +44,8 @@ const envSchema = Joi.object({
     NODE_ENV: Joi.string().valid('development', 'production'),
     EMAIL_USER: Joi.string().email().required(),
     EMAIL_PASS: Joi.string().required(),
-    APP_DB_USER: Joi.string().required(),
-    APP_DB_PASS: Joi.string().required(),
-    APP_DB_INSTANCE: Joi.string().required(),
+    SUPABASE_URL: Joi.string().uri().required(),
+    SUPABASE_ANON_KEY: Joi.string().required(),
     STRIPE_SECRET_KEY: Joi.string().required(),
     STRIPE_PRICE_ID: Joi.string().required(),
     STRIPE_WEBHOOK_SECRET: Joi.string().required(),
@@ -63,20 +64,35 @@ if (error) {
 // Import Stripe
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// MongoDB connection function
-const connectDB = require('./config/db');
+// Test Supabase connection on startup
+testConnection();
 
-// Import models and routes
-const User = require('./models/User');
+// Import routes
 const userRoutes = require('./routes/userRoutes');
 
 // Constants
 const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB limit
 
-// Your functions and configuration
+// Helper function to calculate validation end date
 function calculateValidationEndDate(version, startDate = new Date()) {
     const daysToAdd = version === 'free' ? 7 : 30;
     return new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+}
+
+// Helper function to calculate days until expiration
+function calculateDaysRemaining(endDate) {
+    if (!endDate) return 0;
+    const now = new Date();
+    const end = new Date(endDate);
+    const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+    return days > 0 ? days : 0;
+}
+
+// Helper function to check if subscription is expired
+function isSubscriptionExpired(user) {
+    const endDate = user.subscription_type === 'free' ? user.trial_end_date : user.subscription_end;
+    if (!endDate) return true;
+    return new Date() > new Date(endDate);
 }
 
 // TEMPORARY FIX - Force production mode
@@ -85,35 +101,30 @@ if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = 'production';
 }
 
-// In server.js, update the BASE_URL logic
+// BASE_URL logic
 const BASE_URL = (() => {
-    // Priority 1: Manual override (but not localhost in production)
     if (process.env.BASE_URL) {
-        const isLocalhost = process.env.BASE_URL.includes('localhost') || 
+        const isLocalhost = process.env.BASE_URL.includes('localhost') ||
                            process.env.BASE_URL.includes('127.0.0.1');
         const isDev = process.env.NODE_ENV === 'development';
-        
+
         if (!isLocalhost || isDev) {
             return process.env.BASE_URL;
         }
     }
-    
-    // Priority 2: Render deployment URL
+
     if (process.env.RENDER_EXTERNAL_URL) {
         const renderUrl = process.env.RENDER_EXTERNAL_URL;
-        // Add protocol if missing
         if (!renderUrl.match(/^https?:\/\//)) {
             return `https://${renderUrl}`;
         }
         return renderUrl;
     }
-    
-    // Priority 3: Development mode
+
     if (process.env.NODE_ENV === 'development') {
         return `http://localhost:${process.env.PORT || 8080}`;
     }
-    
-    // Priority 4: Production default
+
     return 'https://syncvoicemedical.onrender.com';
 })();
 
@@ -124,7 +135,7 @@ logger.info('Environment check:', {
     BASE_URL_final: BASE_URL
 });
 
-// Create an array of development emails that can bypass the check
+// Development emails that can bypass checks
 const DEV_EMAILS = [
     'info@solve3d.net',
     'nicolas.tanala@wanadoo.fr',
@@ -141,11 +152,10 @@ const DEV_EMAILS = [
 const app = express();
 
 // Trust proxy - Required for Render.com and other reverse proxy setups
-// This fixes the express-rate-limit X-Forwarded-For warning
 app.set('trust proxy', 1);
 
 // CORS configuration
-const allowedOrigins = process.env.NODE_ENV === 'production' 
+const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
       'https://syncvoicemedical.onrender.com',
       'https://syncvoicemedical.com',
@@ -184,7 +194,6 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
     const sig = req.headers['stripe-signature'];
     let event;
 
-    // Enhanced debug logging
     logger.info('🔍 Webhook Debug:', {
         url: req.url,
         method: req.method,
@@ -204,7 +213,7 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
             sig,
             process.env.STRIPE_WEBHOOK_SECRET
         );
-        
+
         logger.info(`✅ Webhook verified: ${event.type}`);
     } catch (err) {
         logger.error(`❌ Webhook signature verification failed:`, err.message);
@@ -253,8 +262,7 @@ app.options('*', cors());
 // Security headers
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    
-    // Universal CSP - Compatible with all antivirus software
+
     res.setHeader(
         'Content-Security-Policy',
         "default-src 'self' https:; " +
@@ -270,46 +278,6 @@ app.use((req, res, next) => {
     );
     next();
 });
-
-// MongoDB settings
-mongoose.set('bufferTimeoutMS', 20000);
-
-// Connect to MongoDB
-connectDB();
-
-// MongoDB connection monitoring
-mongoose.connection.on('connected', () => {
-    logger.info('✅ MongoDB connected successfully');
-    logger.info('📊 Database:', mongoose.connection.name);
-});
-
-mongoose.connection.on('error', (err) => {
-    logger.error('❌ MongoDB connection error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-    logger.warn('⚠️  MongoDB disconnected');
-});
-
-mongoose.connection.on('reconnected', () => {
-    logger.info('🔄 MongoDB reconnected');
-});
-
-// Helper function to check MongoDB connection
-function checkMongoConnection() {
-    const states = {
-        0: 'disconnected',
-        1: 'connected',
-        2: 'connecting',
-        3: 'disconnecting'
-    };
-    const state = mongoose.connection.readyState;
-    return {
-        isConnected: state === 1,
-        state: states[state] || 'unknown',
-        stateCode: state
-    };
-}
 
 // Debug middleware - log all requests (development only)
 if (process.env.NODE_ENV === 'development') {
@@ -341,11 +309,11 @@ async function createTransporter() {
                 rejectUnauthorized: false
             }
         });
-        
+
         await transporter.verify();
         logger.info('✅ Email transporter verified successfully');
         return transporter;
-        
+
     } catch (error) {
         logger.error('❌ Error creating transporter:', error.message);
         throw new Error(`Email service configuration error: ${error.message}`);
@@ -417,20 +385,12 @@ const messages = {
     }
 };
 
-// API Error class
-class ApiError extends Error {
-    constructor(statusCode, message) {
-        super(message);
-        this.statusCode = statusCode;
-    }
-}
-
 // Routes
 app.use('/api', userRoutes);
 
 // Health endpoints
-app.get('/healthz', (req, res) => {
-    const dbState = checkMongoConnection();
+app.get('/healthz', async (req, res) => {
+    const dbState = await checkSupabaseConnection();
     res.status(200).json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -439,8 +399,8 @@ app.get('/healthz', (req, res) => {
     });
 });
 
-app.get('/api/health', (req, res) => {
-    const dbState = checkMongoConnection();
+app.get('/api/health', async (req, res) => {
+    const dbState = await checkSupabaseConnection();
     res.json({
         success: true,
         message: 'API is operational',
@@ -455,21 +415,21 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-app.get('/api/status', (req, res) => {
+app.get('/api/status', async (req, res) => {
     try {
-        const dbState = checkMongoConnection();
-        
+        const dbState = await checkSupabaseConnection();
+
         const requiredEnvVars = [
-            'EMAIL_PASS', 'EMAIL_USER', 'APP_DB_USER', 'APP_DB_PASS', 'APP_DB_INSTANCE',
+            'EMAIL_PASS', 'EMAIL_USER', 'SUPABASE_URL', 'SUPABASE_ANON_KEY',
             'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET'
         ];
-        
+
         const missingVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
         const isFullyConfigured = missingVars.length === 0;
-        
+
         const services = {
             database: {
-                configured: !!(process.env.APP_DB_USER && process.env.APP_DB_PASS && process.env.APP_DB_INSTANCE),
+                configured: !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY),
                 status: dbState.isConnected ? 'connected' : 'disconnected',
                 details: dbState
             },
@@ -485,14 +445,14 @@ app.get('/api/status', (req, res) => {
                 service: 'Deepgram',
                 configured: !!process.env.DEEPGRAM_API_KEY,
                 status: process.env.DEEPGRAM_API_KEY ? 'configured' : 'missing',
-                apiKeyPrefix: process.env.DEEPGRAM_API_KEY ? 
-                    process.env.DEEPGRAM_API_KEY.substring(0, 8) + '...' : 
+                apiKeyPrefix: process.env.DEEPGRAM_API_KEY ?
+                    process.env.DEEPGRAM_API_KEY.substring(0, 8) + '...' :
                     'not configured',
                 apiKeyLength: process.env.DEEPGRAM_API_KEY ? process.env.DEEPGRAM_API_KEY.length : 0,
                 required: 'For desktop client transcription'
             }
         };
-        
+
         res.json({
             success: true,
             timestamp: new Date().toISOString(),
@@ -500,7 +460,7 @@ app.get('/api/status', (req, res) => {
                 status: 'running',
                 uptime: Math.floor(process.uptime()),
                 environment: process.env.NODE_ENV || 'development',
-                version: '1.0.0'
+                version: '2.0.0-supabase'
             },
             configuration: {
                 status: isFullyConfigured ? 'complete' : 'incomplete',
@@ -508,7 +468,7 @@ app.get('/api/status', (req, res) => {
             },
             services
         });
-        
+
     } catch (error) {
         logger.error('Status check error:', error);
         res.status(500).json({
@@ -522,11 +482,11 @@ app.get('/api/status', (req, res) => {
     }
 });
 
-// N8N tracking webhook - receives tracking data from n8n
+// N8N tracking webhook
 app.post('/api/n8n-tracking', async (req, res) => {
     try {
         const { email, event, ...data } = req.body;
-        
+
         if (!email || !event) {
             return res.status(400).json({
                 success: false,
@@ -534,114 +494,106 @@ app.post('/api/n8n-tracking', async (req, res) => {
             });
         }
 
-        const user = await User.findOne({ email: email.toLowerCase() });
-        
+        // Find user by email
+        const { data: user, error: findError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .single();
+
+        if (findError && findError.code !== 'PGRST116') {
+            throw findError;
+        }
+
         if (!user) {
-    // Create prospect for ANY tracking event from unknown users
-            const newUser = new User({
-                email: email.toLowerCase(),
-                firstName: data.firstName || 'Unknown',
-                lastName: data.lastName || 'Unknown',
-                version: 'prospect',
-                subscriptionStatus: 'prospect',
-                source: data.source || 'email_campaign',
-                emailOpened: event === 'email_opened',
-                emailOpenedAt: event === 'email_opened' ? new Date() : null,
-                emailOpenCount: event === 'email_opened' ? 1 : 0,
-                firstEmailOpenedAt: event === 'email_opened' ? new Date() : null,
-                lastEmailOpenCampaign: data.campaign || 'automated',
-                termsAccepted: false,
-                activationCode: 'PENDING',
-                activationCodeExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-                validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            });
-            
-            await newUser.save();
-            
+            // Create lead for tracking event from unknown users
+            const { data: newUser, error: insertError } = await supabase
+                .from('users')
+                .insert({
+                    email: email.toLowerCase(),
+                    first_name: data.firstName || 'Unknown',
+                    last_name: data.lastName || 'Unknown',
+                    status: 'lead',
+                    subscription_type: 'free',
+                    language: 'fr',
+                    activation_code: 'PENDING',
+                    is_verified: false
+                })
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+
+            // Record email event if applicable
+            if (['email_opened', 'email_sent', 'link_clicked'].includes(event)) {
+                const eventType = event === 'email_opened' ? 'opened' : event === 'link_clicked' ? 'clicked' : 'sent';
+                await supabase.from('email_events').insert({
+                    email: email.toLowerCase(),
+                    event_type: eventType,
+                    utm_campaign: data.campaign || 'automated',
+                    link_url: data.link || null
+                });
+            }
+
             return res.json({
                 success: true,
-                message: `Prospect created from ${event}`,
-                userId: newUser._id
+                message: `Lead created from ${event}`,
+                userId: newUser.id
             });
         }
 
-        // Track events based on type
+        // Build update object based on event type
+        const updateData = { updated_at: new Date().toISOString() };
+
         switch(event) {
-            case 'email_sent':
-                user.emailSentAt = new Date();
-                user.emailSentCount = (user.emailSentCount || 0) + 1;
-                user.lastEmailCampaign = data.campaign;
-                break;
-                
-            case 'email_opened':
-                user.emailOpened = true;
-                user.emailOpenedAt = new Date();
-                user.emailOpenCount = (user.emailOpenCount || 0) + 1;
-                user.lastEmailOpenCampaign = data.campaign;
-                if (!user.firstEmailOpenedAt) {
-                    user.firstEmailOpenedAt = new Date();
-                }
-                break;
-                
-            case 'link_clicked':
-                user.emailClicked = true;
-                user.emailClickedAt = new Date();
-                user.clickCount = (user.clickCount || 0) + 1;
-                user.lastClickedLink = data.link;
-                user.lastClickCampaign = data.campaign;
-                break;
-                
             case 'trial_signup':
-                user.trialStartDate = new Date();
-                user.source = data.source || 'email';
-                user.subscriptionStatus = 'trial';
-                user.version = 'free';
-                user.isActive = true;
-                user.conversionCampaign = data.campaign;
+                updateData.trial_start_date = new Date().toISOString();
+                updateData.trial_end_date = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+                updateData.status = 'trial';
+                updateData.is_verified = true;
                 break;
-                
+
             case 'paid_subscription':
-                user.isPaid = true;
-                user.subscriptionStartDate = new Date();
-                user.subscriptionStatus = 'paid';
-                user.version = 'paid';
-                user.paymentAmount = data.amount;
-                user.paymentCurrency = data.currency;
-                user.conversionValue = data.amount;
+                updateData.status = 'paid';
+                updateData.subscription_type = data.subscriptionType || 'monthly';
+                updateData.subscription_start = new Date().toISOString();
+                updateData.subscription_end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
                 break;
-                
+
             case 'subscription_cancelled':
-                user.subscriptionStatus = 'cancelled';
-                user.cancellationDate = new Date();
-                user.cancellationReason = data.reason;
-                break;
-                
             case 'subscription_expired':
-                user.subscriptionStatus = 'expired';
-                user.churned = true;
-                user.churnedAt = new Date();
-                user.churnReason = data.reason || 'expired';
+                updateData.status = 'churned';
                 break;
-                
+
             case 'reactivated':
-                user.subscriptionStatus = 'paid';
-                user.churned = false;
-                user.reactivatedAt = new Date();
-                user.reactivationCampaign = data.campaign;
+                updateData.status = 'paid';
                 break;
         }
 
-        // Update engagement metrics
-        user.lastActivityAt = new Date();
-        user.engagementScore = calculateEngagementScore(user);
-        
-        await user.save();
-        
+        // Update user
+        const { error: updateError } = await supabase
+            .from('users')
+            .update(updateData)
+            .eq('id', user.id);
+
+        if (updateError) throw updateError;
+
+        // Record email events
+        if (['email_sent', 'email_opened', 'link_clicked'].includes(event)) {
+            const eventType = event === 'email_opened' ? 'opened' : event === 'link_clicked' ? 'clicked' : 'sent';
+            await supabase.from('email_events').insert({
+                email: email.toLowerCase(),
+                event_type: eventType,
+                utm_campaign: data.campaign,
+                link_url: data.link || null
+            });
+        }
+
         res.json({
             success: true,
             message: `Event '${event}' tracked`,
-            userId: user._id,
-            currentStatus: user.subscriptionStatus
+            userId: user.id,
+            currentStatus: updateData.status || user.status
         });
 
     } catch (error) {
@@ -658,39 +610,34 @@ app.post('/api/n8n-tracking', async (req, res) => {
 app.post('/api/forgot-password', async (req, res) => {
     try {
         const { email } = req.body;
-        
-        const user = await User.findOne({ email: email.toLowerCase() });
-        
+
+        const { data: user, error: findError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .single();
+
+        if (findError && findError.code !== 'PGRST116') {
+            throw findError;
+        }
+
         if (!user) {
             return res.json({
                 success: true,
                 message: 'If this email exists, you will receive a password reset link.'
             });
         }
-        
-        if (user.version !== 'paid' || !user.password) {
+
+        if (user.status !== 'paid' || !user.password_hash) {
             return res.json({
                 success: false,
                 message: 'Password reset is only available for paid accounts with existing passwords.'
             });
         }
-        
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        user.passwordResetToken = resetToken;
-        user.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000);
-        
-        await user.save();
 
-        res.json({
-    success: true,
-    message: t.success,
-    userId: user._id.toString(),
-    activationCode: activationCode,  
-    userEmail: email                 
-});
-        
+        const resetToken = crypto.randomBytes(32).toString('hex');
         const resetLink = `${BASE_URL}/reset-password.html?token=${resetToken}&email=${encodeURIComponent(email)}`;
-        
+
         const lang = user.language || 'en';
         const emailSubject = {
             fr: 'SyncVoice Medical - Réinitialisation du mot de passe',
@@ -700,90 +647,30 @@ app.post('/api/forgot-password', async (req, res) => {
             it: 'SyncVoice Medical - Ripristino password',
             pt: 'SyncVoice Medical - Redefinir senha'
         };
-        
+
         const emailBody = {
-            fr: `
-                <h2>Réinitialisation de votre mot de passe</h2>
-                <p>Bonjour ${user.firstName},</p>
-                <p>Vous avez demandé la réinitialisation de votre mot de passe pour SyncVoice Medical.</p>
-                <p>Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :</p>
-                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Réinitialiser mon mot de passe</a></p>
-                <p>Ce lien expire dans 1 heure.</p>
-                <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-                <br>
-                <p>L'équipe SyncVoice Medical</p>
-            `,
-            en: `
-                <h2>Reset Your Password</h2>
-                <p>Hello ${user.firstName},</p>
-                <p>You have requested to reset your password for SyncVoice Medical.</p>
-                <p>Click the link below to create a new password:</p>
-                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset My Password</a></p>
-                <p>This link expires in 1 hour.</p>
-                <p>If you didn't request this reset, please ignore this email.</p>
-                <br>
-                <p>The SyncVoice Medical Team</p>
-            `,
-            de: `
-                <h2>Passwort zurücksetzen</h2>
-                <p>Hallo ${user.firstName},</p>
-                <p>Sie haben die Zurücksetzung Ihres Passworts für SyncVoice Medical angefordert.</p>
-                <p>Klicken Sie auf den untenstehenden Link, um ein neues Passwort zu erstellen:</p>
-                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Mein Passwort zurücksetzen</a></p>
-                <p>Dieser Link läuft in 1 Stunde ab.</p>
-                <p>Falls Sie diese Zurücksetzung nicht angefordert haben, ignorieren Sie diese E-Mail.</p>
-                <br>
-                <p>Das SyncVoice Medical Team</p>
-            `,
-            es: `
-                <h2>Restablecer su contraseña</h2>
-                <p>Hola ${user.firstName},</p>
-                <p>Ha solicitado restablecer su contraseña para SyncVoice Medical.</p>
-                <p>Haga clic en el enlace de abajo para crear una nueva contraseña:</p>
-                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Restablecer mi contraseña</a></p>
-                <p>Este enlace expira en 1 hora.</p>
-                <p>Si no solicitó este restablecimiento, ignore este correo.</p>
-                <br>
-                <p>El equipo de SyncVoice Medical</p>
-            `,
-            it: `
-                <h2>Ripristina la tua password</h2>
-                <p>Ciao ${user.firstName},</p>
-                <p>Hai richiesto di ripristinare la tua password per SyncVoice Medical.</p>
-                <p>Clicca sul link qui sotto per creare una nuova password:</p>
-                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ripristina la mia password</a></p>
-                <p>Questo link scade tra 1 ora.</p>
-                <p>Se non hai richiesto questo ripristino, ignora questa email.</p>
-                <br>
-                <p>Il team di SyncVoice Medical</p>
-            `,
-            pt: `
-                <h2>Redefinir sua senha</h2>
-                <p>Olá ${user.firstName},</p>
-                <p>Você solicitou a redefinição de sua senha para o SyncVoice Medical.</p>
-                <p>Clique no link abaixo para criar uma nova senha:</p>
-                <p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Redefinir minha senha</a></p>
-                <p>Este link expira em 1 hora.</p>
-                <p>Se você não solicitou esta redefinição, ignore este email.</p>
-                <br>
-                <p>A equipe SyncVoice Medical</p>
-            `
+            fr: `<h2>Réinitialisation de votre mot de passe</h2><p>Bonjour ${user.first_name},</p><p>Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :</p><p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Réinitialiser mon mot de passe</a></p><p>Ce lien expire dans 1 heure.</p>`,
+            en: `<h2>Reset Your Password</h2><p>Hello ${user.first_name},</p><p>Click the link below to create a new password:</p><p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset My Password</a></p><p>This link expires in 1 hour.</p>`,
+            de: `<h2>Passwort zurücksetzen</h2><p>Hallo ${user.first_name},</p><p>Klicken Sie auf den untenstehenden Link:</p><p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Mein Passwort zurücksetzen</a></p>`,
+            es: `<h2>Restablecer su contraseña</h2><p>Hola ${user.first_name},</p><p>Haga clic en el enlace:</p><p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Restablecer mi contraseña</a></p>`,
+            it: `<h2>Ripristina la tua password</h2><p>Ciao ${user.first_name},</p><p>Clicca sul link:</p><p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ripristina la mia password</a></p>`,
+            pt: `<h2>Redefinir sua senha</h2><p>Olá ${user.first_name},</p><p>Clique no link:</p><p><a href="${resetLink}" style="background: #296396; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Redefinir minha senha</a></p>`
         };
-        
+
         const transporter = await createTransporter();
-        
+
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: user.email,
             subject: emailSubject[lang] || emailSubject.en,
             html: emailBody[lang] || emailBody.en
         });
-        
+
         res.json({
             success: true,
             message: 'Password reset link sent to your email.'
         });
-        
+
     } catch (error) {
         logger.error('Forgot password error:', error);
         res.status(500).json({
@@ -797,47 +684,48 @@ app.post('/api/forgot-password', async (req, res) => {
 app.post('/api/reset-password', async (req, res) => {
     try {
         const { token, email, newPassword } = req.body;
-        
+
         if (!token || !email || !newPassword) {
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields.'
             });
         }
-        
+
         if (newPassword.length < 8) {
             return res.status(400).json({
                 success: false,
                 message: 'Password must be at least 8 characters long.'
             });
         }
-        
-        const user = await User.findOne({
-            email: email.toLowerCase(),
-            passwordResetToken: token,
-            passwordResetExpiry: { $gt: new Date() }
-        });
-        
-        if (!user) {
+
+        const { data: user, error: findError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .single();
+
+        if (findError || !user) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid or expired reset token.'
             });
         }
-        
+
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-        
-        user.password = hashedPassword;
-        user.passwordResetToken = null;
-        user.passwordResetExpiry = null;
-        
-        await user.save();
-        
+
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ password_hash: hashedPassword })
+            .eq('id', user.id);
+
+        if (updateError) throw updateError;
+
         res.json({
             success: true,
             message: 'Password reset successful. You can now login with your new password.'
         });
-        
+
     } catch (error) {
         logger.error('Reset password error:', error);
         res.status(500).json({
@@ -851,7 +739,7 @@ app.get('/reset-password.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'reset-password.html'));
 });
 
-// API Routes
+// API test routes
 app.get('/api/test', (req, res) => {
     res.json({ message: 'API is working' });
 });
@@ -862,7 +750,7 @@ app.get('/api/debug-baseurl', (req, res) => {
         NODE_ENV: process.env.NODE_ENV,
         BASE_URL_env: process.env.BASE_URL,
         timestamp: new Date().toISOString(),
-        deploymentTest: 'PRODUCTION_URL_FIX_v3',
+        deploymentTest: 'SUPABASE_MIGRATION_v1',
         isProduction: !BASE_URL.includes('localhost'),
         host: req.get('host'),
         protocol: req.protocol
@@ -872,7 +760,7 @@ app.get('/api/debug-baseurl', (req, res) => {
 // Check if email exists for trial
 app.post('/api/check-email', async (req, res) => {
     try {
-        const dbState = checkMongoConnection();
+        const dbState = await checkSupabaseConnection();
         if (!dbState.isConnected) {
             return res.status(503).json({
                 success: false,
@@ -880,25 +768,31 @@ app.post('/api/check-email', async (req, res) => {
                 details: dbState
             });
         }
-        
+
         const { email } = req.body;
-        
+
         if (DEV_EMAILS.includes(email.toLowerCase())) {
             return res.json({ success: true });
         }
-        
-        const existingUser = await User.findOne({ 
-            email: email.toLowerCase(),
-            version: 'free'
-        });
-        
+
+        const { data: existingUser, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .eq('subscription_type', 'free')
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            throw error;
+        }
+
         if (existingUser) {
-            const trialStartDate = existingUser.createdAt || existingUser.updatedAt;
+            const trialStartDate = existingUser.trial_start_date || existingUser.created_at;
             const daysSinceStart = Math.floor((new Date() - new Date(trialStartDate)) / (1000 * 60 * 60 * 24));
-            
+
             if (daysSinceStart < 7) {
-                return res.json({ 
-                    success: true, 
+                return res.json({
+                    success: true,
                     withinTrial: true,
                     daysRemaining: 7 - daysSinceStart,
                     message: `You have ${7 - daysSinceStart} days remaining in your trial`
@@ -910,7 +804,7 @@ app.post('/api/check-email', async (req, res) => {
                 });
             }
         }
-        
+
         res.json({ success: true });
     } catch (error) {
         logger.error('Error in check-email:', error);
@@ -928,100 +822,56 @@ async function hashPassword(password) {
     return await bcrypt.hash(password, saltRounds);
 }
 
-// Calculate engagement score
-function calculateEngagementScore(user) {
-    let score = 0;
-    
-    // Email engagement (max 40 points)
-    if (user.emailOpened) score += 10;
-    if (user.emailOpenCount > 3) score += 10;
-    if (user.emailClicked) score += 20;
-    
-    // Trial engagement (max 30 points)
-    if (user.trialStartDate) score += 30;
-    
-    // Paid engagement (max 30 points)
-    if (user.isPaid) score += 30;
-    
-    // Recency bonus
-    const daysSinceActivity = Math.floor((new Date() - new Date(user.lastActivityAt || user.createdAt)) / (1000 * 60 * 60 * 24));
-    if (daysSinceActivity < 7) score += 10;
-    else if (daysSinceActivity < 30) score += 5;
-    
-    return Math.min(100, score);
-}
-
-
-// Analytics endpoint for n8n dashboard
+// Analytics endpoint
 app.get('/api/analytics/summary', async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        
-        const dateFilter = {};
-        if (startDate) dateFilter.$gte = new Date(startDate);
-        if (endDate) dateFilter.$lte = new Date(endDate);
-        
-        const filter = Object.keys(dateFilter).length > 0 
-            ? { createdAt: dateFilter } 
-            : {};
+        // Use the Supabase view for conversion funnel
+        const { data: funnelData, error: funnelError } = await supabase
+            .from('v_conversion_funnel')
+            .select('*')
+            .single();
 
-        // Get comprehensive analytics
-        const [
-            totalProspects,
-            emailsOpened,
-            trialSignups,
-            paidSubscriptions,
-            churned,
-            reactivated
-        ] = await Promise.all([
-            User.countDocuments({ ...filter, subscriptionStatus: 'prospect' }),
-            User.countDocuments({ ...filter, emailOpened: true }),
-            User.countDocuments({ ...filter, subscriptionStatus: 'trial' }),
-            User.countDocuments({ ...filter, subscriptionStatus: 'paid' }),
-            User.countDocuments({ ...filter, churned: true }),
-            User.countDocuments({ ...filter, reactivatedAt: { $exists: true } })
-        ]);
-        
-        // Calculate conversion rates
-        const emailToTrialRate = totalProspects > 0 
-            ? ((trialSignups / totalProspects) * 100).toFixed(2) 
-            : 0;
-            
-        const trialToPaidRate = trialSignups > 0 
-            ? ((paidSubscriptions / trialSignups) * 100).toFixed(2) 
-            : 0;
-            
-        const churnRate = paidSubscriptions > 0 
-            ? ((churned / paidSubscriptions) * 100).toFixed(2) 
-            : 0;
-        
-        // Get recent activity
-        const recentActivity = await User.find()
-            .sort({ lastActivityAt: -1 })
-            .limit(10)
-            .select('email subscriptionStatus lastActivityAt engagementScore');
-        
+        if (funnelError) {
+            // Fallback to manual counts
+            const [leads, trials, paid, churned] = await Promise.all([
+                supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'lead'),
+                supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'trial'),
+                supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'paid'),
+                supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'churned')
+            ]);
+
+            return res.json({
+                success: true,
+                timestamp: new Date().toISOString(),
+                metrics: {
+                    totals: {
+                        leads: leads.count || 0,
+                        trials: trials.count || 0,
+                        paid: paid.count || 0,
+                        churned: churned.count || 0
+                    }
+                }
+            });
+        }
+
         res.json({
             success: true,
             timestamp: new Date().toISOString(),
             metrics: {
                 totals: {
-                    prospects: totalProspects,
-                    emailsOpened: emailsOpened,
-                    trials: trialSignups,
-                    paid: paidSubscriptions,
-                    churned: churned,
-                    reactivated: reactivated
+                    leads: funnelData.leads || 0,
+                    trials: funnelData.trials || 0,
+                    paid: funnelData.paid_users || 0,
+                    churned: funnelData.churned || 0,
+                    total: funnelData.total_users || 0
                 },
                 rates: {
-                    emailToTrial: `${emailToTrialRate}%`,
-                    trialToPaid: `${trialToPaidRate}%`,
-                    churn: `${churnRate}%`
-                },
-                recentActivity: recentActivity
+                    leadToTrial: `${funnelData.lead_to_trial_rate || 0}%`,
+                    trialToPaid: `${funnelData.trial_to_paid_rate || 0}%`
+                }
             }
         });
-        
+
     } catch (error) {
         logger.error('Analytics error:', error);
         res.status(500).json({
@@ -1032,36 +882,39 @@ app.get('/api/analytics/summary', async (req, res) => {
     }
 });
 
-// Churn detection - Run daily via n8n schedule
+// Churn detection
 app.post('/api/detect-churns', async (req, res) => {
     try {
         const now = new Date();
-        
-        // Find expired subscriptions that haven't been marked as churned
-        const expiredUsers = await User.find({
-            version: 'paid',
-            validationEndDate: { $lt: now },
-            churned: { $ne: true }
-        });
-        
+
+        // Find expired paid subscriptions
+        const { data: expiredUsers, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('status', 'paid')
+            .lt('subscription_end', now.toISOString())
+            .neq('status', 'churned');
+
+        if (error) throw error;
+
         const churnedEmails = [];
-        
-        for (const user of expiredUsers) {
-            user.churned = true;
-            user.churnedAt = now;
-            user.subscriptionStatus = 'churned';
-            user.churnReason = 'subscription_expired';
-            await user.save();
-            
-            churnedEmails.push({
-                email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                churnedAt: now.toISOString(),
-                daysActive: Math.floor((now - new Date(user.validationStartDate)) / (1000 * 60 * 60 * 24))
-            });
+
+        for (const user of expiredUsers || []) {
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({ status: 'churned' })
+                .eq('id', user.id);
+
+            if (!updateError) {
+                churnedEmails.push({
+                    email: user.email,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    churnedAt: now.toISOString()
+                });
+            }
         }
-        
+
         // Send to n8n for win-back campaigns
         if (churnedEmails.length > 0) {
             try {
@@ -1069,20 +922,18 @@ app.post('/api/detect-churns', async (req, res) => {
                     churns: churnedEmails,
                     count: churnedEmails.length,
                     detectedAt: now.toISOString()
-                }, {
-                    timeout: 5000
-                });
+                }, { timeout: 5000 });
             } catch (webhookError) {
                 logger.warn('n8n churn webhook error:', webhookError.message);
             }
         }
-        
+
         res.json({
             success: true,
             message: `Detected ${churnedEmails.length} churned users`,
             churns: churnedEmails
         });
-        
+
     } catch (error) {
         logger.error('Churn detection error:', error);
         res.status(500).json({
@@ -1097,48 +948,33 @@ app.post('/api/detect-churns', async (req, res) => {
 app.get('/api/email-open', async (req, res) => {
     try {
         const { email, campaign, source } = req.query;
-        
-        console.log('Email open tracking called for:', email);
-        
+
         if (!email) {
             return res.status(400).send('Email required');
         }
 
-        const user = await User.findOne({ email: email.toLowerCase() });
-        
-        if (user) {
-            console.log('User found, current openCount:', user.emailOpenCount);
-            console.log('Current updatedAt:', user.updatedAt);
-            
-            // Use the schema method
-            await user.trackEmailOpen(campaign || 'unknown');
-            
-            // Verify the save worked
-            const updatedUser = await User.findOne({ email: email.toLowerCase() });
-            console.log('After save, openCount:', updatedUser.emailOpenCount);
-            console.log('New updatedAt:', updatedUser.updatedAt);
-            
-            logger.info(`Email opened tracked for: ${email}`, {
-                campaign: campaign,
-                source: source,
-                openCount: updatedUser.emailOpenCount
+        // Record email open event
+        await supabase.from('email_events').insert({
+            email: email.toLowerCase(),
+            event_type: 'opened',
+            utm_campaign: campaign || 'unknown',
+            utm_source: source || 'direct'
+        });
+
+        logger.info(`Email opened tracked for: ${email}`, { campaign, source });
+
+        // Send to n8n for real-time tracking
+        try {
+            await axios.get('https://n8n.srv1030172.hstgr.cloud/webhook/email-open', {
+                params: {
+                    email: email.toLowerCase(),
+                    campaign: campaign || 'unknown',
+                    source: source || 'direct'
+                },
+                timeout: 5000
             });
-            
-            // Send to n8n for real-time tracking
-            try {
-                await axios.get('https://n8n.srv1030172.hstgr.cloud/webhook/email-open', {
-                    params: {
-                        email: email.toLowerCase(),
-                        campaign: campaign || 'unknown',
-                        source: source || 'direct'
-                    },
-                    timeout: 5000
-                });
-            } catch (webhookError) {
-                // Silently ignore
-            }
-        } else {
-            console.log('User not found for email:', email);
+        } catch (webhookError) {
+            // Silently ignore
         }
 
         // Return 1x1 transparent pixel
@@ -1150,22 +986,18 @@ app.get('/api/email-open', async (req, res) => {
         });
         res.end(pixel);
     } catch (error) {
-        console.error('Email open tracking error:', error);
         logger.error('Email open tracking error:', error);
-        
-        // Still return pixel even on error
         const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
         res.writeHead(200, {'Content-Type': 'image/gif'});
         res.end(pixel);
     }
 });
 
-
 // Send activation code
 app.post('/api/send-activation', async (req, res) => {
     logger.info('=== SEND-ACTIVATION ROUTE CALLED ===');
-    
-    const dbState = checkMongoConnection();
+
+    const dbState = await checkSupabaseConnection();
     if (!dbState.isConnected) {
         return res.status(503).json({
             success: false,
@@ -1177,63 +1009,55 @@ app.post('/api/send-activation', async (req, res) => {
     try {
         const { email, firstName, lastName, version, language, termsAccepted, ...otherData } = req.body;
         const t = messages[language] || messages.en;
-        
+
         // Handle paid version
         if (version === 'paid') {
-            const userData = {
-                firstName,
-                lastName,
-                email: email.toLowerCase(),
-                version,
-                language,
-                termsAccepted,
-                isActive: false,
-                isPaid: false,
-                updatedAt: new Date(),
-                company: otherData.company,
-                address: otherData.address,
-                addressContinued: otherData.addressContinued,
-                postalCode: otherData.postalCode,
-                city: otherData.city,
-                country: otherData.country,
-                autoRenewal: otherData.autoRenewal,
-                validationStartDate: new Date(),
-                validationEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-                downloadIntent: otherData.downloadIntent || false,
-                // TRACKING FIELDS
-                //trialStartDate: new Date(),
-                //source: otherData.source || 'website',
-                source: 'email',
-                emailSentAt: new Date(),
-                signupSource: 'website',  // New field name not restricted by enum
-                paymentStatus: 'pending',
-                subscriptionStatus: 'pending_payment',
-                customerJourney: {
-                    signupDate: new Date(),
-                    emailOpened: false,
-                    trialStarted: false,
-                    paidConversion: false,
-                    churnDate: null
-                }
-            };
+            // Check if user exists
+            const { data: existingUser } = await supabase
+                .from('users')
+                .select('*')
+                .eq('email', email.toLowerCase())
+                .single();
 
-            let user = await User.findOne({ email: email.toLowerCase() });
-            if (user) {
-                Object.assign(user, userData);
-            } else {
+            let userId;
+            let stripeCustomerId = existingUser?.stripe_customer_id;
+
+            if (!stripeCustomerId) {
                 const customer = await stripe.customers.create({
                     email: email.toLowerCase(),
                     name: `${firstName} ${lastName}`,
-                    metadata: {
-                        firstName,
-                        lastName
-                    }
+                    metadata: { firstName, lastName }
                 });
-                userData.stripeCustomerId = customer.id;
-                user = new User(userData);
+                stripeCustomerId = customer.id;
             }
-            
-            await user.save();
+
+            const userData = {
+                email: email.toLowerCase(),
+                first_name: firstName,
+                last_name: lastName,
+                status: 'lead',
+                subscription_type: 'monthly',
+                language,
+                stripe_customer_id: stripeCustomerId,
+                is_verified: false
+            };
+
+            if (existingUser) {
+                const { error } = await supabase
+                    .from('users')
+                    .update(userData)
+                    .eq('id', existingUser.id);
+                if (error) throw error;
+                userId = existingUser.id;
+            } else {
+                const { data: newUser, error } = await supabase
+                    .from('users')
+                    .insert(userData)
+                    .select()
+                    .single();
+                if (error) throw error;
+                userId = newUser.id;
+            }
 
             const currency = otherData.currency || 'eur';
             const amount = otherData.amount || 2500;
@@ -1241,13 +1065,11 @@ app.post('/api/send-activation', async (req, res) => {
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: currency.toLowerCase(),
-                automatic_payment_methods: {
-                    enabled: true,
-                },
+                automatic_payment_methods: { enabled: true },
                 metadata: {
                     userEmail: email.toLowerCase(),
                     userName: `${firstName} ${lastName}`,
-                    userId: user._id.toString()
+                    userId: userId
                 },
                 description: 'SyncVoice Medical - Monthly Subscription'
             });
@@ -1257,69 +1079,66 @@ app.post('/api/send-activation', async (req, res) => {
                 requiresPayment: true,
                 clientSecret: paymentIntent.client_secret,
                 paymentIntentId: paymentIntent.id,
-                userId: user._id.toString()
+                userId: userId
             });
         }
 
         // Handle free version
         if (version === 'free') {
             if (!DEV_EMAILS.includes(email.toLowerCase())) {
-                const existingUser = await User.findOne({ 
-                    email: email.toLowerCase(),
-                    version: 'free'
-                });
-                
+                const { data: existingUser } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('email', email.toLowerCase())
+                    .eq('subscription_type', 'free')
+                    .single();
+
                 if (existingUser) {
-                    const trialStartDate = existingUser.trialStartDate || existingUser.createdAt || existingUser.updatedAt;
+                    const trialStartDate = existingUser.trial_start_date || existingUser.created_at;
                     const daysSinceStart = Math.floor((new Date() - new Date(trialStartDate)) / (1000 * 60 * 60 * 24));
-                    
+
                     if (daysSinceStart < 7) {
                         const activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-                        const expiryDate = getExpiryDate();
-                        
-                        // Update user fields
-                        existingUser.activationCode = activationCode;
-                        existingUser.activationCodeExpiry = expiryDate;
-                        existingUser.firstName = firstName;
-                        existingUser.lastName = lastName;
-                        existingUser.language = language;
-                        existingUser.termsAccepted = termsAccepted;
-                        
-                        // Use schema method for tracking
-                        existingUser.subscriptionStatus = 'trial';
-                        existingUser.trialStartDate = existingUser.trialStartDate || new Date();
-                        existingUser.trialEndDate = existingUser.trialEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-                        existingUser.lastActivityAt = new Date();
-                        
-                        await existingUser.save();
-                        
+
+                        await supabase
+                            .from('users')
+                            .update({
+                                first_name: firstName,
+                                last_name: lastName,
+                                activation_code: activationCode,
+                                language,
+                                status: 'trial'
+                            })
+                            .eq('id', existingUser.id);
+
                         let activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
-                        
-                        if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
-                            activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
-                        }
-                        
+
                         const transporter = await createTransporter();
-                        
-                        const mailOptions = {
+                        await transporter.sendMail({
                             from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
-                            to: existingUser.email,
+                            to: email,
                             subject: t.subject,
-                            html: createActivationEmailHTML(existingUser, activationLink, existingUser.language || lang, existingUser.downloadIntent || false)
-                        };
-                        
-                        await transporter.sendMail(mailOptions);
-                        
+                            html: createActivationEmailHTML({
+                                first_name: firstName,
+                                last_name: lastName,
+                                email,
+                                activationCode,
+                                activation_code: activationCode
+                            }, activationLink, language)
+                        });
+
                         return res.json({
                             success: true,
                             message: t.success,
-                            userId: existingUser._id.toString(),
+                            userId: existingUser.id,
                             daysRemaining: 7 - daysSinceStart
                         });
                     } else {
-                        // Use schema method to mark as churned
-                        await existingUser.markAsChurned('trial_expired');
-                        
+                        await supabase
+                            .from('users')
+                            .update({ status: 'churned' })
+                            .eq('id', existingUser.id);
+
                         return res.status(400).json({
                             success: false,
                             message: 'Your 7-day trial has expired. Please purchase a subscription to continue.'
@@ -1334,57 +1153,51 @@ app.post('/api/send-activation', async (req, res) => {
         const expiryDate = getExpiryDate();
 
         const userData = {
-            firstName,
-            lastName,
             email: email.toLowerCase(),
-            activationCode,
-            activationCodeExpiry: expiryDate,
-            version,
+            first_name: firstName,
+            last_name: lastName,
+            activation_code: activationCode,
+            status: 'trial',
+            subscription_type: 'free',
+            trial_start_date: new Date().toISOString(),
+            trial_end_date: expiryDate.toISOString(),
             language,
-            termsAccepted,
-            isActive: false,
-            updatedAt: new Date(),
-            validationStartDate: new Date(),
-            validationEndDate: expiryDate,
-            // COMPREHENSIVE TRACKING
-            trialStartDate: new Date(),
-            trialEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-            //source: otherData.source || 'website',
-            source: 'email',
-            signupSource: otherData.source || 'website',  // New field name
-            trialStatus: 'pending_activation',
-            emailSentAt: new Date(),
-            //subscriptionStatus: 'trial_pending_activation',
-            downloadIntent: otherData.downloadIntent || false,
-            customerJourney: {
-                signupDate: new Date(),
-                emailOpened: false,
-                trialStarted: true,
-                paidConversion: false,
-                churnDate: null
-            }
+            is_verified: false
         };
 
         if (otherData.password) {
-            userData.password = await hashPassword(otherData.password);
+            userData.password_hash = await hashPassword(otherData.password);
         }
 
-        let user;
-
+        // Check if dev email user exists
+        let userId;
         if (DEV_EMAILS.includes(email.toLowerCase())) {
-            const existingUser = await User.findOne({ email: email.toLowerCase() });
-            
+            const { data: existingUser } = await supabase
+                .from('users')
+                .select('id')
+                .eq('email', email.toLowerCase())
+                .single();
+
             if (existingUser) {
-                Object.assign(existingUser, userData);
-                await existingUser.save();
-                user = existingUser;
+                await supabase.from('users').update(userData).eq('id', existingUser.id);
+                userId = existingUser.id;
             } else {
-                user = new User(userData);
-                await user.save();
+                const { data: newUser, error } = await supabase
+                    .from('users')
+                    .insert(userData)
+                    .select()
+                    .single();
+                if (error) throw error;
+                userId = newUser.id;
             }
         } else {
-            user = new User(userData);
-            await user.save();
+            const { data: newUser, error } = await supabase
+                .from('users')
+                .insert(userData)
+                .select()
+                .single();
+            if (error) throw error;
+            userId = newUser.id;
         }
 
         let activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(email)}&lang=${language}`;
@@ -1394,155 +1207,111 @@ app.post('/api/send-activation', async (req, res) => {
         }
 
         const transporter = await createTransporter();
-        
-        const mailOptions = {
+
+        await transporter.sendMail({
             from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
-            to: user.email,
+            to: email,
             subject: t.subject,
-            html: createActivationEmailHTML(user, activationLink, user.language || lang, user.downloadIntent || false)
-        };
+            html: createActivationEmailHTML({
+                first_name: firstName,
+                last_name: lastName,
+                email,
+                activationCode,
+                activation_code: activationCode
+            }, activationLink, language)
+        });
 
-        await transporter.sendMail(mailOptions);
-
-        // Call n8n webhook for trial signup tracking (CORRECTED)
+        // Call n8n webhook
         try {
             await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/trial-signup', {
                 email: email.toLowerCase(),
-                firstName: firstName,
-                lastName: lastName,
-                version: version,
+                firstName,
+                lastName,
+                version,
                 source: otherData.source || 'website',
                 signupDate: new Date().toISOString()
-            }, {
-                headers: { 'Content-Type': 'application/json' },
-                timeout: 5000
-            });
-            logger.info('n8n trial signup webhook called successfully');
+            }, { headers: { 'Content-Type': 'application/json' }, timeout: 5000 });
         } catch (webhookError) {
-            // Silently ignore webhook errors
             logger.debug('n8n webhook non-critical error');
         }
-        
+
         res.json({
             success: true,
             message: t.success,
-            userId: user._id.toString(),
+            userId: userId,
             activationCode: activationCode,
             userEmail: email
         });
 
     } catch (error) {
-        logger.error('Comprehensive error in /api/send-activation:', error);
-        
-        if (error.message.includes('buffering timed out')) {
-            const dbState = checkMongoConnection();
-            return res.status(503).json({
-                success: false,
-                message: 'Database connection timeout. Please check your MongoDB connection.',
-                details: {
-                    error: error.message,
-                    dbState: dbState
-                }
-            });
-        }
-        
-        if (error.message.includes('invalid_grant') || error.message.includes('credentials_required')) {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required. Please re-authenticate with Google.',
-                reAuth: true
-            });
-        }
-        
+        logger.error('Error in /api/send-activation:', error);
         res.status(500).json({
             success: false,
-            message: error.message,
-            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            message: error.message
         });
     }
 });
 
-
+// Debug endpoint
 app.get('/api/debug/db-info', async (req, res) => {
     try {
-        const dbInfo = {
-            connected: mongoose.connection.readyState === 1,
-            host: mongoose.connection.host,
-            name: mongoose.connection.name,
-            uri: mongoose.connection._connectionString ? mongoose.connection._connectionString.replace(/\/\/.*:.*@/, '//***:***@') : 'Not available'
-        };
-        
-        // Count users in the connected database
-        const userCount = await User.countDocuments();
-        const sampleUser = await User.findOne({ email: 'nicolas.tanala@v-stars3d.com' });
-        
+        const { count, error } = await supabase
+            .from('users')
+            .select('*', { count: 'exact', head: true });
+
         res.json({
-            database: dbInfo,
-            userCount,
-            sampleUser: sampleUser ? {
-                email: sampleUser.email,
-                updatedAt: sampleUser.updatedAt,
-                emailOpenCount: sampleUser.emailOpenCount
-            } : null
+            database: {
+                type: 'Supabase (PostgreSQL)',
+                connected: !error,
+                url: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 30) + '...' : 'Not configured'
+            },
+            userCount: count || 0
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-
-app.get('/api/debug/collections', async (req, res) => {
-    try {
-        const collections = await mongoose.connection.db.listCollections().toArray();
-        const userCount = await mongoose.connection.db.collection('users').countDocuments();
-        const analyticsUserCount = await mongoose.connection.db.collection('analytics.users').countDocuments();
-        
-        res.json({
-            database: mongoose.connection.name,
-            collections: collections.map(c => c.name),
-            userCount,
-            analyticsUserCount
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-
-// Add this Stripe webhook endpoint to your server.js
+// Stripe webhook endpoint
 app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    
+
     try {
-        // Construct the event using the raw body and signature
         const event = stripe.webhooks.constructEvent(
             req.body,
             sig,
-            process.env.STRIPE_WEBHOOK_SECRET // You need to add this to your .env
+            process.env.STRIPE_WEBHOOK_SECRET
         );
-        
-        // Handle the event
+
         switch (event.type) {
             case 'payment_intent.succeeded':
                 const paymentIntent = event.data.object;
-                
-                // Get user email from metadata
                 const userEmail = paymentIntent.metadata.userEmail;
-                
+
                 if (userEmail) {
-                    const user = await User.findOne({ email: userEmail.toLowerCase() });
-                    
+                    const { data: user } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('email', userEmail.toLowerCase())
+                        .single();
+
                     if (user) {
-                        // Use your schema method to convert to paid
-                        await user.convertToPaid(
-                            paymentIntent.amount / 100, // Convert cents to currency
-                            paymentIntent.currency,
-                            'stripe_payment'
-                        );
-                        
+                        const activationCode = user.activation_code || crypto.randomBytes(3).toString('hex').toUpperCase();
+
+                        await supabase
+                            .from('users')
+                            .update({
+                                status: 'paid',
+                                subscription_type: 'monthly',
+                                subscription_start: new Date().toISOString(),
+                                subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                                is_verified: true,
+                                activation_code: activationCode
+                            })
+                            .eq('id', user.id);
+
                         logger.info(`User ${userEmail} converted to paid subscription`);
-                        
-                        // Call n8n webhook for paid conversion tracking
+
                         try {
                             await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/stripe-webhook', {
                                 type: 'payment_succeeded',
@@ -1556,61 +1325,71 @@ app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (
                     }
                 }
                 break;
-                
+
             case 'customer.subscription.deleted':
-                // Handle subscription cancellation
                 const subscription = event.data.object;
                 const customer = await stripe.customers.retrieve(subscription.customer);
-                
+
                 if (customer.email) {
-                    const user = await User.findOne({ email: customer.email.toLowerCase() });
-                    if (user) {
-                        await user.markAsChurned('subscription_cancelled');
-                        logger.info(`User ${customer.email} subscription cancelled`);
-                    }
+                    await supabase
+                        .from('users')
+                        .update({ status: 'churned' })
+                        .eq('email', customer.email.toLowerCase());
+
+                    logger.info(`User ${customer.email} subscription cancelled`);
                 }
                 break;
-                
+
             default:
                 logger.info(`Unhandled Stripe event type: ${event.type}`);
         }
-        
+
         res.json({received: true});
-        
+
     } catch (err) {
         logger.error('Stripe webhook error:', err.message);
         res.status(400).send(`Webhook Error: ${err.message}`);
     }
 });
 
-
 // Handle activation
 app.get('/api/activate/:code', async (req, res) => {
     try {
-        const dbState = checkMongoConnection();
+        const dbState = await checkSupabaseConnection();
         if (!dbState.isConnected) {
             return res.status(503).send('Database unavailable. Please try again later.');
         }
-        
+
         const { code } = req.params;
         const { email, lang } = req.query;
-        
-        const user = await User.findOne({ 
-            email: email.toLowerCase(),
-            activationCode: code
-        });
 
-        if (!user || user.isCodeExpired()) {
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .eq('activation_code', code)
+            .single();
+
+        if (error || !user) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid or expired activation code'
             });
         }
 
-        user.isActive = true;
-        user.lastLoginAt = new Date();
-        user.loginCount = 1;
-        await user.save();
+        // Check if expired
+        const endDate = user.subscription_type === 'free' ? user.trial_end_date : user.subscription_end;
+        if (endDate && new Date() > new Date(endDate)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Your subscription has expired'
+            });
+        }
+
+        await supabase
+            .from('users')
+            .update({ is_verified: true })
+            .eq('id', user.id);
 
         res.redirect(`/appForm.html?code=${code}&email=${encodeURIComponent(email)}&lang=${lang}`);
 
@@ -1627,39 +1406,33 @@ app.get('/api/activate/:code', async (req, res) => {
 app.post('/api/create-payment-intent', async (req, res) => {
     try {
         const { email, name, amount, currency } = req.body;
-        
+
         if (!email || !name || !amount) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Missing required parameters',
-                receivedData: req.body 
+                receivedData: req.body
             });
         }
 
         const paymentCurrency = currency || 'eur';
-        
+
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount,
             currency: paymentCurrency.toLowerCase(),
-            automatic_payment_methods: {
-                enabled: true,
-            },
-            metadata: {
-                email: email,
-                name: name
-            },
+            automatic_payment_methods: { enabled: true },
+            metadata: { email, name },
             description: 'SyncVoice Medical - Monthly Subscription'
         });
 
-        res.json({ 
+        res.json({
             clientSecret: paymentIntent.client_secret,
             paymentIntentId: paymentIntent.id
         });
     } catch (error) {
-        logger.error('Detailed error creating payment intent:', error);
-        res.status(500).json({ 
+        logger.error('Error creating payment intent:', error);
+        res.status(500).json({
             error: 'Failed to create payment intent',
-            details: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            details: error.message
         });
     }
 });
@@ -1667,7 +1440,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
 // Login route
 app.post('/api/login', async (req, res) => {
     try {
-        const dbState = checkMongoConnection();
+        const dbState = await checkSupabaseConnection();
         if (!dbState.isConnected) {
             return res.status(503).json({
                 success: false,
@@ -1684,23 +1457,27 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        const user = await User.findOne({ email: email.toLowerCase() });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .single();
 
-        if (!user) {
+        if (error || !user) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid email or password'
             });
         }
 
-        if (!user.password) {
+        if (!user.password_hash) {
             return res.status(401).json({
                 success: false,
                 message: 'Please complete your account setup. Contact support if needed.'
             });
         }
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
         if (!isPasswordValid) {
             return res.status(401).json({
@@ -1709,42 +1486,40 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        if (!user.isActive) {
+        if (!user.is_verified) {
             return res.status(401).json({
                 success: false,
                 message: 'Account not activated. Please check your email for activation instructions.'
             });
         }
 
-        if (user.isSubscriptionExpired()) {
+        if (isSubscriptionExpired(user)) {
             return res.status(401).json({
                 success: false,
                 message: 'Your subscription has expired. Please renew to continue.'
             });
         }
 
-        user.loginCount = (user.loginCount || 0) + 1;
-        user.lastLoginAt = new Date();
-        await user.save();
-
         // Generate JWT token
         const token = jwt.sign(
-            { userId: user._id, email: user.email },
+            { userId: user.id, email: user.email },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
+
+        const endDate = user.subscription_type === 'free' ? user.trial_end_date : user.subscription_end;
 
         res.json({
             success: true,
             message: 'Login successful',
             token: token,
-            userId: user._id.toString(),
+            userId: user.id,
             userEmail: user.email,
             userInfo: {
-                firstName: user.firstName,
-                lastName: user.lastName,
-                version: user.version,
-                daysRemaining: user.daysUntilExpiration()
+                firstName: user.first_name,
+                lastName: user.last_name,
+                version: user.subscription_type,
+                daysRemaining: calculateDaysRemaining(endDate)
             }
         });
 
@@ -1760,55 +1535,55 @@ app.post('/api/login', async (req, res) => {
 // Webhook handlers
 async function handleSuccessfulPayment(paymentIntent) {
     try {
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            logger.error('Database not connected in handleSuccessfulPayment');
-            return;
-        }
-        
         logger.info('Payment successful:', paymentIntent.id);
-        
+
         if (paymentIntent.metadata && paymentIntent.metadata.userId) {
-            const user = await User.findById(paymentIntent.metadata.userId);
-            
+            const { data: user } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', paymentIntent.metadata.userId)
+                .single();
+
             if (user) {
-                if (!user.activationCode) {
-                    user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                }
-                
-                user.isPaid = true;
-                user.isActive = true;
-                user.paymentStatus = 'completed';
-                user.lastPaymentDate = new Date();
-                user.validationStartDate = new Date();
-                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                
-                await user.save();
+                const activationCode = user.activation_code || crypto.randomBytes(3).toString('hex').toUpperCase();
+
+                await supabase
+                    .from('users')
+                    .update({
+                        status: 'paid',
+                        subscription_type: 'monthly',
+                        subscription_start: new Date().toISOString(),
+                        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        is_verified: true,
+                        activation_code: activationCode
+                    })
+                    .eq('id', user.id);
+
                 logger.info(`User ${user.email} marked as paid and active`);
-                
+
+                // Send activation email
                 const lang = user.language || 'en';
                 const t = messages[lang] || messages.en;
-                
+
                 try {
-                    let activationLink = `${BASE_URL}/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
-                    
-                    if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
-                        activationLink = `https://syncvoicemedical.onrender.com/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
-                    }
-                    
+                    let activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+
                     const transporter = await createTransporter();
-                    
-                    const mailOptions = {
+
+                    await transporter.sendMail({
                         from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
                         to: user.email,
                         subject: t.subject,
-                        html: createActivationEmailHTML(user, activationLink, user.language || lang, user.downloadIntent || false)
-                    };
-                    
-                    await transporter.sendMail(mailOptions);
+                        html: createActivationEmailHTML({
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            email: user.email,
+                            activationCode,
+                            activation_code: activationCode
+                        }, activationLink, lang)
+                    });
+
                     logger.info('Activation email sent successfully to:', user.email);
-                    
                 } catch (emailError) {
                     logger.error('Error sending activation email:', emailError);
                 }
@@ -1821,22 +1596,13 @@ async function handleSuccessfulPayment(paymentIntent) {
 
 async function handleFailedPayment(failedPayment) {
     try {
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            logger.error('Database not connected in handleFailedPayment');
-            return;
-        }
-        
         logger.error('Payment failed:', failedPayment.id);
-        
+
         if (failedPayment.metadata && failedPayment.metadata.userId) {
-            const user = await User.findById(failedPayment.metadata.userId);
-            
-            if (user) {
-                user.paymentStatus = 'failed';
-                await user.save();
-                logger.info(`Payment failed for user ${user.email}`);
-            }
+            await supabase
+                .from('users')
+                .update({ status: 'lead' })
+                .eq('id', failedPayment.metadata.userId);
         }
     } catch (error) {
         logger.error('Error handling failed payment:', error);
@@ -1845,58 +1611,30 @@ async function handleFailedPayment(failedPayment) {
 
 async function handleSuccessfulInvoice(invoice) {
     try {
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            logger.error('Database not connected in handleSuccessfulInvoice');
-            return;
-        }
-        
         logger.info('Invoice payment successful:', invoice.id);
-        
+
         if (invoice.customer) {
-            const user = await User.findOne({ stripeCustomerId: invoice.customer });
-            
+            const { data: user } = await supabase
+                .from('users')
+                .select('*')
+                .eq('stripe_customer_id', invoice.customer)
+                .single();
+
             if (user) {
-                if (!user.activationCode) {
-                    user.activationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-                    user.activationCodeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                }
-                
-                user.isPaid = true;
-                user.isActive = true;
-                user.paymentStatus = 'completed';
-                user.lastPaymentDate = new Date();
-                user.validationStartDate = new Date();
-                user.validationEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                
-                await user.save();
+                const activationCode = user.activation_code || crypto.randomBytes(3).toString('hex').toUpperCase();
+
+                await supabase
+                    .from('users')
+                    .update({
+                        status: 'paid',
+                        subscription_start: new Date().toISOString(),
+                        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        is_verified: true,
+                        activation_code: activationCode
+                    })
+                    .eq('id', user.id);
+
                 logger.info(`Invoice paid for user ${user.email}`);
-                
-                const lang = user.language || 'en';
-                const t = messages[lang] || messages.en;
-                
-                try {
-                    let activationLink = `${BASE_URL}/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
-                    
-                    if (activationLink.includes('localhost') || activationLink.includes('127.0.0.1')) {
-                        activationLink = `https://syncvoicemedical.onrender.com/api/activate/${user.activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
-                    }
-                    
-                    const transporter = await createTransporter();
-                    
-                    const mailOptions = {
-                        from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
-                        to: user.email,
-                        subject: t.subject,
-                        html: createActivationEmailHTML(user, activationLink, user.language || lang, user.downloadIntent || false)
-                    };
-                    
-                    await transporter.sendMail(mailOptions);
-                    logger.info('Activation email sent successfully to:', user.email);
-                    
-                } catch (emailError) {
-                    logger.error('Error sending activation email:', emailError);
-                }
             }
         }
     } catch (error) {
@@ -1906,29 +1644,32 @@ async function handleSuccessfulInvoice(invoice) {
 
 async function handleSubscriptionChange(subscription) {
     try {
-        const dbState = checkMongoConnection();
-        if (!dbState.isConnected) {
-            logger.error('Database not connected in handleSubscriptionChange');
-            return;
-        }
-        
         logger.info('Subscription changed:', subscription.id);
-        
+
         if (subscription.customer) {
-            const user = await User.findOne({ stripeCustomerId: subscription.customer });
-            
+            const { data: user } = await supabase
+                .from('users')
+                .select('*')
+                .eq('stripe_customer_id', subscription.customer)
+                .single();
+
             if (user) {
-                user.subscriptionStatus = subscription.status;
-                
+                const updateData = {};
+
                 if (subscription.status === 'active') {
-                    user.isPaid = true;
-                    user.isActive = true;
+                    updateData.status = 'paid';
                 } else if (subscription.status === 'canceled') {
-                    user.autoRenewal = false;
+                    updateData.status = 'churned';
                 }
-                
-                await user.save();
-                logger.info(`Subscription updated for user ${user.email} to ${subscription.status}`);
+
+                if (Object.keys(updateData).length > 0) {
+                    await supabase
+                        .from('users')
+                        .update(updateData)
+                        .eq('id', user.id);
+
+                    logger.info(`Subscription updated for user ${user.email} to ${subscription.status}`);
+                }
             }
         }
     } catch (error) {
@@ -1937,25 +1678,26 @@ async function handleSubscriptionChange(subscription) {
 }
 
 // Email template
-const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = false) => {
+const createActivationEmailHTML = (user, activationLink, lang) => {
     const t = messages[lang] || messages.fr;
-    
-    // ALWAYS show both options - web and desktop
+    const firstName = user.first_name || user.firstName || '';
+    const lastName = user.last_name || user.lastName || '';
+    const activationCode = user.activation_code || user.activationCode || '';
+
     const optionsSection = `
         <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); border: 1px solid #2196F3; border-radius: 8px; padding: 20px; margin: 20px 0;">
             <h3 style="color: #1565C0; margin-top: 0; text-align: center;">
                 ${lang === 'fr' ? '🎯 Choisissez votre méthode de travail' : '🎯 Choose your work method'}
             </h3>
-            
-            <!-- Option 1: Web Platform -->
+
             <div style="background: white; border-radius: 8px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <h4 style="color: #296396; margin: 0 0 10px 0;">
                     🌐 ${lang === 'fr' ? 'Option 1: Plateforme Web' : 'Option 1: Web Platform'}
                 </h4>
                 <p style="color: #666; margin: 10px 0;">
-                    ${lang === 'fr' 
-                        ? 'Accédez à SyncVoice Medical depuis n\'importe quel navigateur. Idéal pour une utilisation immédiate sans installation.'
-                        : 'Access SyncVoice Medical from any browser. Ideal for immediate use without installation.'
+                    ${lang === 'fr'
+                        ? 'Accédez à SyncVoice Medical depuis n\'importe quel navigateur.'
+                        : 'Access SyncVoice Medical from any browser.'
                     }
                 </p>
                 <div style="text-align: center; margin: 15px 0;">
@@ -1964,52 +1706,38 @@ const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = 
                         ${lang === 'fr' ? '🚀 Lancer la plateforme web' : '🚀 Launch web platform'}
                     </a>
                 </div>
-                <p style="color: #999; font-size: 12px; margin: 5px 0; text-align: center;">
-                    ${lang === 'fr' 
-                        ? 'Fonctionne avec Chrome, Edge, Safari'
-                        : 'Works with Chrome, Edge, Safari'
-                    }
-                </p>
             </div>
-            
-            <!-- Option 2: Desktop Application -->
+
             <div style="background: white; border-radius: 8px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <h4 style="color: #296396; margin: 0 0 10px 0;">
                     💻 ${lang === 'fr' ? 'Option 2: Application Bureau' : 'Option 2: Desktop Application'}
                 </h4>
                 <p style="color: #666; margin: 10px 0;">
-                    ${lang === 'fr' 
-                        ? 'Téléchargez l\'application Windows pour une intégration directe avec Word, Excel, PowerPoint. Transcription instantanée avec Ctrl+Shift+D.'
-                        : 'Download the Windows application for direct integration with Word, Excel, PowerPoint. Instant transcription with Ctrl+Shift+D.'
+                    ${lang === 'fr'
+                        ? 'Téléchargez l\'application Windows pour une intégration directe avec Word, Excel, PowerPoint.'
+                        : 'Download the Windows application for direct integration with Word, Excel, PowerPoint.'
                     }
                 </p>
                 <div style="text-align: center; margin: 15px 0;">
-                    <a href="${BASE_URL}/api/download-desktop?lang=${lang}&email=${encodeURIComponent(user.email)}&code=${user.activationCode}&source=email"
+                    <a href="${BASE_URL}/api/download-desktop?lang=${lang}&email=${encodeURIComponent(user.email)}&code=${activationCode}&source=email"
                        style="display: inline-block; background-color: #296396; color: white; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold;">
                         ${lang === 'fr' ? '⬇️ Télécharger pour Windows' : '⬇️ Download for Windows'}
                     </a>
                 </div>
-                <p style="color: #999; font-size: 12px; margin: 5px 0; text-align: center;">
-                    ${lang === 'fr' 
-                        ? 'Windows 10 ou supérieur • 200 MB'
-                        : 'Windows 10 or higher • 200 MB'
-                    }
-                </p>
             </div>
-            
-            <!-- Important Note about Activation Code -->
+
             <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 12px; margin-top: 15px;">
                 <p style="margin: 0; color: #856404; font-size: 14px; text-align: center;">
                     <strong>⚠️ ${lang === 'fr' ? 'Important' : 'Important'}:</strong><br>
-                    ${lang === 'fr' 
-                        ? 'Votre code d\'activation <strong style="font-family: monospace; font-size: 16px; color: #296396;">' + user.activationCode + '</strong> fonctionne pour les DEUX options.<br>Conservez-le précieusement !'
-                        : 'Your activation code <strong style="font-family: monospace; font-size: 16px; color: #296396;">' + user.activationCode + '</strong> works for BOTH options.<br>Keep it safe!'
+                    ${lang === 'fr'
+                        ? 'Votre code d\'activation <strong style="font-family: monospace; font-size: 16px; color: #296396;">' + activationCode + '</strong> fonctionne pour les DEUX options.'
+                        : 'Your activation code <strong style="font-family: monospace; font-size: 16px; color: #296396;">' + activationCode + '</strong> works for BOTH options.'
                     }
                 </p>
             </div>
         </div>
     `;
-    
+
     return `
     <!DOCTYPE html>
     <html>
@@ -2019,98 +1747,54 @@ const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = 
     </head>
     <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
         <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <!-- Header -->
             <div style="background: linear-gradient(135deg, #296396, #69B578); padding: 30px; text-align: center;">
                 <h1 style="color: white; margin: 0; font-size: 28px;">SyncVoice Medical</h1>
                 <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">
                     ${lang === 'fr' ? 'Transcription Médicale Intelligente' : 'Intelligent Medical Transcription'}
                 </p>
             </div>
-            
-            <!-- Content -->
+
             <div style="padding: 30px;">
                 <p style="margin: 0 0 20px 0; font-size: 24px; color: #333333;">
-                    ${t.greeting} ${user.firstName} ${user.lastName},
+                    ${t.greeting} ${firstName} ${lastName},
                 </p>
-                
+
                 <p style="margin: 20px 0; color: #666666; line-height: 1.6;">
                     ${t.thankyou}
                 </p>
-                
-                <!-- Activation Code Display -->
+
                 <div style="text-align: center; margin: 30px 0;">
                     <p style="color: #666; margin-bottom: 10px; font-size: 16px;">
                         ${t.codeLabel}
                     </p>
                     <div style="display: inline-block; background-color: #f8f9fa; border: 2px solid #69B578; padding: 20px 30px; border-radius: 8px;">
                         <span style="font-family: monospace; font-size: 32px; font-weight: bold; color: #296396; letter-spacing: 3px;">
-                            ${user.activationCode}
+                            ${activationCode}
                         </span>
                     </div>
                 </div>
-                
-                <!-- Options Section (ALWAYS SHOWN) -->
+
                 ${optionsSection}
-                
-                <!-- Quick Start Guide -->
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <h3 style="color: #296396; margin-top: 0;">
-                        ${lang === 'fr' ? '🚀 Guide de démarrage rapide' : '🚀 Quick Start Guide'}
-                    </h3>
-                    
-                    <div style="margin: 15px 0;">
-                        <strong style="color: #69B578;">
-                            ${lang === 'fr' ? 'Pour la plateforme web:' : 'For web platform:'}
-                        </strong>
-                        <ol style="color: #666; margin: 5px 0; padding-left: 20px;">
-                            <li>${lang === 'fr' ? 'Cliquez sur "Lancer la plateforme web"' : 'Click "Launch web platform"'}</li>
-                            <li>${lang === 'fr' ? 'Votre compte sera automatiquement activé' : 'Your account will be automatically activated'}</li>
-                            <li>${lang === 'fr' ? 'Commencez à transcrire immédiatement' : 'Start transcribing immediately'}</li>
-                        </ol>
-                    </div>
-                    
-                    <div style="margin: 15px 0;">
-                        <strong style="color: #296396;">
-                            ${lang === 'fr' ? 'Pour l\'application bureau:' : 'For desktop application:'}
-                        </strong>
-                        <ol style="color: #666; margin: 5px 0; padding-left: 20px;">
-                            <li>${lang === 'fr' ? 'Cliquez sur "Télécharger pour Windows"' : 'Click "Download for Windows"'}</li>
-                            <li>${lang === 'fr' ? 'Installez l\'application' : 'Install the application'}</li>
-                            <li>${lang === 'fr' ? 'Entrez votre email et le code d\'activation ci-dessus' : 'Enter your email and the activation code above'}</li>
-                            <li>${lang === 'fr' ? 'Utilisez Ctrl+Shift+D dans n\'importe quel logiciel' : 'Use Ctrl+Shift+D in any software'}</li>
-                        </ol>
-                    </div>
-                </div>
-                
-                <!-- Support -->
+
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0;">
                     <p style="margin: 0; color: #856404;">
                         <strong>${lang === 'fr' ? '💡 Besoin d\'aide?' : '💡 Need help?'}</strong><br>
-                        ${lang === 'fr' 
+                        ${lang === 'fr'
                             ? 'Support technique: support@syncvoicemedical.com'
                             : 'Technical support: support@syncvoicemedical.com'
                         }
                     </p>
                 </div>
             </div>
-            
-            <!-- Footer -->
+
             <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
                 <p style="margin: 0; color: #666; font-size: 14px;">
                     © 2025 SyncVoice Medical. ${lang === 'fr' ? 'Tous droits réservés.' : 'All rights reserved.'}
                 </p>
-                <p style="margin: 10px 0 0 0; color: #999; font-size: 12px;">
-                    ${lang === 'fr' 
-                        ? 'Cet email a été envoyé suite à votre inscription sur SyncVoice Medical.'
-                        : 'This email was sent following your registration on SyncVoice Medical.'
-                    }
-                </p>
             </div>
-  </div>
-    
-    <!-- Email Open Tracking Pixel -->
-    <img src="${BASE_URL}/api/email-open?email=${encodeURIComponent(user.email)}&campaign=trial_activation" width="1" height="1" style="display:none;" alt="">
-    
+        </div>
+
+        <img src="${BASE_URL}/api/email-open?email=${encodeURIComponent(user.email)}&campaign=trial_activation" width="1" height="1" style="display:none;" alt="">
     </body>
     </html>`;
 };
@@ -2118,21 +1802,19 @@ const createActivationEmailHTML = (user, activationLink, lang, downloadIntent = 
 // Version endpoint
 app.get('/api/version', (req, res) => {
     res.json({
-        version: '1.0.3',
+        version: '2.0.0-supabase',
         deployedAt: new Date().toISOString(),
-        hasGenerateFunction: true,
-        baseUrlFix: true,
+        database: 'Supabase (PostgreSQL)',
         currentBaseUrl: BASE_URL,
-        message: 'SyncVoiceMedical API v1.0.3 - Production Ready'
+        message: 'SyncVoiceMedical API v2.0.0 - Supabase Edition'
     });
 });
 
-// DIAGNOSTIC ENDPOINT - Check activation code status
-// Usage: GET /api/check-activation?email=user@example.com&code=ABC123
+// Check activation endpoint
 app.get('/api/check-activation', async (req, res) => {
     try {
         const { email, code } = req.query;
-        
+
         if (!email) {
             return res.status(400).json({
                 success: false,
@@ -2140,18 +1822,22 @@ app.get('/api/check-activation', async (req, res) => {
                 usage: '/api/check-activation?email=user@example.com&code=ABC123'
             });
         }
-        
-        const dbState = checkMongoConnection();
+
+        const dbState = await checkSupabaseConnection();
         if (!dbState.isConnected) {
             return res.status(503).json({
                 success: false,
                 message: 'Database connection unavailable'
             });
         }
-        
-        const user = await User.findOne({ email: email.toLowerCase() });
-        
-        if (!user) {
+
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .single();
+
+        if (error || !user) {
             return res.json({
                 success: false,
                 diagnostic: {
@@ -2160,44 +1846,44 @@ app.get('/api/check-activation', async (req, res) => {
                 }
             });
         }
-        
-        // Build diagnostic info
+
+        const endDate = user.subscription_type === 'free' ? user.trial_end_date : user.subscription_end;
+        const isExpired = endDate ? new Date() > new Date(endDate) : true;
+
         const diagnostic = {
             emailFound: true,
             email: user.email,
-            storedActivationCode: user.activationCode,
+            storedActivationCode: user.activation_code,
             providedCode: code || 'NOT PROVIDED',
-            codeMatch: code ? (user.activationCode?.toUpperCase() === code.toUpperCase()) : 'NOT TESTED',
-            isActive: user.isActive,
-            version: user.version,
-            activationCodeExpiry: user.activationCodeExpiry,
-            isExpired: user.isCodeExpired ? user.isCodeExpired() : 'Unknown',
-            daysRemaining: user.daysUntilExpiration ? user.daysUntilExpiration() : 'Unknown',
-            createdAt: user.createdAt,
-            lastLoginAt: user.lastLoginAt
+            codeMatch: code ? (user.activation_code?.toUpperCase() === code.toUpperCase()) : 'NOT TESTED',
+            isActive: user.is_verified,
+            status: user.status,
+            subscriptionType: user.subscription_type,
+            isExpired,
+            daysRemaining: calculateDaysRemaining(endDate),
+            createdAt: user.created_at
         };
-        
-        // Add recommendation
+
         let recommendation = '';
-        if (!user.activationCode) {
-            recommendation = 'No activation code set. User may need to re-register or request a new code.';
-        } else if (code && user.activationCode.toUpperCase() !== code.toUpperCase()) {
-            recommendation = `Code mismatch! Expected: "${user.activationCode}", Received: "${code}". Check for typos or extra spaces.`;
-        } else if (!user.isActive) {
-            recommendation = 'Account not activated. User needs to click the activation link in their email.';
-        } else if (diagnostic.isExpired) {
-            recommendation = 'Account has expired. User needs to renew their subscription.';
+        if (!user.activation_code) {
+            recommendation = 'No activation code set. User may need to re-register.';
+        } else if (code && user.activation_code.toUpperCase() !== code.toUpperCase()) {
+            recommendation = `Code mismatch! Expected: "${user.activation_code}", Received: "${code}".`;
+        } else if (!user.is_verified) {
+            recommendation = 'Account not activated. User needs to click the activation link.';
+        } else if (isExpired) {
+            recommendation = 'Account has expired. User needs to renew.';
         } else if (code && diagnostic.codeMatch) {
-            recommendation = 'All checks passed! Code should work. Check if desktop app is sending the code correctly.';
+            recommendation = 'All checks passed! Code should work.';
         }
-        
+
         diagnostic.recommendation = recommendation;
-        
+
         return res.json({
             success: true,
             diagnostic
         });
-        
+
     } catch (error) {
         logger.error('Diagnostic endpoint error:', error);
         return res.status(500).json({
@@ -2210,7 +1896,7 @@ app.get('/api/check-activation', async (req, res) => {
 // User details route
 app.get('/api/user-details/:email', async (req, res) => {
     try {
-        const dbState = checkMongoConnection();
+        const dbState = await checkSupabaseConnection();
         if (!dbState.isConnected) {
             return res.status(503).json({
                 success: false,
@@ -2219,39 +1905,39 @@ app.get('/api/user-details/:email', async (req, res) => {
         }
 
         const { email } = req.params;
-        
-        const user = await User.findOne({ email: email.toLowerCase() });
-        
-        if (!user) {
+
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .single();
+
+        if (error || !user) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
 
+        const endDate = user.subscription_type === 'free' ? user.trial_end_date : user.subscription_end;
+
         const userData = {
-            firstName: user.firstName,
-            lastName: user.lastName,
+            firstName: user.first_name,
+            lastName: user.last_name,
             email: user.email,
-            company: user.company || '',
-            address: user.address || '',
-            postalCode: user.postalCode || '',
-            city: user.city || '',
-            country: user.country || '',
-            activationCode: user.activationCode,
-            validationStartDate: user.validationStartDate || user.createdAt,
-            validationEndDate: user.version === 'free' ? user.activationCodeExpiry : user.validationEndDate,
-            autoRenewal: user.autoRenewal || false,
-            version: user.version,
-            isActive: user.isActive,
-            daysRemaining: user.daysUntilExpiration()
+            activationCode: user.activation_code,
+            validationStartDate: user.subscription_start || user.trial_start_date || user.created_at,
+            validationEndDate: endDate,
+            version: user.subscription_type,
+            isActive: user.is_verified,
+            daysRemaining: calculateDaysRemaining(endDate)
         };
-        
+
         res.json({
             success: true,
             user: userData
         });
-        
+
     } catch (error) {
         logger.error('Error fetching user details:', error);
         res.status(500).json({
@@ -2269,47 +1955,39 @@ app.get('/api/test-deepgram', async (req, res) => {
                 success: false,
                 message: 'Deepgram API key not configured',
                 hasApiKey: false,
-                instructions: 'Add DEEPGRAM_API_KEY environment variable in Render.com'
+                instructions: 'Add DEEPGRAM_API_KEY environment variable'
             });
         }
-        
+
         const apiKey = process.env.DEEPGRAM_API_KEY;
-        
+
         try {
             const response = await axios.get('https://api.deepgram.com/v1/projects', {
-                headers: {
-                    'Authorization': `Token ${apiKey}`,
-                },
+                headers: { 'Authorization': `Token ${apiKey}` },
                 timeout: 10000
             });
-            
+
             res.json({
                 success: true,
                 message: 'Deepgram API configured and accessible',
                 hasApiKey: true,
                 apiKeyPrefix: apiKey.substring(0, 8) + '...',
-                apiKeyLength: apiKey.length,
                 apiStatus: 'connected',
-                projectsCount: response.data?.projects?.length || 0,
-                testTime: new Date().toISOString()
+                projectsCount: response.data?.projects?.length || 0
             });
-            
+
         } catch (apiError) {
             res.json({
                 success: false,
                 message: 'Deepgram API key configured but connection failed',
                 hasApiKey: true,
-                apiKeyPrefix: apiKey.substring(0, 8) + '...',
-                apiKeyLength: apiKey.length,
                 apiStatus: 'error',
-                error: apiError.response?.data || apiError.message,
-                statusCode: apiError.response?.status,
-                instructions: 'Check if your Deepgram API key is valid and active'
+                error: apiError.response?.data || apiError.message
             });
         }
-        
+
     } catch (error) {
-        logger.error('❌ Deepgram test error:', error);
+        logger.error('Deepgram test error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error testing Deepgram',
@@ -2322,27 +2000,27 @@ app.get('/api/test-deepgram', async (req, res) => {
 app.get('/api/download-desktop', async (req, res) => {
     try {
         const { lang, email, code, source } = req.query;
-        
+
         logger.info('Desktop download request:', { lang, email, code, source });
-        
+
         if (email && code) {
-            const user = await User.findOne({ 
-                email: email.toLowerCase(),
-                activationCode: code
-            });
-            
-            if (!user) {
+            const { data: user, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('email', email.toLowerCase())
+                .eq('activation_code', code)
+                .single();
+
+            if (error || !user) {
                 return res.status(401).json({
                     success: false,
                     message: 'Invalid credentials. Please register first.'
                 });
             }
         }
-        
-        // Serve the file directly from your server
+
         const filePath = path.join(__dirname, 'public', 'downloads', 'SyncVoiceMedical-Setup.exe');
-        
-        // Check if file exists
+
         if (!fs.existsSync(filePath)) {
             logger.error('Desktop installer file not found at:', filePath);
             return res.status(404).json({
@@ -2350,12 +2028,10 @@ app.get('/api/download-desktop', async (req, res) => {
                 message: 'Desktop application file not found. Please contact support.'
             });
         }
-        
-        // Set appropriate headers for download
+
         res.setHeader('Content-Type', 'application/octet-stream');
         res.setHeader('Content-Disposition', 'attachment; filename="SyncVoiceMedical-Setup.exe"');
-        
-        // Send the file
+
         res.download(filePath, 'SyncVoiceMedical-Setup.exe', (err) => {
             if (err) {
                 logger.error('Error sending file:', err);
@@ -2367,23 +2043,45 @@ app.get('/api/download-desktop', async (req, res) => {
                 }
             }
         });
-        
+
     } catch (error) {
         logger.error('Desktop download error:', error);
         res.status(500).json({
             success: false,
-            message: 'Download service temporarily unavailable. Please try again later.'
+            message: 'Download service temporarily unavailable.'
         });
+    }
+});
+
+// Unsubscribe endpoint
+app.get('/api/unsubscribe', async (req, res) => {
+    try {
+        const { email } = req.query;
+
+        if (!email) {
+            return res.status(400).send('Email required');
+        }
+
+        await supabase
+            .from('users')
+            .update({ status: 'unsubscribed' })
+            .eq('email', email.toLowerCase());
+
+        res.redirect('/unsubscribed.html?email=' + encodeURIComponent(email));
+
+    } catch (error) {
+        logger.error('Unsubscribe error:', error);
+        res.redirect('/error.html');
     }
 });
 
 // Keep alive ping (for free tier hosting)
 if (process.env.NODE_ENV === 'production') {
     setInterval(() => {
-        axios.get(`${BASE_URL}/health`)
+        axios.get(`${BASE_URL}/healthz`)
             .then(() => logger.info('Keep-alive ping successful'))
             .catch(err => logger.error('Keep-alive ping failed:', err.message));
-    }, 14 * 60 * 1000); // Every 14 minutes
+    }, 14 * 60 * 1000);
 }
 
 // Catch unmatched API routes
@@ -2399,9 +2097,9 @@ app.use('/api/*', (req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
     logger.error('Unhandled Error:', err);
-    
+
     const statusCode = err.statusCode || err.status || 500;
-    
+
     res.status(statusCode).json({
         success: false,
         error: {
@@ -2415,10 +2113,12 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
 
-const server = app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, async () => {
     logger.info(`Server running on http://${HOST}:${PORT}`);
     logger.info('Environment:', process.env.NODE_ENV);
-    logger.info('MongoDB Connection State:', checkMongoConnection());
+    logger.info('Database: Supabase (PostgreSQL)');
+    const dbState = await checkSupabaseConnection();
+    logger.info('Supabase Connection State:', dbState);
     logger.info('WebSocket server is ready on the same port');
 });
 
@@ -2435,37 +2135,9 @@ function mapLanguageForDeepgram(clientLanguage) {
         'it': 'it',
         'pt': 'pt'
     };
-    
-    const mappedLanguage = languageMap[clientLanguage] || 'en';
-    logger.info(`Language mapping: ${clientLanguage} → ${mappedLanguage}`);
-    return mappedLanguage;
+
+    return languageMap[clientLanguage] || 'en';
 }
-
-app.get('/api/unsubscribe', async (req, res) => {
-    try {
-        const { email, id } = req.query;
-        
-        if (!email) {
-            return res.status(400).send('Email required');
-        }
-        
-        const user = await User.findOne({ email: email.toLowerCase() });
-        
-        if (user) {
-            user.subscriptionStatus = 'unsubscribed';
-            user.unsubscribedAt = new Date();
-            await user.save();
-        }
-        
-        // Redirect to unsubscribe confirmation page
-        res.redirect('/unsubscribed.html?email=' + encodeURIComponent(email));
-        
-    } catch (error) {
-        logger.error('Unsubscribe error:', error);
-        res.redirect('/error.html');
-    }
-});
-
 
 // Store active WebSocket connections
 const activeConnections = new Map();
@@ -2474,7 +2146,7 @@ const activeConnections = new Map();
 wss.on('connection', (ws, req) => {
     const connectionId = crypto.randomBytes(16).toString('hex');
     logger.info(`New WebSocket connection: ${connectionId}`);
-    
+
     activeConnections.set(connectionId, {
         ws,
         authenticated: false,
@@ -2483,31 +2155,33 @@ wss.on('connection', (ws, req) => {
         clientType: 'unknown',
         audioChunks: []
     });
-    
+
     ws.send(JSON.stringify({
         type: 'connection',
         connectionId,
         status: 'connected'
     }));
-    
+
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
             const connection = activeConnections.get(connectionId);
-            
+
             logger.info(`Message from ${connectionId}: ${data.type}`);
-            
+
             switch (data.type) {
                 case 'auth':
                     const { email, activationCode, clientType } = data;
-                    
-                    // Enhanced logging for debugging connection issues
-                    logger.info(`🔐 Auth attempt - Email: ${email}, Code: ${activationCode ? activationCode.substring(0, 2) + '***' : 'missing'}, ClientType: ${clientType}`);
-                    
-                    // First, find user by email only to check if account exists
-                    const userByEmail = await User.findOne({ email: email.toLowerCase() });
-                    
-                    if (!userByEmail) {
+
+                    logger.info(`🔐 Auth attempt - Email: ${email}, Code: ${activationCode ? activationCode.substring(0, 2) + '***' : 'missing'}`);
+
+                    const { data: userByEmail, error: userError } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('email', email.toLowerCase())
+                        .single();
+
+                    if (userError || !userByEmail) {
                         logger.warn(`❌ Auth failed - No user found with email: ${email}`);
                         ws.send(JSON.stringify({
                             type: 'auth',
@@ -2516,13 +2190,12 @@ wss.on('connection', (ws, req) => {
                         }));
                         break;
                     }
-                    
-                    // Check if activation code matches (case-insensitive comparison)
-                    const codeMatches = userByEmail.activationCode && 
-                        userByEmail.activationCode.toUpperCase() === activationCode.toUpperCase();
-                    
+
+                    const codeMatches = userByEmail.activation_code &&
+                        userByEmail.activation_code.toUpperCase() === activationCode.toUpperCase();
+
                     if (!codeMatches) {
-                        logger.warn(`❌ Auth failed - Code mismatch for ${email}. Expected: ${userByEmail.activationCode}, Received: ${activationCode}`);
+                        logger.warn(`❌ Auth failed - Code mismatch for ${email}`);
                         ws.send(JSON.stringify({
                             type: 'auth',
                             status: 'error',
@@ -2530,9 +2203,8 @@ wss.on('connection', (ws, req) => {
                         }));
                         break;
                     }
-                    
-                    // Check if account is active
-                    if (!userByEmail.isActive) {
+
+                    if (!userByEmail.is_verified) {
                         logger.warn(`❌ Auth failed - Account not activated for ${email}`);
                         ws.send(JSON.stringify({
                             type: 'auth',
@@ -2541,9 +2213,8 @@ wss.on('connection', (ws, req) => {
                         }));
                         break;
                     }
-                    
-                    // Check if account is expired
-                    if (userByEmail.isCodeExpired && userByEmail.isCodeExpired()) {
+
+                    if (isSubscriptionExpired(userByEmail)) {
                         logger.warn(`❌ Auth failed - Account expired for ${email}`);
                         ws.send(JSON.stringify({
                             type: 'auth',
@@ -2552,38 +2223,25 @@ wss.on('connection', (ws, req) => {
                         }));
                         break;
                     }
-                    
-                    // All checks passed - authenticate
-                    const user = userByEmail;
+
                     connection.authenticated = true;
                     connection.email = email.toLowerCase();
-                    connection.language = user.language || 'en';
+                    connection.language = userByEmail.language || 'en';
                     connection.clientType = clientType || 'desktop';
-                    
-                    let daysRemaining = 0;
-                    try {
-                        if (user.daysUntilExpiration && typeof user.daysUntilExpiration === 'function') {
-                            daysRemaining = user.daysUntilExpiration();
-                        } else if (user.validationEndDate) {
-                            const now = new Date();
-                            const endDate = new Date(user.validationEndDate);
-                            daysRemaining = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)));
-                        }
-                    } catch (dateError) {
-                        logger.warn('Error calculating days remaining:', dateError.message);
-                        daysRemaining = 0;
-                    }
-                    
+
+                    const endDate = userByEmail.subscription_type === 'free' ? userByEmail.trial_end_date : userByEmail.subscription_end;
+                    const daysRemaining = calculateDaysRemaining(endDate);
+
                     logger.info(`✅ Auth success - ${email} connected (${daysRemaining} days remaining)`);
-                    
+
                     ws.send(JSON.stringify({
                         type: 'auth',
                         status: 'success',
                         user: {
-                            firstName: user.firstName,
-                            lastName: user.lastName,
-                            email: user.email,
-                            daysRemaining: daysRemaining
+                            firstName: userByEmail.first_name,
+                            lastName: userByEmail.last_name,
+                            email: userByEmail.email,
+                            daysRemaining
                         },
                         language: connection.language,
                         clientType: connection.clientType
@@ -2592,273 +2250,187 @@ wss.on('connection', (ws, req) => {
 
                 case 'updateLanguage':
                     if (!connection.authenticated) {
-                        ws.send(JSON.stringify({
-                            type: 'error',
-                            message: 'Not authenticated'
-                        }));
+                        ws.send(JSON.stringify({ type: 'error', message: 'Not authenticated' }));
                         return;
                     }
-                    
+
                     const { language } = data;
                     if (language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(language)) {
                         connection.language = language;
-                        ws.send(JSON.stringify({
-                            type: 'languageUpdated',
-                            language: language
-                        }));
+                        ws.send(JSON.stringify({ type: 'languageUpdated', language }));
                     } else {
-                        ws.send(JSON.stringify({
-                            type: 'error',
-                            message: 'Invalid language specified'
-                        }));
+                        ws.send(JSON.stringify({ type: 'error', message: 'Invalid language specified' }));
                     }
                     break;
-                    
+
                 case 'startTranscription':
                     if (!connection.authenticated) {
-                        ws.send(JSON.stringify({
-                            type: 'error',
-                            message: 'Not authenticated'
-                        }));
+                        ws.send(JSON.stringify({ type: 'error', message: 'Not authenticated' }));
                         return;
                     }
-                    
+
                     const transcriptionLanguage = data.language || connection.language || 'en';
-                    
+
                     if (['fr', 'en', 'de', 'es', 'it', 'pt'].includes(transcriptionLanguage)) {
-                        if (connection.language !== transcriptionLanguage) {
-                            connection.language = transcriptionLanguage;
-                        }
+                        connection.language = transcriptionLanguage;
                     }
-                    
+
                     connection.audioChunks = [];
-                    
+
                     ws.send(JSON.stringify({
                         type: 'transcriptionStarted',
                         clientType: connection.clientType,
                         language: connection.language
                     }));
                     break;
-                    
+
                 case 'audioChunk':
-                    if (!connection.authenticated) {
-                        return;
-                    }
-                    
+                    if (!connection.authenticated) return;
+
                     const totalSize = connection.audioChunks.reduce((sum, chunk) => sum + chunk.length, 0);
                     if (totalSize > MAX_AUDIO_SIZE) {
                         connection.audioChunks = [];
-                        ws.send(JSON.stringify({
-                            type: 'error',
-                            message: 'Audio size limit exceeded'
-                        }));
+                        ws.send(JSON.stringify({ type: 'error', message: 'Audio size limit exceeded' }));
                         return;
                     }
-                    
+
                     if (data.audio && typeof data.audio === 'string') {
                         const chunkBuffer = Buffer.from(data.audio, 'base64');
                         connection.audioChunks.push(chunkBuffer);
                     }
-                    
+
                     ws.send(JSON.stringify({
                         type: 'audioChunkReceived',
                         chunkIndex: connection.audioChunks.length - 1,
                         totalSize: connection.audioChunks.reduce((sum, chunk) => sum + chunk.length, 0)
                     }));
                     break;
-                    
+
                 case 'audioComplete':
-    if (!connection.authenticated) {
-        return;
-    }
-    
-    if (data.language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(data.language)) {
-        connection.language = data.language;
-    }
-    
-    try {
-        let audioBuffer = null;
-        
-        if (data.audio && typeof data.audio === 'string') {
-            audioBuffer = Buffer.from(data.audio, 'base64');
-        } else {
-            ws.send(JSON.stringify({
-                type: 'transcriptionError',
-                message: 'No audio data provided'
-            }));
-            return;
-        }
-        
-        // Enhanced logging for debugging
-        logger.info(`Audio received from desktop client:`, {
-            bufferSize: audioBuffer.length,
-            mimeType: data.mimeType,
-            language: connection.language,
-            email: connection.email
-        });
-        
-        if (!audioBuffer || audioBuffer.length < 100) {
-            ws.send(JSON.stringify({
-                type: 'transcriptionResult',
-                transcript: '',
-                isFinal: true,
-                message: 'Audio too short or empty'
-            }));
-            return;
-        }
-        
-        if (!process.env.DEEPGRAM_API_KEY) {
-            logger.error('Deepgram API key not configured');
-            ws.send(JSON.stringify({
-                type: 'transcriptionError',
-                message: 'Transcription service not configured'
-            }));
-            return;
-        }
-        
-        const deepgramLanguage = mapLanguageForDeepgram(connection.language);
-        
-        // CRITICAL FIX: Properly handle WebM/Opus format from desktop client
-        let contentType = 'audio/webm';
-        let deepgramParams = `model=general&punctuate=true&smart_format=true&language=${deepgramLanguage}`;
-        
-        // Add specific handling for desktop client audio
-        if (data.mimeType) {
-            if (data.mimeType.includes('webm')) {
-                contentType = 'audio/webm';
-                // Add specific encoding for WebM/Opus
-                deepgramParams += '&encoding=opus';
-            } else if (data.mimeType.includes('wav')) {
-                contentType = 'audio/wav';
-                deepgramParams += '&encoding=linear16&sample_rate=16000&channels=1';
-            } else if (data.mimeType.includes('mp3')) {
-                contentType = 'audio/mp3';
-            } else if (data.mimeType.includes('ogg')) {
-                contentType = 'audio/ogg';
-            }
-        }
-        
-        // Add detect_language if needed
-        if (deepgramLanguage === 'en') {
-            // For English, try with detect_language as fallback
-            deepgramParams += '&detect_language=true';
-        }
-        
-        const deepgramUrl = `https://api.deepgram.com/v1/listen?${deepgramParams}`;
-        
-        logger.info('Sending to Deepgram:', {
-            url: deepgramUrl,
-            contentType: contentType,
-            bufferSize: audioBuffer.length,
-            language: deepgramLanguage
-        });
-        
-        const response = await axios.post(deepgramUrl, audioBuffer, {
-            headers: {
-                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
-                'Content-Type': contentType
-            },
-            timeout: 30000,
-            maxContentLength: 50 * 1024 * 1024,
-            maxBodyLength: 50 * 1024 * 1024
-        });
-        
-        logger.info('Deepgram response received:', {
-            hasResults: !!response.data?.results,
-            channels: response.data?.results?.channels?.length,
-            status: response.status
-        });
-        
-        let transcript = '';
-        try {
-            const results = response.data?.results;
-            if (results && results.channels && results.channels[0] && 
-                results.channels[0].alternatives && results.channels[0].alternatives[0]) {
-                transcript = results.channels[0].alternatives[0].transcript || '';
-                
-                // Log detected language if available
-                if (results.channels[0].detected_language) {
-                    logger.info('Deepgram detected language:', results.channels[0].detected_language);
-                }
-            }
-            
-            // Additional debug logging
-            if (!transcript) {
-                logger.warn('No transcript extracted from Deepgram response:', {
-                    fullResponse: JSON.stringify(response.data, null, 2)
-                });
-            }
-        } catch (extractError) {
-            logger.error('Error extracting transcript:', extractError.message);
-        }
-        
-        if (transcript && transcript.trim()) {
-            logger.info(`✅ Transcription successful: "${transcript.substring(0, 50)}..."`);
-            ws.send(JSON.stringify({
-                type: 'transcriptionResult',
-                transcript: transcript.trim(),
-                isFinal: true,
-                source: 'deepgram',
-                language: deepgramLanguage,
-                confidence: response.data?.results?.channels?.[0]?.alternatives?.[0]?.confidence || null
-            }));
-        } else {
-            logger.warn('Empty transcript returned from Deepgram');
-            
-            // Send debug info to client
-            ws.send(JSON.stringify({
-                type: 'transcriptionResult',
-                transcript: '',
-                isFinal: true,
-                source: 'deepgram',
-                language: deepgramLanguage,
-                message: 'No speech detected in audio',
-                debug: {
-                    audioSize: audioBuffer.length,
-                    contentType: contentType,
-                    language: deepgramLanguage
-                }
-            }));
-        }
-        
-    } catch (error) {
-        logger.error('Audio processing error:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status
-        });
-        
-        // More detailed error message
-        let errorMessage = 'Transcription failed: ';
-        if (error.response?.data?.err_msg) {
-            errorMessage += error.response.data.err_msg;
-        } else if (error.response?.data?.message) {
-            errorMessage += error.response.data.message;
-        } else {
-            errorMessage += error.message;
-        }
-        
-        ws.send(JSON.stringify({
-            type: 'transcriptionError',
-            message: errorMessage,
-            source: 'server',
-            details: error.response?.data
-        }));
-    }
-    break;
-                    
-                case 'stopTranscription':
-                    if (!connection.authenticated) {
-                        return;
+                    if (!connection.authenticated) return;
+
+                    if (data.language && ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(data.language)) {
+                        connection.language = data.language;
                     }
-                    
+
+                    try {
+                        let audioBuffer = null;
+
+                        if (data.audio && typeof data.audio === 'string') {
+                            audioBuffer = Buffer.from(data.audio, 'base64');
+                        } else {
+                            ws.send(JSON.stringify({ type: 'transcriptionError', message: 'No audio data provided' }));
+                            return;
+                        }
+
+                        logger.info(`Audio received from desktop client:`, {
+                            bufferSize: audioBuffer.length,
+                            mimeType: data.mimeType,
+                            language: connection.language,
+                            email: connection.email
+                        });
+
+                        if (!audioBuffer || audioBuffer.length < 100) {
+                            ws.send(JSON.stringify({
+                                type: 'transcriptionResult',
+                                transcript: '',
+                                isFinal: true,
+                                message: 'Audio too short or empty'
+                            }));
+                            return;
+                        }
+
+                        if (!process.env.DEEPGRAM_API_KEY) {
+                            logger.error('Deepgram API key not configured');
+                            ws.send(JSON.stringify({ type: 'transcriptionError', message: 'Transcription service not configured' }));
+                            return;
+                        }
+
+                        const deepgramLanguage = mapLanguageForDeepgram(connection.language);
+
+                        let contentType = 'audio/webm';
+                        let deepgramParams = `model=general&punctuate=true&smart_format=true&language=${deepgramLanguage}`;
+
+                        if (data.mimeType) {
+                            if (data.mimeType.includes('webm')) {
+                                contentType = 'audio/webm';
+                                deepgramParams += '&encoding=opus';
+                            } else if (data.mimeType.includes('wav')) {
+                                contentType = 'audio/wav';
+                                deepgramParams += '&encoding=linear16&sample_rate=16000&channels=1';
+                            } else if (data.mimeType.includes('mp3')) {
+                                contentType = 'audio/mp3';
+                            } else if (data.mimeType.includes('ogg')) {
+                                contentType = 'audio/ogg';
+                            }
+                        }
+
+                        if (deepgramLanguage === 'en') {
+                            deepgramParams += '&detect_language=true';
+                        }
+
+                        const deepgramUrl = `https://api.deepgram.com/v1/listen?${deepgramParams}`;
+
+                        logger.info('Sending to Deepgram:', { url: deepgramUrl, contentType, bufferSize: audioBuffer.length });
+
+                        const response = await axios.post(deepgramUrl, audioBuffer, {
+                            headers: {
+                                'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+                                'Content-Type': contentType
+                            },
+                            timeout: 30000,
+                            maxContentLength: 50 * 1024 * 1024,
+                            maxBodyLength: 50 * 1024 * 1024
+                        });
+
+                        let transcript = '';
+                        const results = response.data?.results;
+                        if (results && results.channels && results.channels[0] &&
+                            results.channels[0].alternatives && results.channels[0].alternatives[0]) {
+                            transcript = results.channels[0].alternatives[0].transcript || '';
+                        }
+
+                        if (transcript && transcript.trim()) {
+                            logger.info(`✅ Transcription successful: "${transcript.substring(0, 50)}..."`);
+                            ws.send(JSON.stringify({
+                                type: 'transcriptionResult',
+                                transcript: transcript.trim(),
+                                isFinal: true,
+                                source: 'deepgram',
+                                language: deepgramLanguage,
+                                confidence: response.data?.results?.channels?.[0]?.alternatives?.[0]?.confidence || null
+                            }));
+                        } else {
+                            logger.warn('Empty transcript returned from Deepgram');
+                            ws.send(JSON.stringify({
+                                type: 'transcriptionResult',
+                                transcript: '',
+                                isFinal: true,
+                                source: 'deepgram',
+                                message: 'No speech detected in audio'
+                            }));
+                        }
+
+                    } catch (error) {
+                        logger.error('Audio processing error:', { message: error.message });
+                        ws.send(JSON.stringify({
+                            type: 'transcriptionError',
+                            message: 'Transcription failed: ' + error.message,
+                            source: 'server'
+                        }));
+                    }
+                    break;
+
+                case 'stopTranscription':
+                    if (!connection.authenticated) return;
+
                     if (connection.audioChunks && connection.audioChunks.length > 0) {
                         const fullAudioBuffer = Buffer.concat(connection.audioChunks);
                         connection.audioChunks = [];
-                        
+
                         if (fullAudioBuffer.length > 100 && process.env.DEEPGRAM_API_KEY) {
                             const language = mapLanguageForDeepgram(connection.language);
-                            
+
                             try {
                                 const response = await axios.post(
                                     `https://api.deepgram.com/v1/listen?model=general&punctuate=true&language=${language}`,
@@ -2871,9 +2443,9 @@ wss.on('connection', (ws, req) => {
                                         timeout: 30000
                                     }
                                 );
-                                
-                                let transcript = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-                                
+
+                                const transcript = response.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+
                                 ws.send(JSON.stringify({
                                     type: 'transcriptionResult',
                                     transcript: transcript.trim(),
@@ -2885,35 +2457,32 @@ wss.on('connection', (ws, req) => {
                             }
                         }
                     }
-                    
+
                     ws.send(JSON.stringify({
                         type: 'transcriptionStopped',
                         clientType: connection.clientType
                     }));
                     break;
-                    
+
                 case 'ping':
                     ws.send(JSON.stringify({ type: 'pong' }));
                     break;
-                    
+
                 default:
                     logger.warn(`Unknown message type: ${data.type}`);
             }
-            
+
         } catch (error) {
             logger.error('WebSocket message error:', error.message);
-            ws.send(JSON.stringify({
-                type: 'error',
-                message: 'Server processing error'
-            }));
+            ws.send(JSON.stringify({ type: 'error', message: 'Server processing error' }));
         }
     });
-    
+
     ws.on('close', () => {
         logger.info(`WebSocket disconnected: ${connectionId}`);
         activeConnections.delete(connectionId);
     });
-    
+
     ws.on('error', (error) => {
         logger.error(`WebSocket error for ${connectionId}: ${error.message}`);
         activeConnections.delete(connectionId);
@@ -2927,7 +2496,6 @@ process.on('SIGTERM', () => {
         logger.info('WebSocket server closed');
         server.close(() => {
             logger.info('HTTP server closed');
-            // Just exit without closing mongoose - process termination will handle it
             process.exit(0);
         });
     });
