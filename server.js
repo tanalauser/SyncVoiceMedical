@@ -1042,8 +1042,8 @@ app.post('/api/detect-churns', async (req, res) => {
     }
 });
 
-// Email open tracking endpoint
-app.get('/api/email-open', async (req, res) => {
+// Email open tracking handler (shared by both endpoints)
+async function handleEmailOpenTracking(req, res) {
     try {
         const { email, campaign, source } = req.query;
 
@@ -1059,21 +1059,23 @@ app.get('/api/email-open', async (req, res) => {
             utm_source: source || 'direct'
         });
 
-        logger.info(`Email opened tracked for: ${email}`, { campaign, source });
+        // Update user's email tracking fields
+        await supabase
+            .from('users')
+            .update({
+                email_opened: true,
+                email_opened_at: new Date().toISOString(),
+                email_open_count: supabase.rpc ? undefined : 1, // Will use raw SQL increment below
+                last_email_open_campaign: campaign || 'unknown'
+            })
+            .eq('email', email.toLowerCase());
 
-        // Send to n8n for real-time tracking
-        try {
-            await axios.get('https://n8n.srv1030172.hstgr.cloud/webhook/email-open', {
-                params: {
-                    email: email.toLowerCase(),
-                    campaign: campaign || 'unknown',
-                    source: source || 'direct'
-                },
-                timeout: 5000
-            });
-        } catch (webhookError) {
-            // Silently ignore
-        }
+        // Increment open count using raw update
+        await supabase.rpc('increment_email_open_count', { user_email: email.toLowerCase() }).catch(() => {
+            // Function may not exist, ignore error
+        });
+
+        logger.info(`Email opened tracked for: ${email}`, { campaign, source });
 
         // Return 1x1 transparent pixel
         const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -1089,7 +1091,11 @@ app.get('/api/email-open', async (req, res) => {
         res.writeHead(200, {'Content-Type': 'image/gif'});
         res.end(pixel);
     }
-});
+}
+
+// Email open tracking endpoints (both URLs work)
+app.get('/api/email-open', handleEmailOpenTracking);
+app.get('/api/track/open', handleEmailOpenTracking);
 
 // Send activation code
 app.post('/api/send-activation', async (req, res) => {
