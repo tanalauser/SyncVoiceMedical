@@ -67,9 +67,6 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // Test Supabase connection on startup
 testConnection();
 
-// Import routes
-const userRoutes = require('./routes/userRoutes');
-
 // Constants
 const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB limit
 
@@ -384,9 +381,6 @@ const messages = {
         codeLabel: 'Seu código de ativação:'
     }
 };
-
-// Routes
-app.use('/api', userRoutes);
 
 // Health endpoints
 app.get('/healthz', async (req, res) => {
