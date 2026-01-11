@@ -1247,14 +1247,17 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
 </html>`;
 }
 
-// Parse CSV content to extract emails
+// Parse CSV content to extract emails (supports comma or semicolon delimiters)
 function parseCSVEmails(csvContent) {
     const lines = csvContent.split('\n');
     const emails = [];
 
+    // Detect delimiter (semicolon or comma)
+    const header = lines[0];
+    const delimiter = header.includes(';') ? ';' : ',';
+
     // Find email column index from header
-    const header = lines[0].toLowerCase();
-    const columns = header.split(',').map(col => col.trim().replace(/"/g, ''));
+    const columns = header.toLowerCase().split(delimiter).map(col => col.trim().replace(/"/g, ''));
     const emailIndex = columns.findIndex(col =>
         col.includes('email') || col.includes('mail') || col.includes('adresse email')
     );
@@ -1268,8 +1271,8 @@ function parseCSVEmails(csvContent) {
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Simple CSV parsing (handles basic cases)
-        const values = line.split(',').map(val => val.trim().replace(/"/g, ''));
+        // Parse with detected delimiter
+        const values = line.split(delimiter).map(val => val.trim().replace(/"/g, ''));
         const email = values[emailIndex];
 
         // Validate email format
