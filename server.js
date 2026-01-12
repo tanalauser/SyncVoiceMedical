@@ -1478,9 +1478,9 @@ app.post('/api/admin/send-campaign', async (req, res) => {
             success: true,
             message: `Campaign started. Emails will be sent with ${delayMinutes}-minute delays.`,
             campaignId,
-            totalEmails: filteredEmails.length,
+            totalEmails: filteredContacts.length,
             skippedUnsubscribed,
-            estimatedDuration: `${Math.ceil((filteredEmails.length - 1) * delayMinutes / 60)} hours ${((filteredEmails.length - 1) * delayMinutes) % 60} minutes`,
+            estimatedDuration: `${Math.ceil((filteredContacts.length - 1) * delayMinutes / 60)} hours ${((filteredContacts.length - 1) * delayMinutes) % 60} minutes`,
             checkStatusUrl: `/api/admin/campaign-status/${campaignId}`
         });
 
