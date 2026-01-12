@@ -1034,11 +1034,11 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
             <td align="center" style="padding: 30px 15px;">
                 <table class="container" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(26, 95, 122, 0.12); overflow: hidden;">
                     <tr>
-                        <td class="header-padding" align="center" style="padding: 40px 40px 30px 40px; background: linear-gradient(135deg, #1a5f7a 0%, #0d3d4d 100%);">
+                        <td class="header-padding" align="center" style="padding: 40px 40px 30px 40px; background-color: #1a5f7a; background: linear-gradient(135deg, #1a5f7a 0%, #0d3d4d 100%);">
                             <table border="0" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="center">
-                                        <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.15); border-radius: 12px; display: inline-block; line-height: 60px; margin-bottom: 15px;">
+                                        <div style="width: 60px; height: 60px; background-color: #2a7a94; border-radius: 12px; display: inline-block; line-height: 60px; margin-bottom: 15px;">
                                             <span style="font-size: 28px;">🎙️</span>
                                         </div>
                                     </td>
@@ -1052,7 +1052,7 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
                                 </tr>
                                 <tr>
                                     <td align="center" style="padding-top: 8px;">
-                                        <p style="margin: 0; color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;">
+                                        <p style="margin: 0; color: #ffffff; font-size: 14px; font-weight: 500;">
                                             Transcription médicale par IA • 100% Française
                                         </p>
                                     </td>
