@@ -1089,15 +1089,15 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
                             <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 30px 0;">
                                 <tr>
                                     <td class="stat-cell" width="50%" style="padding-right: 10px;">
-                                        <div style="background: linear-gradient(145deg, #1a5f7a 0%, #267a99 100%); border-radius: 12px; padding: 25px 20px; text-align: center;">
+                                        <div style="background-color: #1a5f7a; background: linear-gradient(145deg, #1a5f7a 0%, #267a99 100%); border-radius: 12px; padding: 25px 20px; text-align: center;">
                                             <p style="margin: 0; font-size: 42px; color: #ffffff; font-weight: 800; line-height: 1;">-70%</p>
-                                            <p style="margin: 8px 0 0 0; font-size: 13px; color: rgba(255,255,255,0.9); font-weight: 500;">Temps de documentation</p>
+                                            <p style="margin: 8px 0 0 0; font-size: 13px; color: #ffffff; font-weight: 500;">Temps de documentation</p>
                                         </div>
                                     </td>
                                     <td class="stat-cell" width="50%" style="padding-left: 10px;">
-                                        <div style="background: linear-gradient(145deg, #27ae60 0%, #2ecc71 100%); border-radius: 12px; padding: 25px 20px; text-align: center;">
+                                        <div style="background-color: #27ae60; background: linear-gradient(145deg, #27ae60 0%, #2ecc71 100%); border-radius: 12px; padding: 25px 20px; text-align: center;">
                                             <p style="margin: 0; font-size: 42px; color: #ffffff; font-weight: 800; line-height: 1;">99%</p>
-                                            <p style="margin: 8px 0 0 0; font-size: 13px; color: rgba(255,255,255,0.9); font-weight: 500;">Précision transcription</p>
+                                            <p style="margin: 8px 0 0 0; font-size: 13px; color: #ffffff; font-weight: 500;">Précision transcription</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -1164,11 +1164,11 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
                                         </p>
                                         <table border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 15px;">
                                             <tr>
-                                                <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); box-shadow: 0 4px 15px rgba(39, 174, 96, 0.35);">
+                                                <td align="center" style="border-radius: 10px; background-color: #27ae60; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);">
                                                     <a href="https://syncvoicemedical.onrender.com/?email=${encodeURIComponent(recipientEmail)}&utm_source=email&utm_campaign=${encodeURIComponent(campaignName)}&utm_content=main_cta"
                                                         target="_blank"
                                                         class="button-link"
-                                                        style="display: block; padding: 16px 45px; font-size: 18px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 10px;">
+                                                        style="display: block; padding: 16px 45px; font-size: 18px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 10px; background-color: #27ae60;">
                                                         Démarrer mon essai gratuit →
                                                     </a>
                                                 </td>
