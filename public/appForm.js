@@ -540,23 +540,38 @@ function addTranscriptionToActiveField(transcript) {
     
     // Priority 1: If subject input field is focused and active
     if (activeInputField === 'subject' && subjectInput) {
-        console.log('Adding transcription to subject input field');
+        console.log('Adding transcription to subject input field at cursor position');
         
-        // Add proper spacing if there's already text
-        if (subjectInput.value && !subjectInput.value.endsWith(' ')) {
-            subjectInput.value += ' ';
+        // Get cursor position
+        const cursorPos = subjectInput.selectionStart || 0;
+        const textBefore = subjectInput.value.substring(0, cursorPos);
+        const textAfter = subjectInput.value.substring(subjectInput.selectionEnd || cursorPos);
+        
+        // Determine if we need spacing before the transcript
+        let textToInsert = cleanTranscript;
+        if (textBefore.length > 0 && !textBefore.endsWith(' ') && !textBefore.endsWith('\n')) {
+            textToInsert = ' ' + textToInsert;
         }
         
-        // Add the transcript
-        subjectInput.value += cleanTranscript;
+        // Determine if we need spacing after the transcript
+        if (textAfter.length > 0 && !textAfter.startsWith(' ') && !textAfter.startsWith('\n')) {
+            textToInsert = textToInsert + ' ';
+        }
+        
+        // Insert the transcript at cursor position
+        subjectInput.value = textBefore + textToInsert + textAfter;
+        
+        // Set cursor position after the inserted text
+        const newCursorPos = textBefore.length + textToInsert.length;
+        subjectInput.setSelectionRange(newCursorPos, newCursorPos);
         
         // Trigger input event to ensure any listeners are notified
         subjectInput.dispatchEvent(new Event('input', { bubbles: true }));
         
-        // Focus back to the input to maintain cursor position
+        // Focus back to the input
         subjectInput.focus();
         
-        console.log(`Successfully added to subject field: "${cleanTranscript}"`);
+        console.log(`Successfully added to subject field at position ${cursorPos}: "${cleanTranscript}"`);
         return;
     }
     
@@ -572,24 +587,39 @@ function addTranscriptionToActiveField(transcript) {
         return;
     }
     
-    // Priority 3: Normal transcription mode (default)
-    console.log('Adding transcription to main transcription area');
+    // Priority 3: Normal transcription mode (default) - insert at cursor position
+    console.log('Adding transcription to main transcription area at cursor position');
     
-    // Add proper spacing if there's already text
-    if (transcriptionText.value && !transcriptionText.value.endsWith(' ')) {
-        transcriptionText.value += ' ';
+    // Get cursor position
+    const cursorPos = transcriptionText.selectionStart || transcriptionText.value.length;
+    const textBefore = transcriptionText.value.substring(0, cursorPos);
+    const textAfter = transcriptionText.value.substring(transcriptionText.selectionEnd || cursorPos);
+    
+    // Determine if we need spacing before the transcript
+    let textToInsert = cleanTranscript;
+    if (textBefore.length > 0 && !textBefore.endsWith(' ') && !textBefore.endsWith('\n')) {
+        textToInsert = ' ' + textToInsert;
     }
     
-    // Add the transcript
-    transcriptionText.value += cleanTranscript;
+    // Determine if we need spacing after the transcript
+    if (textAfter.length > 0 && !textAfter.startsWith(' ') && !textAfter.startsWith('\n')) {
+        textToInsert = textToInsert + ' ';
+    }
+    
+    // Insert the transcript at cursor position
+    transcriptionText.value = textBefore + textToInsert + textAfter;
+    
+    // Set cursor position after the inserted text
+    const newCursorPos = textBefore.length + textToInsert.length;
+    transcriptionText.setSelectionRange(newCursorPos, newCursorPos);
     
     // Trigger input event
     transcriptionText.dispatchEvent(new Event('input', { bubbles: true }));
     
-    // Auto-scroll to bottom to show new text
-    transcriptionText.scrollTop = transcriptionText.scrollHeight;
+    // Scroll to make cursor visible
+    transcriptionText.focus();
     
-    console.log(`Successfully added to main transcription area: "${cleanTranscript}"`);
+    console.log(`Successfully added to main transcription area at position ${cursorPos}: "${cleanTranscript}"`);
 }
 
     // Add this function after your variable declarations
@@ -2457,6 +2487,11 @@ function createTemplateSections(templateType) {
     // Clear button functionality
     if (clearButton) {
         clearButton.addEventListener('click', () => {
+            // Always clear the subject input field
+            if (subjectInput) {
+                subjectInput.value = '';
+            }
+            
             if (templateMode) {
                 // Clear all section content
                 document.querySelectorAll('.section-content').forEach(section => {

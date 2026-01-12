@@ -1284,18 +1284,86 @@ function parseCSVEmails(csvContent) {
     return [...new Set(emails)]; // Remove duplicates
 }
 
+// Parse CSV content to extract full contact info (supports comma or semicolon delimiters)
+function parseCSVContacts(csvContent) {
+    const lines = csvContent.split('\n');
+    const contacts = [];
+
+    // Detect delimiter (semicolon or comma)
+    const header = lines[0];
+    const delimiter = header.includes(';') ? ';' : ',';
+
+    // Parse header columns
+    const columns = header.split(delimiter).map(col => col.trim().replace(/"/g, '').toLowerCase());
+
+    // Map column names to indices (flexible matching for French/English)
+    const findIndex = (patterns) => columns.findIndex(col => patterns.some(p => col.includes(p)));
+
+    const indices = {
+        name: findIndex(['nom']),
+        address: findIndex(['adresse']),
+        postalCode: findIndex(['code postal', 'postal']),
+        city: findIndex(['ville', 'city']),
+        phone: findIndex(['telephone', 'phone', 'tel']),
+        email: findIndex(['email', 'mail']),
+        activity: findIndex(['activite', 'activity'])
+    };
+
+    if (indices.email === -1) {
+        throw new Error('No email column found in CSV');
+    }
+
+    // Extract data from rows
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const values = line.split(delimiter).map(val => val.trim().replace(/"/g, ''));
+        const email = values[indices.email];
+
+        // Validate email format
+        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            contacts.push({
+                email: email.toLowerCase(),
+                last_name: indices.name !== -1 ? values[indices.name] || null : null,
+                address: indices.address !== -1 ? values[indices.address] || null : null,
+                postal_code: indices.postalCode !== -1 ? values[indices.postalCode] || null : null,
+                city: indices.city !== -1 ? values[indices.city] || null : null,
+                phone: indices.phone !== -1 ? values[indices.phone] || null : null,
+                activity: indices.activity !== -1 ? values[indices.activity] || null : null
+            });
+        }
+    }
+
+    // Remove duplicates by email
+    const uniqueContacts = [];
+    const seenEmails = new Set();
+    for (const contact of contacts) {
+        if (!seenEmails.has(contact.email)) {
+            seenEmails.add(contact.email);
+            uniqueContacts.push(contact);
+        }
+    }
+
+    return uniqueContacts;
+}
+
 // Send campaign endpoint
 app.post('/api/admin/send-campaign', async (req, res) => {
     try {
         const { emails, csv, campaign = 'doctors_fr_v2', delayMinutes = 10 } = req.body;
 
-        let emailList = [];
+        let contacts = [];
 
-        // Parse emails from CSV or use provided array
+        // Parse contacts from CSV or use provided email array
         if (csv) {
-            emailList = parseCSVEmails(csv);
+            contacts = parseCSVContacts(csv);
         } else if (emails && Array.isArray(emails)) {
-            emailList = emails.map(e => e.toLowerCase()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+            // Simple email array - create basic contact objects
+            contacts = emails
+                .map(e => e.toLowerCase())
+                .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+                .map(email => ({ email }));
         } else {
             return res.status(400).json({
                 success: false,
@@ -1303,7 +1371,7 @@ app.post('/api/admin/send-campaign', async (req, res) => {
             });
         }
 
-        if (emailList.length === 0) {
+        if (contacts.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'No valid emails found'
@@ -1317,8 +1385,8 @@ app.post('/api/admin/send-campaign', async (req, res) => {
             .eq('status', 'unsubscribed');
 
         const unsubscribedEmails = new Set((unsubscribedUsers || []).map(u => u.email.toLowerCase()));
-        const filteredEmails = emailList.filter(email => !unsubscribedEmails.has(email));
-        const skippedUnsubscribed = emailList.length - filteredEmails.length;
+        const filteredContacts = contacts.filter(c => !unsubscribedEmails.has(c.email));
+        const skippedUnsubscribed = contacts.length - filteredContacts.length;
 
         // Generate campaign ID
         const campaignId = `${campaign}_${Date.now()}`;
@@ -1328,7 +1396,7 @@ app.post('/api/admin/send-campaign', async (req, res) => {
         activeCampaigns.set(campaignId, {
             status: 'running',
             campaign,
-            totalEmails: filteredEmails.length,
+            totalEmails: filteredContacts.length,
             sent: 0,
             failed: 0,
             skippedUnsubscribed,
@@ -1342,8 +1410,9 @@ app.post('/api/admin/send-campaign', async (req, res) => {
             const transporter = await createTransporter();
             const campaignState = activeCampaigns.get(campaignId);
 
-            for (let i = 0; i < filteredEmails.length; i++) {
-                const email = filteredEmails[i];
+            for (let i = 0; i < filteredContacts.length; i++) {
+                const contact = filteredContacts[i];
+                const email = contact.email;
 
                 try {
                     // Generate personalized HTML
@@ -1365,20 +1434,26 @@ app.post('/api/admin/send-campaign', async (req, res) => {
                         utm_source: 'campaign'
                     });
 
-                    // Update user's email tracking
+                    // Update user with full contact info
                     await supabase
                         .from('users')
                         .upsert({
                             email: email,
+                            last_name: contact.last_name || null,
+                            address: contact.address || null,
+                            postal_code: contact.postal_code || null,
+                            city: contact.city || null,
+                            phone: contact.phone || null,
                             last_email_campaign: campaign,
                             email_sent_at: new Date().toISOString(),
-                            status: 'lead'
+                            status: 'lead',
+                            source: 'campaign'
                         }, { onConflict: 'email' });
 
                     campaignState.sent++;
                     campaignState.results.push({ email, status: 'sent', sentAt: new Date().toISOString() });
 
-                    logger.info(`Campaign email sent: ${email} (${i + 1}/${filteredEmails.length})`);
+                    logger.info(`Campaign email sent: ${email} (${i + 1}/${filteredContacts.length})`);
 
                 } catch (error) {
                     campaignState.failed++;
@@ -1387,7 +1462,7 @@ app.post('/api/admin/send-campaign', async (req, res) => {
                 }
 
                 // Wait before sending next email (except for last one)
-                if (i < filteredEmails.length - 1) {
+                if (i < filteredContacts.length - 1) {
                     logger.info(`Waiting ${delayMinutes} minutes before next email...`);
                     await new Promise(resolve => setTimeout(resolve, delayMs));
                 }
