@@ -142,7 +142,8 @@ const DEV_EMAILS = [
     'syncvoicemedical@gmail.com',
     'dr.d.m.tanala@wanadoo.fr',
     'etanala@yahoo.fr',
-    'taneus77@gmail.com'
+    'taneus77@gmail.com',
+    'laura.walker@nwas.nhs.uk'
 ];
 
 // Create Express app instance
