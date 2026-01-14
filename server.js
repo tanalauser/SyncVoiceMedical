@@ -143,7 +143,8 @@ const DEV_EMAILS = [
     'dr.d.m.tanala@wanadoo.fr',
     'etanala@yahoo.fr',
     'taneus77@gmail.com',
-    'laura.walker@nwas.nhs.uk'
+    'laura.walker@nwas.nhs.uk',
+    'jamescoleman.mills@gmail.com'
 ];
 
 // Create Express app instance
