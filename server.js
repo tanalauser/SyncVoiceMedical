@@ -878,6 +878,63 @@ app.get('/api/analytics/summary', async (req, res) => {
     }
 });
 
+// Email events stats endpoint (excludes nicolas.tanala emails)
+app.get('/api/admin/email-stats', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('email_events')
+            .select('email, event_type, utm_campaign')
+            .not('email', 'ilike', '%nicolas.tanala%');
+
+        if (error) throw error;
+
+        // Calculate totals
+        const totalSent = data.filter(e => e.event_type === 'sent').length;
+        const totalOpened = data.filter(e => e.event_type === 'opened').length;
+        const totalClicked = data.filter(e => e.event_type === 'clicked').length;
+        const overallOpenRate = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : '0.0';
+
+        // Group by campaign
+        const campaignMap = {};
+        data.forEach(event => {
+            const campaign = event.utm_campaign || 'unknown';
+            if (!campaignMap[campaign]) {
+                campaignMap[campaign] = { sent: 0, opened: 0, clicked: 0 };
+            }
+            if (event.event_type === 'sent') campaignMap[campaign].sent++;
+            if (event.event_type === 'opened') campaignMap[campaign].opened++;
+            if (event.event_type === 'clicked') campaignMap[campaign].clicked++;
+        });
+
+        const byCampaign = Object.entries(campaignMap).map(([campaign, stats]) => ({
+            campaign,
+            sent: stats.sent,
+            opened: stats.opened,
+            clicked: stats.clicked,
+            openRate: stats.sent > 0 ? ((stats.opened / stats.sent) * 100).toFixed(1) + '%' : '0.0%'
+        })).sort((a, b) => b.sent - a.sent);
+
+        res.json({
+            success: true,
+            stats: {
+                totalSent,
+                totalOpened,
+                totalClicked,
+                overallOpenRate: overallOpenRate + '%',
+                byCampaign
+            }
+        });
+
+    } catch (error) {
+        logger.error('Email stats error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Email stats query failed',
+            error: error.message
+        });
+    }
+});
+
 // Admin subscription stats endpoint
 app.get('/api/admin/subscription-stats', async (req, res) => {
     try {

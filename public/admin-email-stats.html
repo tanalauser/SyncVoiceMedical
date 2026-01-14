@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Campaign Statistics - Admin</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #1a5f7a;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #69B578;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .campaign-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .campaign-table th,
+        .campaign-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .campaign-table th {
+            background: #1a5f7a;
+            color: white;
+            font-weight: 500;
+        }
+
+        .campaign-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .campaign-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .error {
+            text-align: center;
+            padding: 2rem;
+            color: #dc3545;
+        }
+
+        .refresh-btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: #69B578;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .refresh-btn:hover {
+            background: #5aa469;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .campaign-table {
+                font-size: 0.85rem;
+            }
+            .campaign-table th,
+            .campaign-table td {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Email Campaign Statistics</h1>
+
+        <button class="refresh-btn" onclick="loadEmailStats()">Refresh</button>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statSent">-</div>
+                <div class="stat-label">Sent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statOpened">-</div>
+                <div class="stat-label">Opened</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statClicked">-</div>
+                <div class="stat-label">Clicked</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statOpenRate">-</div>
+                <div class="stat-label">Open Rate</div>
+            </div>
+        </div>
+
+        <table class="campaign-table">
+            <thead>
+                <tr>
+                    <th>Campaign</th>
+                    <th>Sent</th>
+                    <th>Opened</th>
+                    <th>Clicked</th>
+                    <th>Open Rate</th>
+                </tr>
+            </thead>
+            <tbody id="campaignTableBody">
+                <tr><td colspan="5" class="loading">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+    async function loadEmailStats() {
+        const tbody = document.getElementById('campaignTableBody');
+        tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading...</td></tr>';
+
+        try {
+            const response = await fetch('/api/admin/email-stats');
+            const data = await response.json();
+
+            if (data.success) {
+                const stats = data.stats;
+                document.getElementById('statSent').textContent = stats.totalSent;
+                document.getElementById('statOpened').textContent = stats.totalOpened;
+                document.getElementById('statClicked').textContent = stats.totalClicked;
+                document.getElementById('statOpenRate').textContent = stats.overallOpenRate;
+
+                if (stats.byCampaign.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="loading">No data</td></tr>';
+                } else {
+                    tbody.innerHTML = stats.byCampaign.map(c => `
+                        <tr>
+                            <td>${c.campaign}</td>
+                            <td>${c.sent}</td>
+                            <td>${c.opened}</td>
+                            <td>${c.clicked}</td>
+                            <td>${c.openRate}</td>
+                        </tr>
+                    `).join('');
+                }
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" class="error">Error loading stats</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error loading email stats:', error);
+            tbody.innerHTML = '<tr><td colspan="5" class="error">Error loading stats</td></tr>';
+        }
+    }
+
+    // Load on page load
+    loadEmailStats();
+    </script>
+</body>
+</html>
