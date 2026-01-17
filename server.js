@@ -935,6 +935,50 @@ app.get('/api/admin/email-stats', async (req, res) => {
     }
 });
 
+// Email events diagnostic endpoint - shows recent events
+app.get('/api/admin/email-events-debug', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 50;
+
+        const { data, error } = await supabase
+            .from('email_events')
+            .select('*')
+            .not('email', 'ilike', '%nicolas.tanala%')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) throw error;
+
+        // Get total counts
+        const { count: totalCount } = await supabase
+            .from('email_events')
+            .select('*', { count: 'exact', head: true })
+            .not('email', 'ilike', '%nicolas.tanala%');
+
+        const { count: sentCount } = await supabase
+            .from('email_events')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_type', 'sent')
+            .not('email', 'ilike', '%nicolas.tanala%');
+
+        res.json({
+            success: true,
+            totalEventsInDb: totalCount,
+            totalSentInDb: sentCount,
+            recentEvents: data,
+            note: 'Showing most recent events first'
+        });
+
+    } catch (error) {
+        logger.error('Email events debug error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Debug query failed',
+            error: error.message
+        });
+    }
+});
+
 // Admin subscription stats endpoint
 app.get('/api/admin/subscription-stats', async (req, res) => {
     try {
