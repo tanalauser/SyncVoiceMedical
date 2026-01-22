@@ -1084,11 +1084,155 @@ app.get('/api/admin/subscription-stats', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EMAIL CAMPAIGN ENDPOINT
+// EMAIL CAMPAIGN ENDPOINT (Persistent with Supabase)
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Store for active campaigns (in-memory, will reset on server restart)
-const activeCampaigns = new Map();
+// Track active campaign processors (to avoid duplicate processing)
+const activeProcessors = new Set();
+
+// Process campaign queue - sends emails one by one with delays
+async function processCampaignQueue(jobId) {
+    if (activeProcessors.has(jobId)) {
+        logger.info(`Campaign ${jobId} already being processed`);
+        return;
+    }
+    activeProcessors.add(jobId);
+
+    try {
+        const transporter = await createTransporter();
+
+        while (true) {
+            // Get job status
+            const { data: job, error: jobError } = await supabase
+                .from('email_campaign_jobs')
+                .select('*')
+                .eq('id', jobId)
+                .single();
+
+            if (jobError || !job) {
+                logger.error(`Campaign job ${jobId} not found`);
+                break;
+            }
+
+            if (job.status === 'completed' || job.status === 'paused' || job.status === 'failed') {
+                logger.info(`Campaign ${jobId} status is ${job.status}, stopping processor`);
+                break;
+            }
+
+            // Get next pending email
+            const { data: nextEmail, error: queueError } = await supabase
+                .from('email_campaign_queue')
+                .select('*')
+                .eq('job_id', jobId)
+                .eq('status', 'pending')
+                .order('created_at', { ascending: true })
+                .limit(1)
+                .single();
+
+            if (queueError || !nextEmail) {
+                // No more pending emails - mark job as completed
+                await supabase
+                    .from('email_campaign_jobs')
+                    .update({ status: 'completed', completed_at: new Date().toISOString() })
+                    .eq('id', jobId);
+                logger.info(`Campaign ${jobId} completed - no more pending emails`);
+                break;
+            }
+
+            // Send the email
+            try {
+                const html = getCampaignEmailHtml(nextEmail.email, job.campaign_name);
+                await transporter.sendMail({
+                    from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                    to: nextEmail.email,
+                    subject: 'Gagnez 2 heures par jour sur vos comptes-rendus médicaux',
+                    html: html
+                });
+
+                // Mark as sent in queue
+                await supabase
+                    .from('email_campaign_queue')
+                    .update({ status: 'sent', sent_at: new Date().toISOString() })
+                    .eq('id', nextEmail.id);
+
+                // Record in email_events
+                await supabase.from('email_events').insert({
+                    email: nextEmail.email,
+                    event_type: 'sent',
+                    utm_campaign: job.campaign_name,
+                    utm_source: 'campaign'
+                });
+
+                // Update job progress
+                await supabase
+                    .from('email_campaign_jobs')
+                    .update({
+                        sent_count: job.sent_count + 1,
+                        current_index: job.current_index + 1,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', jobId);
+
+                logger.info(`Campaign ${jobId}: sent to ${nextEmail.email} (${job.sent_count + 1}/${job.total_emails})`);
+
+            } catch (sendError) {
+                // Mark as failed in queue
+                await supabase
+                    .from('email_campaign_queue')
+                    .update({ status: 'failed', error_message: sendError.message })
+                    .eq('id', nextEmail.id);
+
+                // Update job progress
+                await supabase
+                    .from('email_campaign_jobs')
+                    .update({
+                        failed_count: job.failed_count + 1,
+                        current_index: job.current_index + 1,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', jobId);
+
+                logger.error(`Campaign ${jobId}: failed to send to ${nextEmail.email}:`, sendError.message);
+            }
+
+            // Wait before next email
+            const delayMs = (job.delay_minutes || 10) * 60 * 1000;
+            logger.info(`Campaign ${jobId}: waiting ${job.delay_minutes} minutes before next email...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    } catch (error) {
+        logger.error(`Campaign processor error for ${jobId}:`, error);
+    } finally {
+        activeProcessors.delete(jobId);
+    }
+}
+
+// Resume incomplete campaigns on startup
+async function resumeIncompleteCampaigns() {
+    try {
+        const { data: runningJobs, error } = await supabase
+            .from('email_campaign_jobs')
+            .select('id, campaign_name, sent_count, total_emails')
+            .eq('status', 'running');
+
+        if (error) {
+            logger.error('Error checking for incomplete campaigns:', error);
+            return;
+        }
+
+        if (runningJobs && runningJobs.length > 0) {
+            logger.info(`Found ${runningJobs.length} incomplete campaign(s) to resume`);
+            for (const job of runningJobs) {
+                logger.info(`Resuming campaign ${job.id} (${job.campaign_name}): ${job.sent_count}/${job.total_emails} sent`);
+                processCampaignQueue(job.id); // Don't await - run in background
+            }
+        } else {
+            logger.info('No incomplete campaigns to resume');
+        }
+    } catch (error) {
+        logger.error('Error resuming campaigns:', error);
+    }
+}
 
 // Campaign email template (doctors_fr_v2)
 function getCampaignEmailHtml(recipientEmail, campaignName) {
@@ -1451,7 +1595,7 @@ function parseCSVContacts(csvContent) {
     return uniqueContacts;
 }
 
-// Send campaign endpoint
+// Send campaign endpoint (now with Supabase persistence)
 app.post('/api/admin/send-campaign', async (req, res) => {
     try {
         const { emails, csv, campaign = 'doctors_fr_v2', delayMinutes = 10 } = req.body;
@@ -1491,100 +1635,52 @@ app.post('/api/admin/send-campaign', async (req, res) => {
         const filteredContacts = contacts.filter(c => !unsubscribedEmails.has(c.email));
         const skippedUnsubscribed = contacts.length - filteredContacts.length;
 
-        // Generate campaign ID
-        const campaignId = `${campaign}_${Date.now()}`;
-        const delayMs = delayMinutes * 60 * 1000; // Convert to milliseconds
+        // Create campaign job in Supabase
+        const { data: job, error: jobError } = await supabase
+            .from('email_campaign_jobs')
+            .insert({
+                campaign_name: campaign,
+                status: 'running',
+                total_emails: filteredContacts.length,
+                delay_minutes: delayMinutes,
+                started_at: new Date().toISOString()
+            })
+            .select()
+            .single();
 
-        // Store campaign state
-        activeCampaigns.set(campaignId, {
-            status: 'running',
-            campaign,
-            totalEmails: filteredContacts.length,
-            sent: 0,
-            failed: 0,
-            skippedUnsubscribed,
-            results: [],
-            startedAt: new Date().toISOString(),
-            delayMinutes
-        });
+        if (jobError) {
+            throw new Error(`Failed to create campaign job: ${jobError.message}`);
+        }
 
-        // Start sending emails in background
-        (async () => {
-            const transporter = await createTransporter();
-            const campaignState = activeCampaigns.get(campaignId);
+        // Add all emails to queue
+        const queueItems = filteredContacts.map(contact => ({
+            job_id: job.id,
+            email: contact.email,
+            status: 'pending'
+        }));
 
-            for (let i = 0; i < filteredContacts.length; i++) {
-                const contact = filteredContacts[i];
-                const email = contact.email;
+        const { error: queueError } = await supabase
+            .from('email_campaign_queue')
+            .insert(queueItems);
 
-                try {
-                    // Generate personalized HTML
-                    const html = getCampaignEmailHtml(email, campaign);
+        if (queueError) {
+            throw new Error(`Failed to add emails to queue: ${queueError.message}`);
+        }
 
-                    // Send email
-                    await transporter.sendMail({
-                        from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
-                        to: email,
-                        subject: 'Gagnez 2 heures par jour sur vos comptes-rendus médicaux',
-                        html: html
-                    });
+        logger.info(`Campaign ${job.id} created with ${filteredContacts.length} emails`);
 
-                    // Record in Supabase
-                    await supabase.from('email_events').insert({
-                        email: email,
-                        event_type: 'sent',
-                        utm_campaign: campaign,
-                        utm_source: 'campaign'
-                    });
-
-                    // Update user with full contact info
-                    await supabase
-                        .from('users')
-                        .upsert({
-                            email: email,
-                            last_name: contact.last_name || null,
-                            address: contact.address || null,
-                            postal_code: contact.postal_code || null,
-                            city: contact.city || null,
-                            phone: contact.phone || null,
-                            last_email_campaign: campaign,
-                            email_sent_at: new Date().toISOString(),
-                            status: 'lead',
-                            source: 'campaign'
-                        }, { onConflict: 'email' });
-
-                    campaignState.sent++;
-                    campaignState.results.push({ email, status: 'sent', sentAt: new Date().toISOString() });
-
-                    logger.info(`Campaign email sent: ${email} (${i + 1}/${filteredContacts.length})`);
-
-                } catch (error) {
-                    campaignState.failed++;
-                    campaignState.results.push({ email, status: 'failed', error: error.message });
-                    logger.error(`Campaign email failed: ${email}`, error.message);
-                }
-
-                // Wait before sending next email (except for last one)
-                if (i < filteredContacts.length - 1) {
-                    logger.info(`Waiting ${delayMinutes} minutes before next email...`);
-                    await new Promise(resolve => setTimeout(resolve, delayMs));
-                }
-            }
-
-            campaignState.status = 'completed';
-            campaignState.completedAt = new Date().toISOString();
-            logger.info(`Campaign ${campaignId} completed: ${campaignState.sent} sent, ${campaignState.failed} failed`);
-        })();
+        // Start processing in background
+        processCampaignQueue(job.id);
 
         // Return immediately with campaign ID
         res.json({
             success: true,
-            message: `Campaign started. Emails will be sent with ${delayMinutes}-minute delays.`,
-            campaignId,
+            message: `Campaign started. Emails will be sent with ${delayMinutes}-minute delays. Campaign will resume if server restarts.`,
+            campaignId: job.id,
             totalEmails: filteredContacts.length,
             skippedUnsubscribed,
             estimatedDuration: `${Math.ceil((filteredContacts.length - 1) * delayMinutes / 60)} hours ${((filteredContacts.length - 1) * delayMinutes) % 60} minutes`,
-            checkStatusUrl: `/api/admin/campaign-status/${campaignId}`
+            checkStatusUrl: `/api/admin/campaign-status/${job.id}`
         });
 
     } catch (error) {
@@ -1597,47 +1693,130 @@ app.post('/api/admin/send-campaign', async (req, res) => {
     }
 });
 
-// Check campaign status endpoint
-app.get('/api/admin/campaign-status/:campaignId', (req, res) => {
-    const { campaignId } = req.params;
-    const campaign = activeCampaigns.get(campaignId);
+// Check campaign status endpoint (now queries Supabase)
+app.get('/api/admin/campaign-status/:campaignId', async (req, res) => {
+    try {
+        const { campaignId } = req.params;
 
-    if (!campaign) {
-        return res.status(404).json({
-            success: false,
-            message: 'Campaign not found. It may have been cleared after server restart.'
+        const { data: job, error } = await supabase
+            .from('email_campaign_jobs')
+            .select('*')
+            .eq('id', campaignId)
+            .single();
+
+        if (error || !job) {
+            return res.status(404).json({
+                success: false,
+                message: 'Campaign not found.'
+            });
+        }
+
+        res.json({
+            success: true,
+            campaignId: job.id,
+            status: job.status,
+            campaign: job.campaign_name,
+            totalEmails: job.total_emails,
+            sent: job.sent_count,
+            failed: job.failed_count,
+            progress: `${job.sent_count + job.failed_count}/${job.total_emails}`,
+            delayMinutes: job.delay_minutes,
+            startedAt: job.started_at,
+            completedAt: job.completed_at
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
-
-    res.json({
-        success: true,
-        campaignId,
-        ...campaign,
-        progress: `${campaign.sent + campaign.failed}/${campaign.totalEmails}`
-    });
 });
 
-// List all active campaigns
-app.get('/api/admin/campaigns', (req, res) => {
-    const campaigns = [];
-    activeCampaigns.forEach((value, key) => {
-        campaigns.push({
-            campaignId: key,
-            status: value.status,
-            progress: `${value.sent + value.failed}/${value.totalEmails}`,
-            sent: value.sent,
-            failed: value.failed,
-            startedAt: value.startedAt,
-            completedAt: value.completedAt
+// Resume a paused campaign
+app.post('/api/admin/campaign-resume/:campaignId', async (req, res) => {
+    try {
+        const { campaignId } = req.params;
+
+        const { data: job, error } = await supabase
+            .from('email_campaign_jobs')
+            .select('*')
+            .eq('id', campaignId)
+            .single();
+
+        if (error || !job) {
+            return res.status(404).json({ success: false, message: 'Campaign not found.' });
+        }
+
+        if (job.status === 'completed') {
+            return res.status(400).json({ success: false, message: 'Campaign already completed.' });
+        }
+
+        if (job.status === 'running' && activeProcessors.has(campaignId)) {
+            return res.status(400).json({ success: false, message: 'Campaign already running.' });
+        }
+
+        // Update status to running
+        await supabase
+            .from('email_campaign_jobs')
+            .update({ status: 'running', updated_at: new Date().toISOString() })
+            .eq('id', campaignId);
+
+        // Start processing
+        processCampaignQueue(campaignId);
+
+        res.json({
+            success: true,
+            message: 'Campaign resumed',
+            campaignId,
+            remainingEmails: job.total_emails - job.sent_count - job.failed_count
         });
-    });
-
-    res.json({
-        success: true,
-        activeCampaigns: campaigns.length,
-        campaigns
-    });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 });
+
+// Pause a running campaign
+app.post('/api/admin/campaign-pause/:campaignId', async (req, res) => {
+    try {
+        const { campaignId } = req.params;
+
+        await supabase
+            .from('email_campaign_jobs')
+            .update({ status: 'paused', updated_at: new Date().toISOString() })
+            .eq('id', campaignId);
+
+        res.json({ success: true, message: 'Campaign paused. It will stop after the current email.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// List all campaigns
+app.get('/api/admin/campaigns', async (req, res) => {
+    try {
+        const { data: jobs, error } = await supabase
+            .from('email_campaign_jobs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            campaigns: jobs.map(job => ({
+                campaignId: job.id,
+                campaign: job.campaign_name,
+                status: job.status,
+                progress: `${job.sent_count + job.failed_count}/${job.total_emails}`,
+                sent: job.sent_count,
+                failed: job.failed_count,
+                startedAt: job.started_at,
+                completedAt: job.completed_at
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 
 // Churn detection
 app.post('/api/detect-churns', async (req, res) => {
@@ -2899,6 +3078,11 @@ const server = app.listen(PORT, HOST, async () => {
     const dbState = await checkSupabaseConnection();
     logger.info('Supabase Connection State:', dbState);
     logger.info('WebSocket server is ready on the same port');
+
+    // Resume any incomplete email campaigns after startup
+    setTimeout(() => {
+        resumeIncompleteCampaigns();
+    }, 5000); // Wait 5 seconds for full startup
 });
 
 // WebSocket server setup
