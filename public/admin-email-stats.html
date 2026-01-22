@@ -20,19 +20,32 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
         h1 {
             color: #1a5f7a;
-            margin-bottom: 2rem;
+            margin-bottom: 0.5rem;
             text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        h2 {
+            color: #1a5f7a;
+            margin: 2rem 0 1rem 0;
+            font-size: 1.3rem;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 1rem;
             margin-bottom: 2rem;
         }
@@ -45,16 +58,45 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
+        .stat-card.highlight {
+            background: linear-gradient(135deg, #1a5f7a 0%, #2980b9 100%);
+        }
+
+        .stat-card.highlight .stat-value,
+        .stat-card.highlight .stat-label {
+            color: white;
+        }
+
         .stat-value {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: bold;
             color: #69B578;
         }
 
+        .stat-value.warning {
+            color: #f39c12;
+        }
+
+        .stat-value.danger {
+            color: #e74c3c;
+        }
+
         .stat-label {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: #666;
             margin-top: 0.5rem;
+        }
+
+        .stat-sublabel {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 0.25rem;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
         }
 
         .campaign-table {
@@ -68,7 +110,7 @@
 
         .campaign-table th,
         .campaign-table td {
-            padding: 1rem;
+            padding: 0.75rem 1rem;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
@@ -77,6 +119,7 @@
             background: #1a5f7a;
             color: white;
             font-weight: 500;
+            font-size: 0.85rem;
         }
 
         .campaign-table tr:last-child td {
@@ -85,6 +128,38 @@
 
         .campaign-table tr:hover {
             background: #f9f9f9;
+        }
+
+        .click-breakdown {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .click-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .click-item:last-child {
+            border-bottom: none;
+        }
+
+        .click-link {
+            color: #1a5f7a;
+            font-weight: 500;
+        }
+
+        .click-count {
+            background: #e8f4f8;
+            color: #1a5f7a;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
         }
 
         .loading {
@@ -101,17 +176,40 @@
 
         .refresh-btn {
             display: inline-block;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem 1.5rem;
             background: #69B578;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             margin-bottom: 1rem;
+            font-size: 0.9rem;
         }
 
         .refresh-btn:hover {
             background: #5aa469;
+        }
+
+        .last-updated {
+            color: #999;
+            font-size: 0.8rem;
+            margin-left: 1rem;
+        }
+
+        .no-clicks {
+            color: #999;
+            font-style: italic;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .two-column {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 768px) {
@@ -119,7 +217,7 @@
                 grid-template-columns: repeat(2, 1fr);
             }
             .campaign-table {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
             }
             .campaign-table th,
             .campaign-table td {
@@ -131,48 +229,82 @@
 <body>
     <div class="container">
         <h1>Email Campaign Statistics</h1>
+        <p class="subtitle">Track your email campaign performance</p>
 
         <button class="refresh-btn" onclick="loadEmailStats()">Refresh</button>
+        <span class="last-updated" id="lastUpdated"></span>
 
+        <!-- Main Stats -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value" id="statSent">-</div>
-                <div class="stat-label">Sent</div>
+                <div class="stat-label">Emails Sent</div>
+                <div class="stat-sublabel" id="statUniqueSent">- unique</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="statOpened">-</div>
-                <div class="stat-label">Opened</div>
+                <div class="stat-label">Opens</div>
+                <div class="stat-sublabel" id="statUniqueOpened">- unique</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="statClicked">-</div>
-                <div class="stat-label">Clicked</div>
+                <div class="stat-label">Clicks</div>
+                <div class="stat-sublabel" id="statUniqueClicked">- unique</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card highlight">
                 <div class="stat-value" id="statOpenRate">-</div>
                 <div class="stat-label">Open Rate</div>
+                <div class="stat-sublabel">unique opens / sent</div>
+            </div>
+            <div class="stat-card highlight">
+                <div class="stat-value" id="statCTR">-</div>
+                <div class="stat-label">Click-Through Rate</div>
+                <div class="stat-sublabel">clicks / opens</div>
+            </div>
+            <div class="stat-card highlight">
+                <div class="stat-value" id="statConversion">-</div>
+                <div class="stat-label">Conversion Rate</div>
+                <div class="stat-sublabel">clicks / sent</div>
             </div>
         </div>
 
-        <table class="campaign-table">
-            <thead>
-                <tr>
-                    <th>Campaign</th>
-                    <th>Sent</th>
-                    <th>Opened</th>
-                    <th>Clicked</th>
-                    <th>Open Rate</th>
-                </tr>
-            </thead>
-            <tbody id="campaignTableBody">
-                <tr><td colspan="5" class="loading">Loading...</td></tr>
-            </tbody>
-        </table>
+        <div class="two-column">
+            <!-- Campaign Table -->
+            <div>
+                <h2>Campaign Breakdown</h2>
+                <table class="campaign-table">
+                    <thead>
+                        <tr>
+                            <th>Campaign</th>
+                            <th>Sent</th>
+                            <th>Opened</th>
+                            <th>Clicked</th>
+                            <th>Open Rate</th>
+                            <th>Click Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="campaignTableBody">
+                        <tr><td colspan="6" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Click Breakdown -->
+            <div>
+                <h2>Clicks by Link</h2>
+                <div class="click-breakdown" id="clickBreakdown">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
     async function loadEmailStats() {
         const tbody = document.getElementById('campaignTableBody');
-        tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading...</td></tr>';
+        const clickBreakdown = document.getElementById('clickBreakdown');
+        tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+        clickBreakdown.innerHTML = '<div class="loading">Loading...</div>';
 
         try {
             const response = await fetch('/api/admin/email-stats');
@@ -180,35 +312,89 @@
 
             if (data.success) {
                 const stats = data.stats;
+
+                // Update main stats
                 document.getElementById('statSent').textContent = stats.totalSent;
                 document.getElementById('statOpened').textContent = stats.totalOpened;
                 document.getElementById('statClicked').textContent = stats.totalClicked;
+                document.getElementById('statUniqueSent').textContent = `${stats.uniqueSent} unique`;
+                document.getElementById('statUniqueOpened').textContent = `${stats.uniqueOpened} unique`;
+                document.getElementById('statUniqueClicked').textContent = `${stats.uniqueClicked} unique`;
                 document.getElementById('statOpenRate').textContent = stats.overallOpenRate;
+                document.getElementById('statCTR').textContent = stats.clickThroughRate;
+                document.getElementById('statConversion').textContent = stats.conversionRate;
 
+                // Color code CTR
+                const ctrValue = parseFloat(stats.clickThroughRate);
+                const ctrEl = document.getElementById('statCTR');
+                if (ctrValue < 1) ctrEl.classList.add('danger');
+                else if (ctrValue < 5) ctrEl.classList.add('warning');
+
+                // Update last updated time
+                document.getElementById('lastUpdated').textContent =
+                    'Last updated: ' + new Date().toLocaleTimeString();
+
+                // Update campaign table
                 if (stats.byCampaign.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="loading">No data</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="loading">No data</td></tr>';
                 } else {
                     tbody.innerHTML = stats.byCampaign.map(c => `
                         <tr>
-                            <td>${c.campaign}</td>
-                            <td>${c.sent}</td>
-                            <td>${c.opened}</td>
-                            <td>${c.clicked}</td>
+                            <td><strong>${c.campaign}</strong></td>
+                            <td>${c.uniqueSent || c.sent}</td>
+                            <td>${c.uniqueOpened || c.opened}</td>
+                            <td>${c.uniqueClicked || c.clicked}</td>
                             <td>${c.openRate}</td>
+                            <td>${c.clickRate || '0.0%'}</td>
                         </tr>
                     `).join('');
                 }
+
+                // Update click breakdown
+                const clicks = stats.clicksByLink || {};
+                const clickEntries = Object.entries(clicks);
+                if (clickEntries.length === 0) {
+                    clickBreakdown.innerHTML = '<div class="no-clicks">No clicks recorded yet</div>';
+                } else {
+                    clickBreakdown.innerHTML = clickEntries
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([link, count]) => {
+                            const linkName = formatLinkName(link);
+                            return `
+                                <div class="click-item">
+                                    <span class="click-link">${linkName}</span>
+                                    <span class="click-count">${count}</span>
+                                </div>
+                            `;
+                        }).join('');
+                }
             } else {
-                tbody.innerHTML = '<tr><td colspan="5" class="error">Error loading stats</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="error">Error loading stats</td></tr>';
+                clickBreakdown.innerHTML = '<div class="error">Error loading</div>';
             }
         } catch (error) {
             console.error('Error loading email stats:', error);
-            tbody.innerHTML = '<tr><td colspan="5" class="error">Error loading stats</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="error">Error loading stats</td></tr>';
+            clickBreakdown.innerHTML = '<div class="error">Error loading</div>';
         }
+    }
+
+    function formatLinkName(link) {
+        const names = {
+            'main_cta': 'Start Trial Button',
+            'video_cta': 'Watch Demo Button',
+            'unsubscribe': 'Unsubscribe Link',
+            'privacy': 'Privacy Policy',
+            'unknown': 'Other Links'
+        };
+        return names[link] || link;
     }
 
     // Load on page load
     loadEmailStats();
+
+    // Auto-refresh every 60 seconds
+    setInterval(loadEmailStats, 60000);
     </script>
 </body>
 </html>

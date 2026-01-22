@@ -883,7 +883,7 @@ app.get('/api/admin/email-stats', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('email_events')
-            .select('email, event_type, utm_campaign')
+            .select('email, event_type, utm_campaign, link_url')
             .not('email', 'ilike', '%nicolas.tanala%');
 
         if (error) throw error;
@@ -892,18 +892,50 @@ app.get('/api/admin/email-stats', async (req, res) => {
         const totalSent = data.filter(e => e.event_type === 'sent').length;
         const totalOpened = data.filter(e => e.event_type === 'opened').length;
         const totalClicked = data.filter(e => e.event_type === 'clicked').length;
-        const overallOpenRate = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : '0.0';
+
+        // Calculate unique counts (distinct emails)
+        const uniqueSentEmails = new Set(data.filter(e => e.event_type === 'sent').map(e => e.email));
+        const uniqueOpenedEmails = new Set(data.filter(e => e.event_type === 'opened').map(e => e.email));
+        const uniqueClickedEmails = new Set(data.filter(e => e.event_type === 'clicked').map(e => e.email));
+
+        const uniqueSent = uniqueSentEmails.size;
+        const uniqueOpened = uniqueOpenedEmails.size;
+        const uniqueClicked = uniqueClickedEmails.size;
+
+        // Calculate rates
+        const overallOpenRate = uniqueSent > 0 ? ((uniqueOpened / uniqueSent) * 100).toFixed(1) : '0.0';
+        const clickThroughRate = uniqueOpened > 0 ? ((uniqueClicked / uniqueOpened) * 100).toFixed(1) : '0.0';
+        const conversionRate = uniqueSent > 0 ? ((uniqueClicked / uniqueSent) * 100).toFixed(1) : '0.0';
+
+        // Click breakdown by link type
+        const clicksByLink = {};
+        data.filter(e => e.event_type === 'clicked').forEach(event => {
+            const link = event.link_url || 'unknown';
+            clicksByLink[link] = (clicksByLink[link] || 0) + 1;
+        });
 
         // Group by campaign
         const campaignMap = {};
         data.forEach(event => {
             const campaign = event.utm_campaign || 'unknown';
             if (!campaignMap[campaign]) {
-                campaignMap[campaign] = { sent: 0, opened: 0, clicked: 0 };
+                campaignMap[campaign] = {
+                    sent: 0, opened: 0, clicked: 0,
+                    sentEmails: new Set(), openedEmails: new Set(), clickedEmails: new Set()
+                };
             }
-            if (event.event_type === 'sent') campaignMap[campaign].sent++;
-            if (event.event_type === 'opened') campaignMap[campaign].opened++;
-            if (event.event_type === 'clicked') campaignMap[campaign].clicked++;
+            if (event.event_type === 'sent') {
+                campaignMap[campaign].sent++;
+                campaignMap[campaign].sentEmails.add(event.email);
+            }
+            if (event.event_type === 'opened') {
+                campaignMap[campaign].opened++;
+                campaignMap[campaign].openedEmails.add(event.email);
+            }
+            if (event.event_type === 'clicked') {
+                campaignMap[campaign].clicked++;
+                campaignMap[campaign].clickedEmails.add(event.email);
+            }
         });
 
         const byCampaign = Object.entries(campaignMap).map(([campaign, stats]) => ({
@@ -911,7 +943,11 @@ app.get('/api/admin/email-stats', async (req, res) => {
             sent: stats.sent,
             opened: stats.opened,
             clicked: stats.clicked,
-            openRate: stats.sent > 0 ? ((stats.opened / stats.sent) * 100).toFixed(1) + '%' : '0.0%'
+            uniqueSent: stats.sentEmails.size,
+            uniqueOpened: stats.openedEmails.size,
+            uniqueClicked: stats.clickedEmails.size,
+            openRate: stats.sentEmails.size > 0 ? ((stats.openedEmails.size / stats.sentEmails.size) * 100).toFixed(1) + '%' : '0.0%',
+            clickRate: stats.openedEmails.size > 0 ? ((stats.clickedEmails.size / stats.openedEmails.size) * 100).toFixed(1) + '%' : '0.0%'
         })).sort((a, b) => b.sent - a.sent);
 
         res.json({
@@ -920,7 +956,13 @@ app.get('/api/admin/email-stats', async (req, res) => {
                 totalSent,
                 totalOpened,
                 totalClicked,
+                uniqueSent,
+                uniqueOpened,
+                uniqueClicked,
                 overallOpenRate: overallOpenRate + '%',
+                clickThroughRate: clickThroughRate + '%',
+                conversionRate: conversionRate + '%',
+                clicksByLink,
                 byCampaign
             }
         });
@@ -1412,7 +1454,7 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
                                         <table border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 15px;">
                                             <tr>
                                                 <td align="center" style="border-radius: 10px; background-color: #27ae60; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);">
-                                                    <a href="https://syncvoicemedical.onrender.com/?email=${encodeURIComponent(recipientEmail)}&utm_source=email&utm_campaign=${encodeURIComponent(campaignName)}&utm_content=main_cta"
+                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=main_cta&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=main_cta')}"
                                                         target="_blank"
                                                         class="button-link"
                                                         style="display: block; padding: 16px 45px; font-size: 18px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 10px; background-color: #27ae60;">
@@ -1424,7 +1466,7 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
                                         <table border="0" cellpadding="0" cellspacing="0">
                                             <tr>
                                                 <td align="center" style="border-radius: 8px; border: 2px solid #1a5f7a;">
-                                                    <a href="https://syncvoicemedical.onrender.com/videos.html?utm_source=email&utm_campaign=${encodeURIComponent(campaignName)}&utm_content=video_cta"
+                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=video_cta&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/videos.html?utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=video_cta')}"
                                                         target="_blank"
                                                         style="display: block; padding: 12px 30px; font-size: 15px; font-weight: 600; color: #1a5f7a; text-decoration: none; border-radius: 8px;">
                                                         🎥 Voir la démo (2 min)
@@ -1477,8 +1519,8 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
                                     <td align="center">
                                         <p style="font-size: 11px; color: #999; margin: 15px 0 0 0; line-height: 1.6;">
                                             Vous recevez cet email car vous êtes inscrit dans notre base de professionnels de santé.<br>
-                                            <a href="https://syncvoicemedical.onrender.com/api/unsubscribe?email=${encodeURIComponent(recipientEmail)}&utm_source=email&utm_campaign=${encodeURIComponent(campaignName)}" style="color: #1a5f7a; text-decoration: underline;">Se désinscrire</a> &nbsp;|&nbsp;
-                                            <a href="https://syncvoicemedical.onrender.com/terms/fr/cge.html" style="color: #1a5f7a; text-decoration: underline;">Politique de confidentialité</a>
+                                            <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=unsubscribe&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/api/unsubscribe?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName))}" style="color: #1a5f7a; text-decoration: underline;">Se désinscrire</a> &nbsp;|&nbsp;
+                                            <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=privacy&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/terms/fr/cge.html')}" style="color: #1a5f7a; text-decoration: underline;">Politique de confidentialité</a>
                                         </p>
                                     </td>
                                 </tr>
@@ -1934,6 +1976,52 @@ async function handleEmailOpenTracking(req, res) {
 // Email open tracking endpoints (both URLs work)
 app.get('/api/email-open', handleEmailOpenTracking);
 app.get('/api/track/open', handleEmailOpenTracking);
+
+// Email click tracking endpoint
+app.get('/api/track/click', async (req, res) => {
+    try {
+        const { email, campaign, link, url } = req.query;
+
+        if (!url) {
+            return res.status(400).send('Missing URL parameter');
+        }
+
+        // Record click event if email is provided
+        if (email) {
+            await supabase.from('email_events').insert({
+                email: email.toLowerCase(),
+                event_type: 'clicked',
+                utm_campaign: campaign || 'unknown',
+                utm_source: 'email',
+                link_url: link || url
+            });
+
+            // Update user click tracking
+            await supabase
+                .from('users')
+                .update({
+                    email_clicked: true,
+                    email_clicked_at: new Date().toISOString(),
+                    last_clicked_link: link || url
+                })
+                .eq('email', email.toLowerCase());
+
+            logger.info(`Email click tracked: ${email}`, { campaign, link, url });
+        }
+
+        // Redirect to destination URL
+        res.redirect(302, decodeURIComponent(url));
+    } catch (error) {
+        logger.error('Email click tracking error:', error);
+        // Still redirect even if tracking fails
+        const url = req.query.url;
+        if (url) {
+            res.redirect(302, decodeURIComponent(url));
+        } else {
+            res.status(400).send('Invalid request');
+        }
+    }
+});
 
 // Send activation code
 app.post('/api/send-activation', async (req, res) => {
