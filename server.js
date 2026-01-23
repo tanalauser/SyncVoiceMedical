@@ -1276,7 +1276,7 @@ async function resumeIncompleteCampaigns() {
     }
 }
 
-// Campaign email template (doctors_fr_v2)
+// Campaign email template (doctors_fr_v3 - SHORT version with video CTA)
 function getCampaignEmailHtml(recipientEmail, campaignName) {
     return `<!DOCTYPE html>
 <html lang="fr">
@@ -1284,7 +1284,7 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Gagnez 2 heures par jour sur vos comptes-rendus médicaux</title>
+    <title>2h/jour perdues en paperasse ? Regardez cette démo de 90 secondes</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -1304,223 +1304,104 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
         img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; display: block; }
         @media only screen and (max-width: 600px) {
             .container { width: 100% !important; }
-            .content-padding { padding: 25px 20px !important; }
-            .header-padding { padding: 25px 20px !important; }
-            .mobile-full { width: 100% !important; display: block !important; }
-            .stat-cell { display: block !important; width: 100% !important; padding: 10px 0 !important; }
-            h1 { font-size: 26px !important; line-height: 1.3 !important; }
-            h2 { font-size: 22px !important; }
-            .hero-text { font-size: 16px !important; }
+            .content-padding { padding: 20px !important; }
+            h1 { font-size: 24px !important; }
         }
     </style>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #e8f0f3; -webkit-font-smoothing: antialiased;">
-    <div style="display: none; font-size: 1px; color: #e8f0f3; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
-        Découvrez comment des médecins économisent 2h/jour grâce à la transcription IA - 7 jours d'essai gratuit
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <div style="display: none; font-size: 1px; color: #f5f5f5; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+        90 secondes pour découvrir comment économiser 2h par jour sur vos comptes-rendus
     </div>
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #e8f0f3;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f5f5;">
         <tr>
             <td align="center" style="padding: 30px 15px;">
-                <table class="container" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(26, 95, 122, 0.12); overflow: hidden;">
+                <table class="container" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;">
+                    <!-- Header -->
                     <tr>
-                        <td class="header-padding" align="center" style="padding: 40px 40px 30px 40px; background-color: #1a5f7a; background: linear-gradient(135deg, #1a5f7a 0%, #0d3d4d 100%);">
-                            <table border="0" cellpadding="0" cellspacing="0">
-                                <tr>
-                                    <td align="center">
-                                        <div style="width: 60px; height: 60px; background-color: #2a7a94; border-radius: 12px; display: inline-block; line-height: 60px; margin-bottom: 15px;">
-                                            <span style="font-size: 28px;">🎙️</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td align="center">
-                                        <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">
-                                            SyncVoice Medical
-                                        </h1>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td align="center" style="padding-top: 8px;">
-                                        <p style="margin: 0; color: #ffffff; font-size: 14px; font-weight: 500;">
-                                            Transcription médicale par IA • 100% Française
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
+                        <td align="center" style="padding: 30px 30px 20px 30px; background: linear-gradient(135deg, #1a5f7a 0%, #0d3d4d 100%);">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 700;">
+                                🎙️ SyncVoice Medical
+                            </h1>
+                            <p style="margin: 8px 0 0 0; color: #a8d4e6; font-size: 13px;">
+                                Transcription médicale par IA • 100% Française
+                            </p>
                         </td>
                     </tr>
+                    <!-- Content -->
                     <tr>
-                        <td align="center" style="background-color: #f0f7f9; padding: 12px 20px; border-bottom: 1px solid #e0eef2;">
-                            <table border="0" cellpadding="0" cellspacing="0">
-                                <tr>
-                                    <td style="padding: 0 12px;"><span style="color: #1a5f7a; font-size: 12px; font-weight: 600;">🇫🇷 Orléans, France</span></td>
-                                    <td style="color: #c0d4db;">|</td>
-                                    <td style="padding: 0 12px;"><span style="color: #1a5f7a; font-size: 12px; font-weight: 600;">🔒 Conforme RGPD</span></td>
-                                    <td style="color: #c0d4db;">|</td>
-                                    <td style="padding: 0 12px;"><span style="color: #1a5f7a; font-size: 12px; font-weight: 600;">🔐 Chiffrement AES-256</span></td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="content-padding" style="padding: 40px 45px;">
-                            <p style="font-size: 18px; color: #1a5f7a; line-height: 1.5; margin: 0 0 25px 0; font-weight: 600;">
+                        <td class="content-padding" style="padding: 35px 40px;">
+                            <p style="font-size: 17px; color: #333; line-height: 1.6; margin: 0 0 20px 0;">
                                 Docteur,
                             </p>
-                            <div style="background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%); border-left: 4px solid #e74c3c; padding: 20px 25px; border-radius: 0 12px 12px 0; margin-bottom: 25px;">
-                                <p style="font-size: 17px; color: #333; line-height: 1.6; margin: 0; font-weight: 500;">
-                                    Combien de temps passez-vous <strong style="color: #e74c3c;">chaque soir</strong> à rédiger vos comptes-rendus ?
-                                </p>
-                            </div>
-                            <p class="hero-text" style="font-size: 17px; color: #444; line-height: 1.7; margin: 0 0 30px 0;">
-                                Si vous êtes comme la majorité des médecins français, c'est probablement <strong>2 à 3 heures par jour</strong> — du temps précieux que vous pourriez passer avec vos proches ou vos patients.
+                            <p style="font-size: 17px; color: #333; line-height: 1.6; margin: 0 0 25px 0;">
+                                <strong>2 à 3 heures par jour</strong> à rédiger des comptes-rendus ?<br>
+                                C'est du temps que vous pourriez passer avec vos patients.
                             </p>
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 30px 0;">
-                                <tr>
-                                    <td class="stat-cell" width="50%" style="padding-right: 10px;">
-                                        <div style="background-color: #1a5f7a; background: linear-gradient(145deg, #1a5f7a 0%, #267a99 100%); border-radius: 12px; padding: 25px 20px; text-align: center;">
-                                            <p style="margin: 0; font-size: 42px; color: #ffffff; font-weight: 800; line-height: 1;">-70%</p>
-                                            <p style="margin: 8px 0 0 0; font-size: 13px; color: #ffffff; font-weight: 500;">Temps de documentation</p>
-                                        </div>
-                                    </td>
-                                    <td class="stat-cell" width="50%" style="padding-left: 10px;">
-                                        <div style="background-color: #27ae60; background: linear-gradient(145deg, #27ae60 0%, #2ecc71 100%); border-radius: 12px; padding: 25px 20px; text-align: center;">
-                                            <p style="margin: 0; font-size: 42px; color: #ffffff; font-weight: 800; line-height: 1;">99%</p>
-                                            <p style="margin: 8px 0 0 0; font-size: 13px; color: #ffffff; font-weight: 500;">Précision transcription</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                            <h2 style="color: #1a5f7a; font-size: 24px; margin: 35px 0 20px 0; font-weight: 700;">
-                                ✨ La solution : SyncVoice Medical
-                            </h2>
-                            <p style="font-size: 16px; color: #444; line-height: 1.7; margin: 0 0 30px 0;">
-                                Notre intelligence artificielle <strong>100% française et sécurisée</strong> transforme instantanément votre dictée en comptes-rendus structurés et conformes.
+                            <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0 0 30px 0;">
+                                SyncVoice Medical transforme votre dictée en compte-rendu structuré <strong>en quelques secondes</strong>. Regardez comment ça marche :
                             </p>
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 25px 0;">
+                            <!-- VIDEO CTA - PRIMARY -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 20px 0;">
                                 <tr>
-                                    <td style="padding: 12px 0;">
-                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                    <td align="center">
+                                        <table border="0" cellpadding="0" cellspacing="0">
                                             <tr>
-                                                <td width="45" valign="top"><div style="width: 36px; height: 36px; background: #e8f4f8; border-radius: 8px; text-align: center; line-height: 36px;"><span style="font-size: 18px;">🌍</span></div></td>
-                                                <td valign="middle"><p style="margin: 0; font-size: 15px; color: #333; line-height: 1.5;"><strong style="color: #1a5f7a;">Multilangue</strong> : Français, Anglais, Allemand, Espagnol, Italien, Arabe</p></td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 12px 0;">
-                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                                            <tr>
-                                                <td width="45" valign="top"><div style="width: 36px; height: 36px; background: #e8f4f8; border-radius: 8px; text-align: center; line-height: 36px;"><span style="font-size: 18px;">🏥</span></div></td>
-                                                <td valign="middle"><p style="margin: 0; font-size: 15px; color: #333; line-height: 1.5;"><strong style="color: #1a5f7a;">Vocabulaire médical</strong> : IA entraînée spécifiquement pour la terminologie médicale</p></td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 12px 0;">
-                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                                            <tr>
-                                                <td width="45" valign="top"><div style="width: 36px; height: 36px; background: #e8f4f8; border-radius: 8px; text-align: center; line-height: 36px;"><span style="font-size: 18px;">🛡️</span></div></td>
-                                                <td valign="middle"><p style="margin: 0; font-size: 15px; color: #333; line-height: 1.5;"><strong style="color: #1a5f7a;">Sécurité maximale</strong> : Données jamais stockées sur nos serveurs</p></td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 12px 0;">
-                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                                            <tr>
-                                                <td width="45" valign="top"><div style="width: 36px; height: 36px; background: #e8f4f8; border-radius: 8px; text-align: center; line-height: 36px;"><span style="font-size: 18px;">📞</span></div></td>
-                                                <td valign="middle"><p style="margin: 0; font-size: 15px; color: #333; line-height: 1.5;"><strong style="color: #1a5f7a;">Support français</strong> : Équipe à Orléans, disponible par téléphone</p></td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 40px 0 30px 0;">
-                                <tr>
-                                    <td align="center" style="background: linear-gradient(135deg, #f8fbfc 0%, #eef5f7 100%); padding: 35px 30px; border-radius: 16px; border: 2px solid #d0e3e9;">
-                                        <div style="display: inline-block; background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: #ffffff; font-size: 12px; font-weight: 700; padding: 6px 16px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px;">
-                                            🎁 Offre Spéciale
-                                        </div>
-                                        <h3 style="color: #1a5f7a; font-size: 22px; margin: 0 0 10px 0; font-weight: 700;">
-                                            7 jours d'essai GRATUIT
-                                        </h3>
-                                        <p style="font-size: 14px; color: #666; margin: 0 0 25px 0;">
-                                            Sans carte bancaire • Sans engagement • Annulation libre
-                                        </p>
-                                        <table border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 15px;">
-                                            <tr>
-                                                <td align="center" style="border-radius: 10px; background-color: #27ae60; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);">
-                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=main_cta&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=main_cta')}"
+                                                <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
+                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=video_cta&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/videos.html?utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=video_cta')}"
                                                         target="_blank"
                                                         class="button-link"
-                                                        style="display: block; padding: 16px 45px; font-size: 18px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 10px; background-color: #27ae60;">
-                                                        Démarrer mon essai gratuit →
+                                                        style="display: block; padding: 18px 50px; font-size: 18px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 10px;">
+                                                        ▶️ Voir la démo (90 sec)
                                                     </a>
                                                 </td>
                                             </tr>
                                         </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Key benefits - compact -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 30px 0; background: #f8f9fa; border-radius: 10px; padding: 20px;">
+                                <tr>
+                                    <td style="padding: 15px 20px;">
+                                        <p style="margin: 0 0 12px 0; font-size: 14px; color: #333;"><strong style="color: #27ae60;">✓</strong> &nbsp;Réduction de <strong>70%</strong> du temps de documentation</p>
+                                        <p style="margin: 0 0 12px 0; font-size: 14px; color: #333;"><strong style="color: #27ae60;">✓</strong> &nbsp;Précision de <strong>99%</strong> sur le vocabulaire médical</p>
+                                        <p style="margin: 0; font-size: 14px; color: #333;"><strong style="color: #27ae60;">✓</strong> &nbsp;Données <strong>jamais stockées</strong> • Conforme RGPD</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- TRIAL CTA - SECONDARY -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td align="center" style="padding-top: 10px;">
+                                        <p style="font-size: 14px; color: #666; margin: 0 0 15px 0;">
+                                            Prêt à essayer ? <strong>7 jours gratuits</strong>, sans carte bancaire.
+                                        </p>
                                         <table border="0" cellpadding="0" cellspacing="0">
                                             <tr>
                                                 <td align="center" style="border-radius: 8px; border: 2px solid #1a5f7a;">
-                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=video_cta&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/videos.html?utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=video_cta')}"
+                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=main_cta&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=main_cta')}"
                                                         target="_blank"
-                                                        style="display: block; padding: 12px 30px; font-size: 15px; font-weight: 600; color: #1a5f7a; text-decoration: none; border-radius: 8px;">
-                                                        🎥 Voir la démo (2 min)
+                                                        style="display: block; padding: 12px 35px; font-size: 15px; font-weight: 600; color: #1a5f7a; text-decoration: none; border-radius: 8px;">
+                                                        Démarrer l'essai gratuit →
                                                     </a>
                                                 </td>
                                             </tr>
                                         </table>
-                                        <p style="font-size: 12px; color: #888; margin: 18px 0 0 0;">
-                                            ✓ Déjà adopté par <strong>500+ médecins français</strong>
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top: 2px solid #e9ecef; padding-top: 25px;">
-                                <tr>
-                                    <td>
-                                        <p style="font-size: 14px; color: #555; line-height: 1.6; margin: 0 0 12px 0;">
-                                            <strong style="color: #1a5f7a;">P.S.</strong> En tant qu'entreprise française, nous comprenons les spécificités de votre pratique. Notre équipe à Orléans est disponible pour vous accompagner avec une hotline dédiée aux professionnels de santé.
-                                        </p>
-                                        <p style="font-size: 13px; color: #777; line-height: 1.6; margin: 0; background: #f8f9fa; padding: 12px 15px; border-radius: 8px;">
-                                            💻 <em>Pour une confidentialité maximale, découvrez notre <strong>version bureau</strong> : vos données ne quittent jamais votre ordinateur.</em>
-                                        </p>
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
+                    <!-- Footer -->
                     <tr>
-                        <td style="background: linear-gradient(180deg, #f8f9fa 0%, #f0f2f4 100%); padding: 30px 40px; border-top: 1px solid #e0e4e8;">
+                        <td style="background-color: #f8f9fa; padding: 25px 40px; border-top: 1px solid #e9ecef;">
                             <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td align="center">
-                                        <p style="font-size: 15px; color: #1a5f7a; margin: 0 0 8px 0; font-weight: 700;">SyncVoice Medical</p>
-                                        <p style="font-size: 13px; color: #666; margin: 0 0 5px 0;">Solution française de transcription médicale par IA</p>
-                                        <p style="font-size: 13px; color: #888; margin: 0;">📍 Orléans, France &nbsp;|&nbsp; 📧 syncvoicemedical@gmail.com</p>
-                                    </td>
-                                </tr>
-                            </table>
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0;">
-                                <tr>
-                                    <td align="center">
-                                        <div style="display: inline-block; background: #ffffff; border: 1px solid #d0e3e9; border-radius: 20px; padding: 8px 20px;">
-                                            <span style="font-size: 11px; color: #1a5f7a; font-weight: 600;">🔒 RGPD &nbsp;&nbsp;•&nbsp;&nbsp; 🔐 AES-256 &nbsp;&nbsp;•&nbsp;&nbsp; 🛡️ Données non stockées</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                                <tr>
-                                    <td align="center">
-                                        <p style="font-size: 11px; color: #999; margin: 15px 0 0 0; line-height: 1.6;">
-                                            Vous recevez cet email car vous êtes inscrit dans notre base de professionnels de santé.<br>
-                                            <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=unsubscribe&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/api/unsubscribe?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName))}" style="color: #1a5f7a; text-decoration: underline;">Se désinscrire</a> &nbsp;|&nbsp;
-                                            <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=privacy&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/terms/fr/cge.html')}" style="color: #1a5f7a; text-decoration: underline;">Politique de confidentialité</a>
+                                        <p style="font-size: 13px; color: #666; margin: 0 0 5px 0;"><strong>SyncVoice Medical</strong> • Orléans, France</p>
+                                        <p style="font-size: 11px; color: #999; margin: 10px 0 0 0;">
+                                            <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=unsubscribe&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/api/unsubscribe?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName))}" style="color: #1a5f7a;">Se désinscrire</a>
                                         </p>
                                     </td>
                                 </tr>
