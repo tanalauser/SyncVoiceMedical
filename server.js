@@ -1278,7 +1278,7 @@ async function resumeIncompleteCampaigns() {
 
 // Campaign email template (doctors_fr_v4 - FIXED for email clients)
 function getCampaignEmailHtml(recipientEmail, campaignName) {
-    const videoUrl = 'https://drive.google.com/file/d/1xdDmvf6cqxMo6iXbZ6bBzvPs7c46Hx2B/view?usp=drive_link';
+    const videoUrl = 'https://drive.google.com/file/d/1xdDmvf6cqxMo6iXbZ6bBzvPs7c46Hx2B/view?usp=sharing';
     const trialUrl = 'https://syncvoicemedical.onrender.com/?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=main_cta';
     const unsubUrl = 'https://syncvoicemedical.onrender.com/api/unsubscribe?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName);
 
