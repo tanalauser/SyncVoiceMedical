@@ -1276,97 +1276,106 @@ async function resumeIncompleteCampaigns() {
     }
 }
 
-// Campaign email template (doctors_fr_v3 - SHORT version with video CTA)
+// Campaign email template (doctors_fr_v4 - FIXED for email clients)
 function getCampaignEmailHtml(recipientEmail, campaignName) {
+    const videoUrl = 'https://syncvoicemedical.onrender.com/videos.html?utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=video_cta';
+    const trialUrl = 'https://syncvoicemedical.onrender.com/?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=main_cta';
+    const unsubUrl = 'https://syncvoicemedical.onrender.com/api/unsubscribe?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName);
+
     return `<!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>2h/jour perdues en paperasse ? Regardez cette démo de 90 secondes</title>
+    <title>2h/jour perdues en paperasse ? Regardez cette démo</title>
     <!--[if mso]>
     <noscript>
         <xml>
             <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
                 <o:PixelsPerInch>96</o:PixelsPerInch>
             </o:OfficeDocumentSettings>
         </xml>
     </noscript>
-    <style type="text/css">
-        table { border-collapse: collapse; }
-        .button-link { padding: 15px 40px !important; }
-    </style>
     <![endif]-->
-    <style>
+    <style type="text/css">
         body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
         table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
         img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; display: block; }
+        body { margin: 0 !important; padding: 0 !important; }
         @media only screen and (max-width: 600px) {
             .container { width: 100% !important; }
             .content-padding { padding: 20px !important; }
-            h1 { font-size: 24px !important; }
+            h1 { font-size: 22px !important; }
         }
     </style>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-    <div style="display: none; font-size: 1px; color: #f5f5f5; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
-        90 secondes pour découvrir comment économiser 2h par jour sur vos comptes-rendus
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f0f0f0;">
+    <div style="display: none; font-size: 1px; color: #f0f0f0; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+        Découvrez comment économiser 2h par jour sur vos comptes-rendus médicaux
     </div>
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f5f5;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f0f0f0;">
         <tr>
             <td align="center" style="padding: 30px 15px;">
-                <table class="container" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;">
-                    <!-- Header -->
+                <table class="container" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff;">
+                    <!-- Header with solid color -->
                     <tr>
-                        <td align="center" style="padding: 30px 30px 20px 30px; background: linear-gradient(135deg, #1a5f7a 0%, #0d3d4d 100%);">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 700;">
-                                🎙️ SyncVoice Medical
+                        <td align="center" bgcolor="#1a5f7a" style="padding: 30px 30px 25px 30px; background-color: #1a5f7a;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: bold; font-family: Arial, Helvetica, sans-serif;">
+                                SyncVoice Medical
                             </h1>
-                            <p style="margin: 8px 0 0 0; color: #a8d4e6; font-size: 13px;">
-                                Transcription médicale par IA • 100% Française
+                            <p style="margin: 8px 0 0 0; color: #a8d4e6; font-size: 13px; font-family: Arial, Helvetica, sans-serif;">
+                                Transcription médicale par IA - 100% Française
                             </p>
                         </td>
                     </tr>
                     <!-- Content -->
                     <tr>
                         <td class="content-padding" style="padding: 35px 40px;">
-                            <p style="font-size: 17px; color: #333; line-height: 1.6; margin: 0 0 20px 0;">
+                            <p style="font-size: 17px; color: #333333; line-height: 1.6; margin: 0 0 20px 0; font-family: Arial, Helvetica, sans-serif;">
                                 Docteur,
                             </p>
-                            <p style="font-size: 17px; color: #333; line-height: 1.6; margin: 0 0 25px 0;">
+                            <p style="font-size: 17px; color: #333333; line-height: 1.6; margin: 0 0 25px 0; font-family: Arial, Helvetica, sans-serif;">
                                 <strong>2 à 3 heures par jour</strong> à rédiger des comptes-rendus ?<br>
                                 C'est du temps que vous pourriez passer avec vos patients.
                             </p>
-                            <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0 0 30px 0;">
+                            <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 0 0 30px 0; font-family: Arial, Helvetica, sans-serif;">
                                 SyncVoice Medical transforme votre dictée en compte-rendu structuré <strong>en quelques secondes</strong>. Regardez comment ça marche :
                             </p>
-                            <!-- VIDEO CTA - PRIMARY -->
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 20px 0;">
+                            <!-- VIDEO CTA - PRIMARY (solid red background) -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 25px 0;">
                                 <tr>
                                     <td align="center">
+                                        <!--[if mso]>
+                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=video_cta&url=${encodeURIComponent(videoUrl)}" style="height:50px;v-text-anchor:middle;width:280px;" arcsize="10%" strokecolor="#c0392b" fillcolor="#e74c3c">
+                                        <w:anchorlock/>
+                                        <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:18px;font-weight:bold;">&#9658; Voir la démo</center>
+                                        </v:roundrect>
+                                        <![endif]-->
+                                        <!--[if !mso]><!-->
                                         <table border="0" cellpadding="0" cellspacing="0">
                                             <tr>
-                                                <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
-                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=video_cta&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/videos.html?utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=video_cta')}"
+                                                <td align="center" bgcolor="#e74c3c" style="background-color: #e74c3c; border-radius: 8px;">
+                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=video_cta&url=${encodeURIComponent(videoUrl)}"
                                                         target="_blank"
-                                                        class="button-link"
-                                                        style="display: block; padding: 18px 50px; font-size: 18px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 10px;">
-                                                        ▶️ Voir la démo (90 sec)
+                                                        style="display: inline-block; padding: 16px 45px; font-size: 18px; font-weight: bold; color: #ffffff; text-decoration: none; font-family: Arial, Helvetica, sans-serif;">
+                                                        &#9658; Voir la démo
                                                     </a>
                                                 </td>
                                             </tr>
                                         </table>
+                                        <!--<![endif]-->
                                     </td>
                                 </tr>
                             </table>
                             <!-- Key benefits - compact -->
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 30px 0; background: #f8f9fa; border-radius: 10px; padding: 20px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 25px 0;">
                                 <tr>
-                                    <td style="padding: 15px 20px;">
-                                        <p style="margin: 0 0 12px 0; font-size: 14px; color: #333;"><strong style="color: #27ae60;">✓</strong> &nbsp;Réduction de <strong>70%</strong> du temps de documentation</p>
-                                        <p style="margin: 0 0 12px 0; font-size: 14px; color: #333;"><strong style="color: #27ae60;">✓</strong> &nbsp;Précision de <strong>99%</strong> sur le vocabulaire médical</p>
-                                        <p style="margin: 0; font-size: 14px; color: #333;"><strong style="color: #27ae60;">✓</strong> &nbsp;Données <strong>jamais stockées</strong> • Conforme RGPD</p>
+                                    <td bgcolor="#f8f9fa" style="background-color: #f8f9fa; padding: 20px 25px;">
+                                        <p style="margin: 0 0 10px 0; font-size: 14px; color: #333333; font-family: Arial, Helvetica, sans-serif;"><span style="color: #27ae60; font-weight: bold;">&#10003;</span> &nbsp;Réduction de <strong>70%</strong> du temps de documentation</p>
+                                        <p style="margin: 0 0 10px 0; font-size: 14px; color: #333333; font-family: Arial, Helvetica, sans-serif;"><span style="color: #27ae60; font-weight: bold;">&#10003;</span> &nbsp;Précision de <strong>99%</strong> sur le vocabulaire médical</p>
+                                        <p style="margin: 0; font-size: 14px; color: #333333; font-family: Arial, Helvetica, sans-serif;"><span style="color: #27ae60; font-weight: bold;">&#10003;</span> &nbsp;Données <strong>jamais stockées</strong> - Conforme RGPD</p>
                                     </td>
                                 </tr>
                             </table>
@@ -1374,16 +1383,16 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
                             <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td align="center" style="padding-top: 10px;">
-                                        <p style="font-size: 14px; color: #666; margin: 0 0 15px 0;">
+                                        <p style="font-size: 14px; color: #666666; margin: 0 0 15px 0; font-family: Arial, Helvetica, sans-serif;">
                                             Prêt à essayer ? <strong>7 jours gratuits</strong>, sans carte bancaire.
                                         </p>
                                         <table border="0" cellpadding="0" cellspacing="0">
                                             <tr>
-                                                <td align="center" style="border-radius: 8px; border: 2px solid #1a5f7a;">
-                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=main_cta&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=main_cta')}"
+                                                <td align="center" style="border: 2px solid #1a5f7a; border-radius: 6px;">
+                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=main_cta&url=${encodeURIComponent(trialUrl)}"
                                                         target="_blank"
-                                                        style="display: block; padding: 12px 35px; font-size: 15px; font-weight: 600; color: #1a5f7a; text-decoration: none; border-radius: 8px;">
-                                                        Démarrer l'essai gratuit →
+                                                        style="display: inline-block; padding: 12px 30px; font-size: 15px; font-weight: bold; color: #1a5f7a; text-decoration: none; font-family: Arial, Helvetica, sans-serif;">
+                                                        Démarrer l'essai gratuit &rarr;
                                                     </a>
                                                 </td>
                                             </tr>
@@ -1395,13 +1404,13 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
                     </tr>
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8f9fa; padding: 25px 40px; border-top: 1px solid #e9ecef;">
+                        <td bgcolor="#f8f9fa" style="background-color: #f8f9fa; padding: 25px 40px; border-top: 1px solid #e9ecef;">
                             <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td align="center">
-                                        <p style="font-size: 13px; color: #666; margin: 0 0 5px 0;"><strong>SyncVoice Medical</strong> • Orléans, France</p>
-                                        <p style="font-size: 11px; color: #999; margin: 10px 0 0 0;">
-                                            <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=unsubscribe&url=${encodeURIComponent('https://syncvoicemedical.onrender.com/api/unsubscribe?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName))}" style="color: #1a5f7a;">Se désinscrire</a>
+                                        <p style="font-size: 13px; color: #666666; margin: 0 0 5px 0; font-family: Arial, Helvetica, sans-serif;"><strong>SyncVoice Medical</strong> - Orléans, France</p>
+                                        <p style="font-size: 11px; color: #999999; margin: 10px 0 0 0; font-family: Arial, Helvetica, sans-serif;">
+                                            <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=unsubscribe&url=${encodeURIComponent(unsubUrl)}" style="color: #1a5f7a; text-decoration: underline;">Se désinscrire</a>
                                         </p>
                                     </td>
                                 </tr>
