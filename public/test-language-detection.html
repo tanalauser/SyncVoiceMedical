@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Language Detection Test</title>
+    <title>Language & Currency Detection Test</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1000px;
             margin: 50px auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -17,10 +17,16 @@
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
         h1 {
             color: #333;
             margin-bottom: 30px;
+        }
+        h2 {
+            color: #0e7c86;
+            border-bottom: 2px solid #0e7c86;
+            padding-bottom: 10px;
         }
         .info-section {
             margin-bottom: 20px;
@@ -52,6 +58,9 @@
         .error {
             color: #dc3545;
         }
+        .warning {
+            color: #ffc107;
+        }
         button {
             background-color: #007bff;
             color: white;
@@ -60,7 +69,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
-            margin-top: 20px;
+            margin: 5px;
         }
         button:hover {
             background-color: #0056b3;
@@ -69,32 +78,142 @@
             color: #ffc107;
             font-style: italic;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #0e7c86;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .pass {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .fail {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .test-summary {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .test-summary.all-pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+        .test-summary.some-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
     </style>
 </head>
 <body>
     <div class="test-container">
-        <h1>SyncVoiceMedical Language Detection Test</h1>
-        
+        <h1>SyncVoiceMedical Language & Currency Detection Test</h1>
+
         <div class="info-section">
-            <h3>Geolocation Information</h3>
+            <h3>Your Geolocation Information</h3>
             <div id="geoInfo" class="loading">Detecting location...</div>
         </div>
-        
+
         <div class="info-section">
             <h3>Browser Information</h3>
             <div id="browserInfo"></div>
         </div>
-        
+
         <div class="info-section">
-            <h3>Detection Results</h3>
+            <h3>Detection Results for Your Location</h3>
             <div id="detectionResults" class="loading">Running detection...</div>
         </div>
-        
+
         <button onclick="runTest()">Run Test Again</button>
         <button onclick="clearStorageAndTest()">Clear Storage & Test</button>
     </div>
 
+    <div class="test-container">
+        <h2>Country to Language Mapping Tests</h2>
+        <p>Testing that all countries map to the correct language:</p>
+        <div id="languageTestResults"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Language to Currency Mapping Tests</h2>
+        <p>Testing that all languages map to the correct currency:</p>
+        <div id="currencyTestResults"></div>
+    </div>
+
     <script>
+        // ==========================================
+        // COUNTRY TO LANGUAGE MAPPING (must match languageDetection.js and index.js)
+        // ==========================================
+        const countryToLanguage = {
+            // French-speaking countries
+            'FR': 'fr', 'BE': 'fr', 'CH': 'fr', 'CA': 'fr', 'LU': 'fr', 'MC': 'fr',
+            'BF': 'fr', 'BJ': 'fr', 'CD': 'fr', 'CI': 'fr', 'GA': 'fr', 'GN': 'fr',
+            'ML': 'fr', 'NE': 'fr', 'SN': 'fr', 'TG': 'fr', 'MG': 'fr', 'CM': 'fr',
+            'HT': 'fr', 'RW': 'fr', 'TD': 'fr', 'CG': 'fr', 'DZ': 'fr', 'MA': 'fr', 'TN': 'fr',
+
+            // English-speaking countries
+            'GB': 'en', 'US': 'en', 'AU': 'en', 'NZ': 'en', 'IE': 'en', 'ZA': 'en',
+            'NG': 'en', 'KE': 'en', 'GH': 'en', 'IN': 'en', 'PK': 'en', 'PH': 'en',
+            'SG': 'en', 'IM': 'en', 'JE': 'en', 'GG': 'en', 'JM': 'en', 'TT': 'en',
+            'BB': 'en', 'BZ': 'en', 'GY': 'en', 'MT': 'en', 'BW': 'en', 'ZW': 'en',
+            'MU': 'en', 'FJ': 'en', 'LK': 'en',
+
+            // German-speaking countries
+            'DE': 'de', 'AT': 'de', 'LI': 'de',
+
+            // Spanish-speaking countries
+            'ES': 'es', 'MX': 'es', 'AR': 'es', 'CO': 'es', 'PE': 'es', 'VE': 'es',
+            'CL': 'es', 'EC': 'es', 'GT': 'es', 'CU': 'es', 'BO': 'es', 'DO': 'es',
+            'HN': 'es', 'PY': 'es', 'SV': 'es', 'NI': 'es', 'CR': 'es', 'PA': 'es',
+            'UY': 'es', 'PR': 'es', 'GQ': 'es',
+
+            // Italian-speaking countries
+            'IT': 'it', 'SM': 'it', 'VA': 'it',
+
+            // Portuguese-speaking countries
+            'PT': 'pt', 'BR': 'pt', 'AO': 'pt', 'MZ': 'pt', 'CV': 'pt', 'GW': 'pt', 'ST': 'pt', 'TL': 'pt'
+        };
+
+        // ==========================================
+        // LANGUAGE TO CURRENCY MAPPING (must match getCurrencyFromLanguage in index.js)
+        // ==========================================
+        function getCurrencyFromLanguage(lang) {
+            // European languages always use Euro
+            if (['de', 'fr', 'es', 'it', 'pt'].includes(lang)) {
+                return 'EUR';
+            }
+            // English always uses GBP (Pound Sterling)
+            if (lang === 'en') {
+                return 'GBP';
+            }
+            return 'EUR';
+        }
+
+        // ==========================================
+        // TEST FUNCTIONS
+        // ==========================================
+
+        function detectLanguageFromCountry(countryCode) {
+            return countryToLanguage[countryCode] || null;
+        }
+
         async function getGeolocationInfo() {
             try {
                 const response = await fetch('https://ipapi.co/json/');
@@ -117,27 +236,15 @@
             };
         }
 
-        function detectLanguageFromCountry(countryCode) {
-            const countryToLanguage = {
-                'FR': 'fr', 'BE': 'fr', 'CH': 'fr', 'CA': 'fr',
-                'GB': 'en', 'US': 'en', 'AU': 'en', 'NZ': 'en',
-                'DE': 'de', 'AT': 'de',
-                'ES': 'es', 'MX': 'es', 'AR': 'es',
-                'IT': 'it',
-                'PT': 'pt', 'BR': 'pt'
-            };
-            return countryToLanguage[countryCode] || null;
-        }
-
         async function runTest() {
             // Update UI to show loading
             document.getElementById('geoInfo').innerHTML = '<span class="loading">Detecting location...</span>';
             document.getElementById('detectionResults').innerHTML = '<span class="loading">Running detection...</span>';
-            
+
             // Get geolocation info
             const geoData = await getGeolocationInfo();
             const geoInfoDiv = document.getElementById('geoInfo');
-            
+
             if (geoData.error) {
                 geoInfoDiv.innerHTML = `<div class="error">Error: ${geoData.error}</div>`;
             } else {
@@ -149,7 +256,7 @@
                     <div class="data-item"><span class="label">Timezone:</span> <span class="value">${geoData.timezone || 'unknown'}</span></div>
                 `;
             }
-            
+
             // Get browser info
             const browserData = getBrowserInfo();
             const browserInfoDiv = document.getElementById('browserInfo');
@@ -160,14 +267,14 @@
                 <div class="data-item"><span class="label">LocalStorage:</span> <span class="value">${browserData.localStorage}</span></div>
                 <div class="data-item"><span class="label">Cookies Enabled:</span> <span class="value">${browserData.cookieEnabled}</span></div>
             `;
-            
+
             // Perform language detection
             const detectionResultsDiv = document.getElementById('detectionResults');
-            
+
             // Check URL parameter
             const urlParams = new URLSearchParams(window.location.search);
             const urlLang = urlParams.get('lang');
-            
+
             // Check localStorage
             let storedLang = null;
             try {
@@ -175,16 +282,20 @@
             } catch (e) {
                 console.log('localStorage error:', e);
             }
-            
+
             // Detect from country
             const countryLang = geoData.country_code ? detectLanguageFromCountry(geoData.country_code) : null;
-            
+
             // Detect from browser
             const browserLang = browserData.language.split('-')[0];
-            
-            // Determine final language (simulating your priority)
+
+            // Determine final language (simulating priority)
             let finalLang = urlLang || storedLang || countryLang || browserLang || 'fr';
-            
+
+            // Determine currency based on language
+            const currency = getCurrencyFromLanguage(finalLang);
+            const currencySymbol = currency === 'GBP' ? '£' : '€';
+
             detectionResultsDiv.innerHTML = `
                 <div class="data-item"><span class="label">URL Parameter:</span> <span class="value">${urlLang || 'none'}</span></div>
                 <div class="data-item"><span class="label">Stored Language:</span> <span class="value">${storedLang || 'none'}</span></div>
@@ -193,7 +304,14 @@
                 <div class="data-item" style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #007bff;">
                     <span class="label">FINAL LANGUAGE:</span> <span class="value success" style="font-size: 1.2em; font-weight: bold;">${finalLang.toUpperCase()}</span>
                 </div>
+                <div class="data-item">
+                    <span class="label">CURRENCY:</span> <span class="value success" style="font-size: 1.2em; font-weight: bold;">${currency} (${currencySymbol})</span>
+                </div>
             `;
+
+            // Run automated tests
+            runLanguageTests();
+            runCurrencyTests();
         }
 
         function clearStorageAndTest() {
@@ -204,6 +322,124 @@
                 alert('Could not clear storage: ' + e.message);
             }
             runTest();
+        }
+
+        // ==========================================
+        // AUTOMATED TESTS
+        // ==========================================
+
+        function runLanguageTests() {
+            const testCases = [
+                // French-speaking countries
+                { country: 'FR', countryName: 'France', expectedLang: 'fr' },
+                { country: 'BE', countryName: 'Belgium', expectedLang: 'fr' },
+                { country: 'CH', countryName: 'Switzerland', expectedLang: 'fr' },
+                { country: 'CA', countryName: 'Canada', expectedLang: 'fr' },
+                { country: 'SN', countryName: 'Senegal', expectedLang: 'fr' },
+                { country: 'MA', countryName: 'Morocco', expectedLang: 'fr' },
+                { country: 'TN', countryName: 'Tunisia', expectedLang: 'fr' },
+                { country: 'DZ', countryName: 'Algeria', expectedLang: 'fr' },
+                { country: 'MG', countryName: 'Madagascar', expectedLang: 'fr' },
+                { country: 'CM', countryName: 'Cameroon', expectedLang: 'fr' },
+
+                // English-speaking countries
+                { country: 'GB', countryName: 'United Kingdom', expectedLang: 'en' },
+                { country: 'US', countryName: 'United States', expectedLang: 'en' },
+                { country: 'AU', countryName: 'Australia', expectedLang: 'en' },
+                { country: 'NZ', countryName: 'New Zealand', expectedLang: 'en' },
+                { country: 'IE', countryName: 'Ireland', expectedLang: 'en' },
+                { country: 'ZA', countryName: 'South Africa', expectedLang: 'en' },
+                { country: 'NG', countryName: 'Nigeria', expectedLang: 'en' },
+                { country: 'IN', countryName: 'India', expectedLang: 'en' },
+                { country: 'SG', countryName: 'Singapore', expectedLang: 'en' },
+
+                // German-speaking countries
+                { country: 'DE', countryName: 'Germany', expectedLang: 'de' },
+                { country: 'AT', countryName: 'Austria', expectedLang: 'de' },
+
+                // Spanish-speaking countries
+                { country: 'ES', countryName: 'Spain', expectedLang: 'es' },
+                { country: 'MX', countryName: 'Mexico', expectedLang: 'es' },
+                { country: 'AR', countryName: 'Argentina', expectedLang: 'es' },
+                { country: 'CO', countryName: 'Colombia', expectedLang: 'es' },
+
+                // Italian-speaking countries
+                { country: 'IT', countryName: 'Italy', expectedLang: 'it' },
+
+                // Portuguese-speaking countries
+                { country: 'PT', countryName: 'Portugal', expectedLang: 'pt' },
+                { country: 'BR', countryName: 'Brazil', expectedLang: 'pt' }
+            ];
+
+            let html = '<table><tr><th>Country</th><th>Code</th><th>Expected</th><th>Actual</th><th>Status</th></tr>';
+            let passed = 0;
+            let failed = 0;
+
+            testCases.forEach(test => {
+                const actual = detectLanguageFromCountry(test.country);
+                const status = actual === test.expectedLang;
+                if (status) passed++; else failed++;
+
+                html += `<tr>
+                    <td>${test.countryName}</td>
+                    <td>${test.country}</td>
+                    <td>${test.expectedLang}</td>
+                    <td>${actual || 'null'}</td>
+                    <td class="${status ? 'pass' : 'fail'}">${status ? 'PASS' : 'FAIL'}</td>
+                </tr>`;
+            });
+
+            html += '</table>';
+
+            const summaryClass = failed === 0 ? 'all-pass' : 'some-fail';
+            html = `<div class="test-summary ${summaryClass}">Language Tests: ${passed} passed, ${failed} failed</div>` + html;
+
+            document.getElementById('languageTestResults').innerHTML = html;
+        }
+
+        function runCurrencyTests() {
+            const testCases = [
+                { lang: 'fr', expectedCurrency: 'EUR', expectedSymbol: '€', description: 'French -> Euro' },
+                { lang: 'en', expectedCurrency: 'GBP', expectedSymbol: '£', description: 'English -> Pound' },
+                { lang: 'de', expectedCurrency: 'EUR', expectedSymbol: '€', description: 'German -> Euro' },
+                { lang: 'es', expectedCurrency: 'EUR', expectedSymbol: '€', description: 'Spanish -> Euro' },
+                { lang: 'it', expectedCurrency: 'EUR', expectedSymbol: '€', description: 'Italian -> Euro' },
+                { lang: 'pt', expectedCurrency: 'EUR', expectedSymbol: '€', description: 'Portuguese -> Euro' }
+            ];
+
+            let html = '<table><tr><th>Language</th><th>Description</th><th>Expected Currency</th><th>Actual Currency</th><th>Status</th></tr>';
+            let passed = 0;
+            let failed = 0;
+
+            testCases.forEach(test => {
+                const actualCurrency = getCurrencyFromLanguage(test.lang);
+                const status = actualCurrency === test.expectedCurrency;
+                if (status) passed++; else failed++;
+
+                html += `<tr>
+                    <td>${test.lang.toUpperCase()}</td>
+                    <td>${test.description}</td>
+                    <td>${test.expectedCurrency} (${test.expectedSymbol})</td>
+                    <td>${actualCurrency} (${actualCurrency === 'GBP' ? '£' : '€'})</td>
+                    <td class="${status ? 'pass' : 'fail'}">${status ? 'PASS' : 'FAIL'}</td>
+                </tr>`;
+            });
+
+            html += '</table>';
+
+            // Add note about the rule
+            html += `<div class="info-section" style="margin-top: 15px;">
+                <h3>Currency Rule</h3>
+                <ul>
+                    <li><strong>English language</strong> = Pound Sterling (GBP, £)</li>
+                    <li><strong>French, German, Spanish, Italian, Portuguese</strong> = Euro (EUR, €)</li>
+                </ul>
+            </div>`;
+
+            const summaryClass = failed === 0 ? 'all-pass' : 'some-fail';
+            html = `<div class="test-summary ${summaryClass}">Currency Tests: ${passed} passed, ${failed} failed</div>` + html;
+
+            document.getElementById('currencyTestResults').innerHTML = html;
         }
 
         // Run test on page load

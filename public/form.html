@@ -616,14 +616,14 @@
             return ['GB', 'UK'].includes(code.toUpperCase()) ? '£' : '€';
         }
 
-        // Get currency based on language (European languages use €, English uses country-based)
+        // Get currency based on language (European languages use €, English uses £)
         function getCurrencyFromLanguage(lang, countryCode) {
             // European languages always use Euro
             if (['de', 'fr', 'es', 'it', 'pt'].includes(lang)) {
                 return '€';
             }
-            // English uses country-based currency (£ for UK, € for others)
-            if (lang === 'en' && countryCode && ['GB', 'UK'].includes(countryCode.toUpperCase())) {
+            // English always uses GBP (Pound Sterling)
+            if (lang === 'en') {
                 return '£';
             }
             return '€';

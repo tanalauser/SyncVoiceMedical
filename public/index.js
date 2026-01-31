@@ -550,37 +550,38 @@ document.addEventListener('DOMContentLoaded', async function() {
         return 'EUR';
     }
     
-    // Get currency based on language (European languages use €, English uses country-based)
+    // Get currency based on language (European languages use €, English uses £)
     function getCurrencyFromLanguage(lang, countryCode) {
         // European languages always use Euro
         if (['de', 'fr', 'es', 'it', 'pt'].includes(lang)) {
             return 'EUR';
         }
-        // English uses country-based currency (£ for UK, € for others)
-        if (lang === 'en' && countryCode && GBP_COUNTRIES.includes(countryCode.toUpperCase())) {
+        // English always uses GBP (Pound Sterling)
+        if (lang === 'en') {
             return 'GBP';
         }
         return 'EUR';
     }
     
     // Detect language based on country code
+    // Comprehensive list matching languageDetection.js for consistency
     function detectLanguageFromCountry(countryCode) {
         if (!countryCode) return null;
         const code = countryCode.toUpperCase();
-        
+
+        // French-speaking countries (checked first as primary target market)
+        if (['FR', 'BE', 'CH', 'CA', 'LU', 'MC', 'BF', 'BJ', 'CD', 'CI', 'GA', 'GN', 'ML', 'NE', 'SN', 'TG', 'MG', 'CM', 'HT', 'RW', 'TD', 'CG', 'DZ', 'MA', 'TN'].includes(code)) return 'fr';
         // English-speaking countries
-        if (['GB', 'UK', 'US', 'AU', 'NZ', 'CA', 'IE', 'IM', 'JE', 'GG'].includes(code)) return 'en';
+        if (['GB', 'UK', 'US', 'AU', 'NZ', 'IE', 'ZA', 'NG', 'KE', 'GH', 'IN', 'PK', 'PH', 'SG', 'IM', 'JE', 'GG', 'JM', 'TT', 'BB', 'BZ', 'GY', 'MT', 'BW', 'ZW', 'MU', 'FJ', 'LK'].includes(code)) return 'en';
         // German-speaking countries
-        if (['DE', 'AT', 'CH', 'LI'].includes(code)) return 'de';
+        if (['DE', 'AT', 'LI'].includes(code)) return 'de';
         // Spanish-speaking countries
-        if (['ES', 'MX', 'AR', 'CO', 'PE', 'CL', 'EC', 'VE'].includes(code)) return 'es';
+        if (['ES', 'MX', 'AR', 'CO', 'PE', 'CL', 'EC', 'VE', 'GT', 'CU', 'BO', 'DO', 'HN', 'PY', 'SV', 'NI', 'CR', 'PA', 'UY', 'PR', 'GQ'].includes(code)) return 'es';
         // Italian-speaking countries
         if (['IT', 'SM', 'VA'].includes(code)) return 'it';
         // Portuguese-speaking countries
-        if (['PT', 'BR', 'AO', 'MZ'].includes(code)) return 'pt';
-        // French-speaking countries
-        if (['FR', 'BE', 'CH', 'LU', 'MC', 'CA'].includes(code)) return 'fr';
-        
+        if (['PT', 'BR', 'AO', 'MZ', 'CV', 'GW', 'ST', 'TL'].includes(code)) return 'pt';
+
         return null;
     }
 

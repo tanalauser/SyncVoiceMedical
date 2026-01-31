@@ -21,6 +21,15 @@ const LanguageDetection = (function() {
         'NE': 'fr', // Niger
         'SN': 'fr', // Senegal
         'TG': 'fr', // Togo
+        'MG': 'fr', // Madagascar
+        'CM': 'fr', // Cameroon
+        'HT': 'fr', // Haiti
+        'RW': 'fr', // Rwanda
+        'TD': 'fr', // Chad
+        'CG': 'fr', // Republic of Congo
+        'DZ': 'fr', // Algeria
+        'MA': 'fr', // Morocco
+        'TN': 'fr', // Tunisia
         
         // English-speaking countries
         'GB': 'en', // United Kingdom
@@ -36,6 +45,20 @@ const LanguageDetection = (function() {
         'PK': 'en', // Pakistan
         'PH': 'en', // Philippines
         'SG': 'en', // Singapore
+        'IM': 'en', // Isle of Man
+        'JE': 'en', // Jersey
+        'GG': 'en', // Guernsey
+        'JM': 'en', // Jamaica
+        'TT': 'en', // Trinidad and Tobago
+        'BB': 'en', // Barbados
+        'BZ': 'en', // Belize
+        'GY': 'en', // Guyana
+        'MT': 'en', // Malta
+        'BW': 'en', // Botswana
+        'ZW': 'en', // Zimbabwe
+        'MU': 'en', // Mauritius
+        'FJ': 'en', // Fiji
+        'LK': 'en', // Sri Lanka
         
         // German-speaking countries
         'DE': 'de', // Germany
@@ -62,6 +85,8 @@ const LanguageDetection = (function() {
         'CR': 'es', // Costa Rica
         'PA': 'es', // Panama
         'UY': 'es', // Uruguay
+        'PR': 'es', // Puerto Rico
+        'GQ': 'es', // Equatorial Guinea
         
         // Italian-speaking countries
         'IT': 'it', // Italy
