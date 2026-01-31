@@ -1540,14 +1540,27 @@ function getCampaignEmail2Html(recipientEmail, campaignName) {
                                     </td>
                                 </tr>
                             </table>
-                            <!-- Trial reminder -->
-                            <p style="font-size: 14px; color: #666666; line-height: 1.6; margin: 0; text-align: center; font-family: Arial, Helvetica, sans-serif;">
-                                <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=trial_reminder&url=${encodeURIComponent(trialUrl)}"
-                                    target="_blank"
-                                    style="color: #1a5f7a; text-decoration: underline;">
-                                    Démarrer l'essai gratuit (7 jours, sans CB)
-                                </a>
-                            </p>
+                            <!-- Trial reminder button -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 10px;">
+                                <tr>
+                                    <td align="center">
+                                        <table border="0" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td align="center" style="border: 2px solid #1a5f7a; border-radius: 6px;">
+                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=trial_reminder&url=${encodeURIComponent(trialUrl)}"
+                                                        target="_blank"
+                                                        style="display: inline-block; padding: 12px 30px; font-size: 15px; font-weight: bold; color: #1a5f7a; text-decoration: none; font-family: Arial, Helvetica, sans-serif;">
+                                                        Démarrer l'essai gratuit &rarr;
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <p style="font-size: 12px; color: #888888; margin: 10px 0 0 0; font-family: Arial, Helvetica, sans-serif;">
+                                            7 jours gratuits, sans carte bancaire
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                     <!-- Footer -->
