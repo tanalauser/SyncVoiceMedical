@@ -1183,11 +1183,20 @@ async function processCampaignQueue(jobId) {
 
             // Send the email
             try {
-                const html = getCampaignEmailHtml(nextEmail.email, job.campaign_name);
+                // Select template and subject based on campaign name
+                let html, subject;
+                if (job.campaign_name.includes('reminder') || job.campaign_name.includes('email2') || job.campaign_name.includes('followup')) {
+                    html = getCampaignEmail2Html(nextEmail.email, job.campaign_name);
+                    subject = 'Avez-vous vu notre démo de 2 minutes ?';
+                } else {
+                    html = getCampaignEmailHtml(nextEmail.email, job.campaign_name);
+                    subject = 'Gagnez 2 heures par jour sur vos comptes-rendus médicaux';
+                }
+
                 await transporter.sendMail({
                     from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
                     to: nextEmail.email,
-                    subject: 'Gagnez 2 heures par jour sur vos comptes-rendus médicaux',
+                    subject: subject,
                     html: html
                 });
 
@@ -1405,6 +1414,145 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
                     <!-- Footer -->
                     <tr>
                         <td bgcolor="#f8f9fa" style="background-color: #f8f9fa; padding: 25px 40px; border-top: 1px solid #e9ecef;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td align="center">
+                                        <p style="font-size: 13px; color: #666666; margin: 0 0 5px 0; font-family: Arial, Helvetica, sans-serif;"><strong>SyncVoice Medical</strong> - Orléans, France</p>
+                                        <p style="font-size: 11px; color: #999999; margin: 10px 0 0 0; font-family: Arial, Helvetica, sans-serif;">
+                                            <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=unsubscribe&url=${encodeURIComponent(unsubUrl)}" style="color: #1a5f7a; text-decoration: underline;">Se désinscrire</a>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <img src="https://syncvoicemedical.onrender.com/api/track/open?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&source=email" width="1" height="1" alt="" style="display: block; width: 1px; height: 1px; border: 0;" />
+</body>
+</html>`;
+}
+
+// Campaign Email 2 - Soft Reminder (shorter, focuses on video demo)
+function getCampaignEmail2Html(recipientEmail, campaignName) {
+    const videoUrl = 'https://drive.google.com/file/d/1xdDmvf6cqxMo6iXbZ6bBzvPs7c46Hx2B/view?usp=sharing';
+    const trialUrl = 'https://syncvoicemedical.onrender.com/?email=' + encodeURIComponent(recipientEmail) + '&lang=fr&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=reminder_cta';
+    const unsubUrl = 'https://syncvoicemedical.onrender.com/api/unsubscribe?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName);
+
+    return `<!DOCTYPE html>
+<html lang="fr" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Avez-vous vu notre démo de 2 minutes ?</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+    <style type="text/css">
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; display: block; }
+        body { margin: 0 !important; padding: 0 !important; }
+        @media only screen and (max-width: 600px) {
+            .container { width: 100% !important; }
+            .content-padding { padding: 20px !important; }
+            h1 { font-size: 22px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f0f0f0;">
+    <div style="display: none; font-size: 1px; color: #f0f0f0; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+        2 minutes pour voir comment économiser 2h par jour
+    </div>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f0f0f0;">
+        <tr>
+            <td align="center" style="padding: 30px 15px;">
+                <table class="container" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff;">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" bgcolor="#1a5f7a" style="padding: 25px 30px; background-color: #1a5f7a;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: bold; font-family: Arial, Helvetica, sans-serif;">
+                                SyncVoice Medical
+                            </h1>
+                        </td>
+                    </tr>
+                    <!-- Content -->
+                    <tr>
+                        <td class="content-padding" style="padding: 35px 40px;">
+                            <p style="font-size: 17px; color: #333333; line-height: 1.6; margin: 0 0 20px 0; font-family: Arial, Helvetica, sans-serif;">
+                                Docteur,
+                            </p>
+                            <p style="font-size: 16px; color: #555555; line-height: 1.7; margin: 0 0 25px 0; font-family: Arial, Helvetica, sans-serif;">
+                                Je comprends que votre temps est précieux. C'est justement pourquoi je vous recontacte.
+                            </p>
+                            <p style="font-size: 16px; color: #333333; line-height: 1.7; margin: 0 0 25px 0; font-family: Arial, Helvetica, sans-serif;">
+                                <strong>Plus de 200 médecins</strong> utilisent déjà SyncVoice Medical pour réduire leur temps de documentation de <strong>70%</strong>.
+                            </p>
+                            <p style="font-size: 16px; color: #555555; line-height: 1.7; margin: 0 0 30px 0; font-family: Arial, Helvetica, sans-serif;">
+                                En <strong>2 minutes</strong>, cette courte démo vous montre comment :
+                            </p>
+                            <!-- VIDEO CTA - PRIMARY -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 30px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <!--[if mso]>
+                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=video_reminder&url=${encodeURIComponent(videoUrl)}" style="height:50px;v-text-anchor:middle;width:300px;" arcsize="10%" strokecolor="#c0392b" fillcolor="#e74c3c">
+                                        <w:anchorlock/>
+                                        <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:17px;font-weight:bold;">&#9658; Voir la démo (2 min)</center>
+                                        </v:roundrect>
+                                        <![endif]-->
+                                        <!--[if !mso]><!-->
+                                        <table border="0" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td align="center" bgcolor="#e74c3c" style="background-color: #e74c3c; border-radius: 8px;">
+                                                    <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=video_reminder&url=${encodeURIComponent(videoUrl)}"
+                                                        target="_blank"
+                                                        style="display: inline-block; padding: 16px 45px; font-size: 17px; font-weight: bold; color: #ffffff; text-decoration: none; font-family: Arial, Helvetica, sans-serif;">
+                                                        &#9658; Voir la démo (2 min)
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <!--<![endif]-->
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Social proof -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 25px 0;">
+                                <tr>
+                                    <td bgcolor="#e8f4f8" style="background-color: #e8f4f8; padding: 18px 25px; border-left: 4px solid #1a5f7a;">
+                                        <p style="margin: 0; font-size: 14px; color: #555555; font-style: italic; font-family: Arial, Helvetica, sans-serif;">
+                                            "Je gagne facilement 1h30 par jour. Mes comptes-rendus sont prêts avant même que le patient ne quitte le cabinet."
+                                        </p>
+                                        <p style="margin: 10px 0 0 0; font-size: 13px; color: #1a5f7a; font-family: Arial, Helvetica, sans-serif;">
+                                            <strong>— Dr. Martin, Médecin généraliste</strong>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Trial reminder -->
+                            <p style="font-size: 14px; color: #666666; line-height: 1.6; margin: 0; text-align: center; font-family: Arial, Helvetica, sans-serif;">
+                                <a href="https://syncvoicemedical.onrender.com/api/track/click?email=${encodeURIComponent(recipientEmail)}&campaign=${encodeURIComponent(campaignName)}&link=trial_reminder&url=${encodeURIComponent(trialUrl)}"
+                                    target="_blank"
+                                    style="color: #1a5f7a; text-decoration: underline;">
+                                    Démarrer l'essai gratuit (7 jours, sans CB)
+                                </a>
+                            </p>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td bgcolor="#f8f9fa" style="background-color: #f8f9fa; padding: 20px 40px; border-top: 1px solid #e9ecef;">
                             <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td align="center">
