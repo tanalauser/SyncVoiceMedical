@@ -881,14 +881,28 @@ app.get('/api/analytics/summary', async (req, res) => {
 // Email events stats endpoint (excludes nicolas.tanala emails)
 app.get('/api/admin/email-stats', async (req, res) => {
     try {
-        // Supabase has a default limit of 1000 rows, so we need to set a higher limit
-        const { data, error } = await supabase
-            .from('email_events')
-            .select('email, event_type, utm_campaign, link_url')
-            .not('email', 'ilike', '%nicolas.tanala%')
-            .limit(50000);
+        // Supabase has a server-side limit of 1000 rows, so we need to paginate
+        let allData = [];
+        let from = 0;
+        const batchSize = 1000;
 
-        if (error) throw error;
+        while (true) {
+            const { data: batch, error } = await supabase
+                .from('email_events')
+                .select('email, event_type, utm_campaign, link_url')
+                .not('email', 'ilike', '%nicolas.tanala%')
+                .range(from, from + batchSize - 1);
+
+            if (error) throw error;
+            if (!batch || batch.length === 0) break;
+
+            allData = allData.concat(batch);
+            if (batch.length < batchSize) break; // Last page
+
+            from += batchSize;
+        }
+
+        const data = allData;
 
         // Calculate totals
         const totalSent = data.filter(e => e.event_type === 'sent').length;
