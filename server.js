@@ -1207,12 +1207,15 @@ async function processCampaignQueue(jobId) {
                     .eq('id', nextEmail.id);
 
                 // Record in email_events
-                await supabase.from('email_events').insert({
+                const { error: eventError } = await supabase.from('email_events').insert({
                     email: nextEmail.email,
                     event_type: 'sent',
                     utm_campaign: job.campaign_name,
                     utm_source: 'campaign'
                 });
+                if (eventError) {
+                    logger.error(`Failed to record email_event for ${nextEmail.email}:`, eventError);
+                }
 
                 // Update job progress
                 await supabase
