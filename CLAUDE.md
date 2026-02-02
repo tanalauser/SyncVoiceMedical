@@ -75,6 +75,41 @@ $body = @{
 Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/send-campaign" -Method POST -Body $body -ContentType "application/json"
 ```
 
+### Campaign Management Commands
+
+**Check all campaigns status:**
+```powershell
+Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/campaigns" -Method GET | ConvertTo-Json -Depth 5
+```
+
+**Check specific campaign status:**
+```powershell
+Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/campaign-status/<campaignId>" -Method GET | ConvertTo-Json
+```
+
+**Resume a paused/stuck campaign:**
+```powershell
+Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/campaign-resume/<campaignId>" -Method POST
+```
+
+**Pause a running campaign:**
+```powershell
+Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/campaign-pause/<campaignId>" -Method POST
+```
+
+**Debug email events (check raw data):**
+```powershell
+Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/email-events-debug?limit=50" -Method GET | ConvertTo-Json -Depth 5
+```
+
+### Campaign Auto-Resume
+
+Campaigns automatically resume on server restart via `resumeIncompleteCampaigns()`. If campaigns appear stuck:
+1. Check status with `/api/admin/campaigns`
+2. If status is "running" but progress isn't advancing, the server may have restarted
+3. Make any API request to wake the server - auto-resume triggers 5 seconds after startup
+4. Or manually resume with `/api/admin/campaign-resume/<campaignId>`
+
 ### Email Tracking
 
 All email links are tracked via `/api/track/click`:
@@ -127,6 +162,25 @@ git push origin master
 4. **Email 2 Template**: Created soft reminder email with testimonial and improved button styling
 5. **Stats Dashboard**: Updated to show Email 2 click types separately
 6. **Campaign System**: Template selection based on campaign name pattern
+7. **Email Stats Pagination**: Fixed Supabase 1000-row limit issue with pagination
+8. **Email Open Tracking**: Fixed `supabase.rpc().catch` syntax error
+9. **Email Events Logging**: Added error logging for email_events insert failures
+
+## Known Issues & Fixes
+
+### Supabase 1000-Row Limit
+Supabase enforces a server-side limit of 1000 rows per query (ignores client `.limit()`).
+The email-stats endpoint uses pagination with `.range()` to fetch all records.
+
+### Campaign Stuck After Server Restart
+If campaigns show "running" status but progress isn't advancing:
+- Server restarts clear the in-memory `activeProcessors` Set
+- Auto-resume runs 5 seconds after startup
+- If auto-resume fails, manually resume via API
+
+### Deployments Interrupt Campaigns
+Each `git push` triggers a Render deployment that restarts the server.
+Campaigns will auto-resume after deployment completes.
 
 ## Environment Variables
 
