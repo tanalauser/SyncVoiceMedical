@@ -965,7 +965,11 @@ app.get('/api/admin/email-stats', async (req, res) => {
                 clickThroughRate: clickThroughRate + '%',
                 conversionRate: conversionRate + '%',
                 clicksByLink,
-                byCampaign
+                byCampaign,
+                _debug: {
+                    totalRecordsFromQuery: data.length,
+                    queryLimit: 50000
+                }
             }
         });
 
