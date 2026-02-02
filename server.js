@@ -881,10 +881,12 @@ app.get('/api/analytics/summary', async (req, res) => {
 // Email events stats endpoint (excludes nicolas.tanala emails)
 app.get('/api/admin/email-stats', async (req, res) => {
     try {
+        // Supabase has a default limit of 1000 rows, so we need to set a higher limit
         const { data, error } = await supabase
             .from('email_events')
             .select('email, event_type, utm_campaign, link_url')
-            .not('email', 'ilike', '%nicolas.tanala%');
+            .not('email', 'ilike', '%nicolas.tanala%')
+            .limit(50000);
 
         if (error) throw error;
 
