@@ -2004,10 +2004,12 @@ async function handleEmailOpenTracking(req, res) {
             })
             .eq('email', email.toLowerCase());
 
-        // Increment open count using raw update
-        await supabase.rpc('increment_email_open_count', { user_email: email.toLowerCase() }).catch(() => {
-            // Function may not exist, ignore error
-        });
+        // Increment open count using raw update (function may not exist, ignore error)
+        try {
+            await supabase.rpc('increment_email_open_count', { user_email: email.toLowerCase() });
+        } catch (rpcError) {
+            // Silently ignore - function may not exist in Supabase
+        }
 
         logger.info(`Email opened tracked for: ${email}`, { campaign, source });
 
