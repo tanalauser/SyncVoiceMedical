@@ -411,6 +411,20 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
+// Stripe configuration endpoint for form.js
+app.get('/api/config', (req, res) => {
+    res.json({
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_51QgwsQP3dr2cRIwx5Nll9FKqZotSsNwhKChXjloSZmyy49Z9TfWdnaCvdBhhveHfkJQioLT0gtjc2kax5J6KdX3y006odnigC0'
+    });
+});
+
+// Stripe configuration endpoint for payment.html
+app.get('/api/stripe-config', (req, res) => {
+    res.json({
+        publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_51QgwsQP3dr2cRIwx5Nll9FKqZotSsNwhKChXjloSZmyy49Z9TfWdnaCvdBhhveHfkJQioLT0gtjc2kax5J6KdX3y006odnigC0'
+    });
+});
+
 app.get('/api/status', async (req, res) => {
     try {
         const dbState = await checkSupabaseConnection();
