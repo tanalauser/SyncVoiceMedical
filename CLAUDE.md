@@ -8,10 +8,13 @@ SyncVoice Medical is a voice-to-text transcription platform for medical professi
 
 - **Backend**: Node.js + Express
 - **Database**: Supabase (PostgreSQL)
+- **Speech-to-Text**: Deepgram API
 - **Email**: Nodemailer
 - **Payments**: Stripe
 - **Hosting**: Render.com (auto-deploys from GitHub)
 - **Auth**: JWT + Google OAuth
+- **Real-time**: WebSocket (for desktop client)
+- **Logging**: Winston
 
 ## Key Features
 
@@ -33,6 +36,63 @@ Located in `public/languageDetection.js`:
 - French-speaking: FR, BE, CH, CA, LU, MC, and African countries (SN, CI, MA, DZ, TN, etc.)
 - English-speaking: GB, US, AU, NZ, IE, and others
 - See file for complete mapping
+
+## API Endpoints
+
+### Health & Status
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/healthz` | GET | Basic health check |
+| `/api/health` | GET | Detailed health status |
+| `/api/status` | GET | Server status with Supabase connection info |
+| `/api/config` | GET | Client configuration |
+| `/api/stripe-config` | GET | Stripe public key configuration |
+| `/api/version` | GET | Version information |
+
+### Authentication & Account Management
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/send-activation` | POST | Register user and create Stripe payment intent |
+| `/api/login` | POST | User login with email/password |
+| `/api/activate/:code` | GET | Activate account with verification code |
+| `/api/check-activation` | GET | Check if email is activated |
+| `/api/check-email` | POST | Verify email and check trial status |
+| `/api/user-details/:email` | GET | Get user details by email |
+| `/api/forgot-password` | POST | Request password reset |
+| `/api/reset-password` | POST | Reset password with token |
+
+### Payment & Billing
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/create-payment-intent` | POST | Create Stripe payment intent |
+| `/api/stripe-webhook` | POST | Handle Stripe webhook events |
+
+### Email Campaign Management
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/admin/send-campaign` | POST | Send email campaign with delay scheduling |
+| `/api/admin/campaigns` | GET | List all campaigns |
+| `/api/admin/campaign-status/:campaignId` | GET | Check specific campaign progress |
+| `/api/admin/campaign-resume/:campaignId` | POST | Resume paused campaign |
+| `/api/admin/campaign-pause/:campaignId` | POST | Pause running campaign |
+| `/api/admin/email-events-debug` | GET | Debug raw email events data |
+| `/api/admin/email-stats` | GET | Email stats dashboard |
+| `/api/admin/subscription-stats` | GET | Subscription analytics (revenue, MRR/ARR) |
+| `/api/detect-churns` | POST | Detect expired subscriptions |
+
+### Tracking & Analytics
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/track/click` | GET | Track email link clicks |
+| `/api/track/open` | GET | Track email opens (1x1 pixel) |
+| `/api/analytics/summary` | GET | Conversion funnel analytics |
+| `/api/unsubscribe` | GET | Handle email unsubscribe |
+
+### Desktop Client
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/download-desktop` | GET | Desktop client download |
+| `/api/test-deepgram` | GET | Test Deepgram API connectivity |
 
 ## Email Campaign System
 
@@ -77,29 +137,24 @@ Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/send-cam
 
 ### Campaign Management Commands
 
-**Check all campaigns status:**
 ```powershell
+# Check all campaigns status
 Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/campaigns" -Method GET | ConvertTo-Json -Depth 5
-```
 
-**Check specific campaign status:**
-```powershell
+# Check specific campaign status
 Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/campaign-status/<campaignId>" -Method GET | ConvertTo-Json
-```
 
-**Resume a paused/stuck campaign:**
-```powershell
+# Resume a paused/stuck campaign
 Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/campaign-resume/<campaignId>" -Method POST
-```
 
-**Pause a running campaign:**
-```powershell
+# Pause a running campaign
 Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/campaign-pause/<campaignId>" -Method POST
-```
 
-**Debug email events (check raw data):**
-```powershell
+# Debug email events (check raw data)
 Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/email-events-debug?limit=50" -Method GET | ConvertTo-Json -Depth 5
+
+# Check subscription stats
+Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/subscription-stats" -Method GET | ConvertTo-Json -Depth 5
 ```
 
 ### Campaign Auto-Resume
@@ -121,6 +176,36 @@ All email links are tracked via `/api/track/click`:
 
 Open tracking via 1x1 pixel: `/api/track/open`
 
+Note: Emails containing `nicolas.tanala` are filtered from stats display.
+
+## WebSocket / Desktop Client
+
+The desktop client uses WebSocket for real-time transcription.
+
+### WebSocket Message Types
+
+| Message | Direction | Description |
+|---------|-----------|-------------|
+| `auth` | Client → Server | Authenticate with email and activation code |
+| `updateLanguage` | Client → Server | Change transcription language |
+| `startTranscription` | Client → Server | Initialize transcription session |
+| `audioChunk` | Client → Server | Stream audio data (base64 encoded) |
+| `audioComplete` | Client → Server | Submit complete audio file |
+| `stopTranscription` | Client → Server | Stop streaming and process audio |
+
+### Supported Audio Formats
+- WebM, WAV, MP3, OGG
+
+### Deepgram Language Mapping
+| Client Language | Deepgram Code |
+|-----------------|---------------|
+| French (fr) | fr |
+| English (en) | en-US |
+| German (de) | de |
+| Spanish (es) | es |
+| Italian (it) | it |
+| Portuguese (pt) | pt |
+
 ## Admin Pages
 
 ### Email Stats Dashboard
@@ -132,18 +217,21 @@ Displays:
 - Campaign breakdown table
 - Clicks by link type
 
-Note: Emails containing `nicolas.tanala` are filtered from stats display.
-
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `server.js` | Main Express server, email templates, API endpoints |
+| `config/supabase.js` | Supabase client initialization |
+| `config/stripe.js` | Stripe helper functions |
+| `utils/generateCode.js` | Activation code generation |
 | `public/languageDetection.js` | Language detection module |
 | `public/index.js` | Homepage logic, currency detection |
+| `public/form.js` | Registration form logic |
+| `public/appForm.js` | Application form with transcription |
 | `public/appForm.html` | Main application form |
-| `public/appForm.js` | Application form logic |
 | `public/admin-email-stats.html` | Email campaign statistics dashboard |
+| `desktop-client/` | Electron desktop application |
 
 ## Deployment
 
@@ -154,42 +242,71 @@ git commit -m "Your commit message"
 git push origin master
 ```
 
-## Recent Achievements
+## Environment Variables
 
-1. **Language Detection Fix**: Added `languageDetection.js` to `appForm.html` to fix "Parler en anglais" issue
-2. **Currency Display**: Fixed to show GBP (£) for English users
-3. **Country Mapping**: Added comprehensive French and English-speaking country lists
-4. **Email 2 Template**: Created soft reminder email with testimonial and improved button styling
-5. **Stats Dashboard**: Updated to show Email 2 click types separately
-6. **Campaign System**: Template selection based on campaign name pattern
-7. **Email Stats Pagination**: Fixed Supabase 1000-row limit issue with pagination
-8. **Email Open Tracking**: Fixed `supabase.rpc().catch` syntax error
-9. **Email Events Logging**: Added error logging for email_events insert failures
+All environment variables are configured in the **Render.com dashboard** (not local .env).
 
-## Known Issues & Fixes
+Required variables:
+| Variable | Description |
+|----------|-------------|
+| `DEEPGRAM_API_KEY` | Speech-to-text API key |
+| `EMAIL_USER` | SMTP email address |
+| `EMAIL_PASS` | SMTP password |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_KEY` | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase admin key (RLS bypass) |
+| `JWT_SECRET` | JWT signing secret |
+| `STRIPE_SECRET_KEY` | Stripe API key |
+| `STRIPE_PRICE_ID` | Subscription price ID |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook validation |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth secret |
+| `BASE_URL` | Application base URL |
 
-### Supabase 1000-Row Limit
-Supabase enforces a server-side limit of 1000 rows per query (ignores client `.limit()`).
-The email-stats endpoint uses pagination with `.range()` to fetch all records.
+## User Subscription Types
+
+| Type | Duration | Price |
+|------|----------|-------|
+| Free Trial | 7 days | Free |
+| Monthly | 30 days | €29/month |
+| Yearly | 365 days | €199/year |
+
+User status flow: `lead → trial → paid → churned`
+
+## Troubleshooting
+
+### DNS Resolution Errors
+**Error:** `The remote name could not be resolved: 'syncvoicemedical.onrender.com'`
+
+**Causes:**
+- Temporary network/DNS glitch
+- Render free tier cold start (service sleeping)
+- Internet connectivity issues
+
+**Solutions:**
+1. Wait a few seconds and retry
+2. Open the URL in a browser first to wake the server
+3. Check internet connectivity with `Test-Connection google.com`
 
 ### Campaign Stuck After Server Restart
 If campaigns show "running" status but progress isn't advancing:
 - Server restarts clear the in-memory `activeProcessors` Set
 - Auto-resume runs 5 seconds after startup
-- If auto-resume fails, manually resume via API
+- If auto-resume fails, manually resume via `/api/admin/campaign-resume/<campaignId>`
+
+### Supabase 1000-Row Limit
+Supabase enforces a server-side limit of 1000 rows per query.
+The email-stats endpoint uses pagination with `.range()` to fetch all records.
 
 ### Deployments Interrupt Campaigns
 Each `git push` triggers a Render deployment that restarts the server.
 Campaigns will auto-resume after deployment completes.
 
-## Environment Variables
+### Render Free Tier Cold Starts
+Free Render services spin down after 15 minutes of inactivity. First request after sleep may take 30-60 seconds.
 
-Required in `.env`:
-- `EMAIL_USER` - SMTP email address
-- `EMAIL_PASS` - SMTP password
-- `SUPABASE_URL` - Supabase project URL
-- `SUPABASE_KEY` - Supabase anon key
-- `JWT_SECRET` - JWT signing secret
-- `STRIPE_SECRET_KEY` - Stripe API key
-- `GOOGLE_CLIENT_ID` - Google OAuth client ID
-- `GOOGLE_CLIENT_SECRET` - Google OAuth secret
+## Rate Limiting
+
+The server implements rate limiting:
+- General API limiter on `/api/*`
+- Auth-specific limiter on login, signup, forgot-password endpoints

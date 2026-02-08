@@ -1240,15 +1240,26 @@ async function processCampaignQueue(jobId) {
                     .update({ status: 'sent', sent_at: new Date().toISOString() })
                     .eq('id', nextEmail.id);
 
-                // Record in email_events
-                const { error: eventError } = await supabase.from('email_events').insert({
-                    email: nextEmail.email,
-                    event_type: 'sent',
-                    utm_campaign: job.campaign_name,
-                    utm_source: 'campaign'
-                });
-                if (eventError) {
-                    logger.error(`Failed to record email_event for ${nextEmail.email}:`, eventError);
+                // Record in email_events (with retry to ensure sent events are always tracked)
+                let sentEventRecorded = false;
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    const { error: eventError } = await supabase.from('email_events').insert({
+                        email: nextEmail.email,
+                        event_type: 'sent',
+                        utm_campaign: job.campaign_name,
+                        utm_source: 'campaign'
+                    });
+                    if (!eventError) {
+                        sentEventRecorded = true;
+                        break;
+                    }
+                    logger.error(`Failed to record email_event for ${nextEmail.email} (attempt ${attempt}/3):`, eventError);
+                    if (attempt < 3) {
+                        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+                    }
+                }
+                if (!sentEventRecorded) {
+                    logger.error(`CRITICAL: Could not record sent event for ${nextEmail.email} after 3 attempts. Campaign: ${job.campaign_name}`);
                 }
 
                 // Update job progress
