@@ -905,6 +905,7 @@ app.get('/api/admin/email-stats', async (req, res) => {
                 .from('email_events')
                 .select('email, event_type, utm_campaign, link_url')
                 .not('email', 'ilike', '%nicolas.tanala%')
+                .order('created_at', { ascending: true })
                 .range(from, from + batchSize - 1);
 
             if (error) throw error;
@@ -1736,6 +1737,16 @@ function parseCSVContacts(csvContent) {
     return uniqueContacts;
 }
 
+// Remove duplicate emails from contact list
+function deduplicateContacts(contacts) {
+    const seen = new Set();
+    return contacts.filter(c => {
+        if (seen.has(c.email)) return false;
+        seen.add(c.email);
+        return true;
+    });
+}
+
 // Send campaign endpoint (now with Supabase persistence)
 app.post('/api/admin/send-campaign', async (req, res) => {
     try {
@@ -1758,6 +1769,9 @@ app.post('/api/admin/send-campaign', async (req, res) => {
                 message: 'Please provide either "emails" array or "csv" content'
             });
         }
+
+        // Deduplicate contacts
+        contacts = deduplicateContacts(contacts);
 
         if (contacts.length === 0) {
             return res.status(400).json({
