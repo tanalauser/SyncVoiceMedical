@@ -1973,6 +1973,98 @@ app.get('/api/admin/campaigns', async (req, res) => {
 });
 
 
+// Get failed emails for a campaign (for re-sending)
+app.get('/api/admin/campaign-failed/:campaignId', async (req, res) => {
+    try {
+        const { campaignId } = req.params;
+
+        // Get the job to verify it exists and get campaign name
+        const { data: job, error: jobError } = await supabase
+            .from('email_campaign_jobs')
+            .select('id, campaign_name, failed_count')
+            .eq('id', campaignId)
+            .single();
+
+        if (jobError || !job) {
+            return res.status(404).json({ success: false, message: 'Campaign not found.' });
+        }
+
+        // Get all failed emails from the queue
+        const { data: failedEmails, error } = await supabase
+            .from('email_campaign_queue')
+            .select('email, error_message')
+            .eq('job_id', campaignId)
+            .eq('status', 'failed')
+            .order('id', { ascending: true });
+
+        if (error) throw error;
+
+        const uniqueEmails = [...new Set(failedEmails.map(e => e.email))];
+
+        res.json({
+            success: true,
+            campaign: job.campaign_name,
+            campaignId: job.id,
+            totalFailed: failedEmails.length,
+            uniqueFailed: uniqueEmails.length,
+            emails: uniqueEmails,
+            details: failedEmails
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Get failed emails across all campaigns with a given name pattern
+app.get('/api/admin/failed-emails', async (req, res) => {
+    try {
+        const { campaign } = req.query;
+        if (!campaign) {
+            return res.status(400).json({ success: false, message: 'campaign query parameter required' });
+        }
+
+        // Get all jobs matching the campaign name pattern
+        const { data: jobs, error: jobError } = await supabase
+            .from('email_campaign_jobs')
+            .select('id, campaign_name, failed_count')
+            .ilike('campaign_name', `%${campaign}%`)
+            .order('created_at', { ascending: false });
+
+        if (jobError) throw jobError;
+
+        if (!jobs || jobs.length === 0) {
+            return res.json({ success: true, emails: [], message: 'No campaigns found matching pattern' });
+        }
+
+        // Get failed emails from all matching campaigns
+        const allFailed = [];
+        for (const job of jobs) {
+            const { data: failedEmails, error } = await supabase
+                .from('email_campaign_queue')
+                .select('email')
+                .eq('job_id', job.id)
+                .eq('status', 'failed');
+
+            if (!error && failedEmails) {
+                allFailed.push(...failedEmails.map(e => e.email));
+            }
+        }
+
+        const uniqueEmails = [...new Set(allFailed)];
+
+        res.json({
+            success: true,
+            campaignPattern: campaign,
+            matchingCampaigns: jobs.map(j => ({ id: j.id, name: j.campaign_name, failed: j.failed_count })),
+            totalFailed: allFailed.length,
+            uniqueFailed: uniqueEmails.length,
+            emails: uniqueEmails
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // Churn detection
 app.post('/api/detect-churns', async (req, res) => {
     try {
