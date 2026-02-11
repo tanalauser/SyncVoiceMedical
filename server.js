@@ -1175,6 +1175,9 @@ async function processCampaignQueue(jobId) {
     }
     activeProcessors.add(jobId);
 
+    const MAX_CONSECUTIVE_RATE_LIMITS = 3;
+    let consecutiveRateLimitFailures = 0;
+
     try {
         const transporter = await createTransporter();
 
@@ -1275,7 +1278,24 @@ async function processCampaignQueue(jobId) {
 
                 logger.info(`Campaign ${jobId}: sent to ${nextEmail.email} (${job.sent_count + 1}/${job.total_emails})`);
 
+                // Reset consecutive failure counter on success
+                consecutiveRateLimitFailures = 0;
+
             } catch (sendError) {
+                const isRateLimitError = sendError.message &&
+                    (sendError.message.includes('550-5.4.5') ||
+                     sendError.message.includes('550 5.4.5') ||
+                     sendError.message.includes('Daily user sending limit') ||
+                     sendError.message.includes('sending limit exceeded'));
+
+                if (isRateLimitError) {
+                    consecutiveRateLimitFailures++;
+                    logger.warn(`Campaign ${jobId}: Gmail daily limit hit for ${nextEmail.email} (${consecutiveRateLimitFailures}/${MAX_CONSECUTIVE_RATE_LIMITS} consecutive)`);
+                } else {
+                    // Non-rate-limit error: reset the counter
+                    consecutiveRateLimitFailures = 0;
+                }
+
                 // Mark as failed in queue
                 await supabase
                     .from('email_campaign_queue')
@@ -1293,6 +1313,27 @@ async function processCampaignQueue(jobId) {
                     .eq('id', jobId);
 
                 logger.error(`Campaign ${jobId}: failed to send to ${nextEmail.email}:`, sendError.message);
+
+                // Auto-pause if Gmail daily limit hit repeatedly
+                if (isRateLimitError && consecutiveRateLimitFailures >= MAX_CONSECUTIVE_RATE_LIMITS) {
+                    // Count remaining pending emails
+                    const { count: pendingCount } = await supabase
+                        .from('email_campaign_queue')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('job_id', jobId)
+                        .eq('status', 'pending');
+
+                    await supabase
+                        .from('email_campaign_jobs')
+                        .update({
+                            status: 'paused',
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', jobId);
+
+                    logger.warn(`Campaign ${jobId}: AUTO-PAUSED after ${MAX_CONSECUTIVE_RATE_LIMITS} consecutive Gmail daily limit errors. ${pendingCount || 0} emails remain pending. Resume tomorrow with /api/admin/campaign-resume/${jobId}`);
+                    break;
+                }
             }
 
             // Wait before next email
