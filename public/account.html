@@ -231,7 +231,7 @@
                     statusActive: 'Actif',
                     statusExpired: 'Expiré',
                     daysRemaining: 'Jours restants',
-                    autoRenewal: 'Renouvellement automatique',
+
                     accountType: 'Type de compte',
                     trial: 'Essai gratuit',
                     premium: 'Premium',
@@ -265,7 +265,7 @@
                     statusActive: 'Active',
                     statusExpired: 'Expired',
                     daysRemaining: 'Days Remaining',
-                    autoRenewal: 'Auto Renewal',
+
                     accountType: 'Account Type',
                     trial: 'Free Trial',
                     premium: 'Premium',
@@ -299,7 +299,7 @@
                     statusActive: 'Aktiv',
                     statusExpired: 'Abgelaufen',
                     daysRemaining: 'Verbleibende Tage',
-                    autoRenewal: 'Automatische Verlängerung',
+
                     accountType: 'Kontotyp',
                     trial: 'Kostenlose Testversion',
                     premium: 'Premium',
@@ -333,7 +333,7 @@
                     statusActive: 'Activo',
                     statusExpired: 'Expirado',
                     daysRemaining: 'Días restantes',
-                    autoRenewal: 'Renovación automática',
+
                     accountType: 'Tipo de cuenta',
                     trial: 'Prueba gratuita',
                     premium: 'Premium',
@@ -367,7 +367,7 @@
                     statusActive: 'Attivo',
                     statusExpired: 'Scaduto',
                     daysRemaining: 'Giorni rimanenti',
-                    autoRenewal: 'Rinnovo automatico',
+
                     accountType: 'Tipo di account',
                     trial: 'Prova gratuita',
                     premium: 'Premium',
@@ -401,7 +401,7 @@
                     statusActive: 'Ativo',
                     statusExpired: 'Expirado',
                     daysRemaining: 'Dias restantes',
-                    autoRenewal: 'Renovação automática',
+
                     accountType: 'Tipo de conta',
                     trial: 'Teste gratuito',
                     premium: 'Premium',
@@ -561,11 +561,6 @@
                             <span class="detail-label">${t.daysRemaining}:</span>
                             <span class="detail-value">${isExpired ? 0 : daysRemaining}</span>
                         </div>
-                        ${user.version === 'paid' ? `
-                        <div class="detail-row">
-                            <span class="detail-label">${t.autoRenewal}:</span>
-                            <span class="detail-value">${user.autoRenewal ? t.yes : t.no}</span>
-                        </div>` : ''}
                     `;
 
                     document.getElementById('detailsContent').innerHTML = detailsHTML;

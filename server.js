@@ -2354,6 +2354,7 @@ app.post('/api/send-activation', async (req, res) => {
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: currency.toLowerCase(),
+                customer: stripeCustomerId,
                 automatic_payment_methods: { enabled: true },
                 metadata: {
                     userEmail: email.toLowerCase(),
@@ -2566,85 +2567,6 @@ app.get('/api/debug/db-info', async (req, res) => {
     }
 });
 
-// Stripe webhook endpoint
-app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-
-    try {
-        const event = stripe.webhooks.constructEvent(
-            req.body,
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET
-        );
-
-        switch (event.type) {
-            case 'payment_intent.succeeded':
-                const paymentIntent = event.data.object;
-                const userEmail = paymentIntent.metadata.userEmail;
-
-                if (userEmail) {
-                    const { data: user } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('email', userEmail.toLowerCase())
-                        .single();
-
-                    if (user) {
-                        const activationCode = user.activation_code || crypto.randomBytes(3).toString('hex').toUpperCase();
-
-                        await supabase
-                            .from('users')
-                            .update({
-                                status: 'paid',
-                                subscription_type: 'monthly',
-                                subscription_start: new Date().toISOString(),
-                                subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                                is_verified: true,
-                                activation_code: activationCode
-                            })
-                            .eq('id', user.id);
-
-                        logger.info(`User ${userEmail} converted to paid subscription`);
-
-                        try {
-                            await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/stripe-webhook', {
-                                type: 'payment_succeeded',
-                                email: userEmail,
-                                amount: paymentIntent.amount / 100,
-                                currency: paymentIntent.currency
-                            });
-                        } catch (webhookError) {
-                            logger.debug('n8n webhook non-critical error');
-                        }
-                    }
-                }
-                break;
-
-            case 'customer.subscription.deleted':
-                const subscription = event.data.object;
-                const customer = await stripe.customers.retrieve(subscription.customer);
-
-                if (customer.email) {
-                    await supabase
-                        .from('users')
-                        .update({ status: 'churned' })
-                        .eq('email', customer.email.toLowerCase());
-
-                    logger.info(`User ${customer.email} subscription cancelled`);
-                }
-                break;
-
-            default:
-                logger.info(`Unhandled Stripe event type: ${event.type}`);
-        }
-
-        res.json({received: true});
-
-    } catch (err) {
-        logger.error('Stripe webhook error:', err.message);
-        res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-});
 
 // Handle activation
 app.get('/api/activate/:code', async (req, res) => {
@@ -2854,6 +2776,18 @@ async function handleSuccessfulPayment(paymentIntent) {
                     .eq('id', user.id);
 
                 logger.info(`User ${user.email} marked as paid and active`);
+
+                // Forward to n8n webhook
+                try {
+                    await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/stripe-webhook', {
+                        type: 'payment_succeeded',
+                        email: user.email,
+                        amount: paymentIntent.amount / 100,
+                        currency: paymentIntent.currency
+                    });
+                } catch (webhookError) {
+                    logger.debug('n8n webhook non-critical error');
+                }
 
                 // Send activation email
                 const lang = user.language || 'en';

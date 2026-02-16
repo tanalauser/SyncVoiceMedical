@@ -65,7 +65,7 @@ Located in `public/languageDetection.js`:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/create-payment-intent` | POST | Create Stripe payment intent |
-| `/api/stripe-webhook` | POST | Handle Stripe webhook events |
+| `/webhook` | POST | Handle Stripe webhook events (must be before express.json()) |
 
 ### Email Campaign Management
 | Endpoint | Method | Description |
@@ -223,7 +223,6 @@ Displays:
 |------|---------|
 | `server.js` | Main Express server, email templates, API endpoints |
 | `config/supabase.js` | Supabase client initialization |
-| `config/stripe.js` | Stripe helper functions |
 | `utils/generateCode.js` | Activation code generation |
 | `public/languageDetection.js` | Language detection module |
 | `public/index.js` | Homepage logic, currency detection |

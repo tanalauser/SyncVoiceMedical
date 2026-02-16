@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             proceedMessage: "Veuillez cocher cette case si vous souhaitez continuer",
             termsAccept: 'J\'ai lu et accepté les conditions générales.',
             termsConfirmation: 'En cochant la case ci-dessus, vous confirmez que vous avez lu et accepté les conditions générales.',
-            autoRenewal: 'J\'opte pour un renouvellement automatique.',
+
             returnButton: 'Retour',
             submitButtons: {
                 free: 'Veuillez envoyer mon code d\'activation pour 7 jours à l\'adresse email ci-dessus.',
@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             proceedMessage: "Please check this box if you want to proceed",
             termsAccept: 'I have read and accepted the terms and conditions.',
             termsConfirmation: 'By checking the box above, you confirm that you have read and accepted the terms and conditions.',
-            autoRenewal: 'I opt for automatic renewal.',
+
             returnButton: 'Return',
             submitButtons: {
                 free: 'Please send my 7-day activation code to the email address above.',
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             proceedMessage: "Bitte aktivieren Sie dieses Kontrollkästchen, wenn Sie fortfahren möchten",
             termsAccept: 'Ich habe die Allgemeinen Geschäftsbedingungen gelesen und akzeptiert.',
             termsConfirmation: 'Durch Ankreuzen des obigen Kästchens bestätigen Sie, dass Sie die Allgemeinen Geschäftsbedingungen gelesen und akzeptiert haben.',
-            autoRenewal: 'Ich entscheide mich für eine automatische Verlängerung.',
+
             returnButton: 'Zurück',
             submitButtons: {
                 free: 'Bitte senden Sie meinen 7-Tage-Aktivierungscode an die oben angegebene E-Mail-Adresse.',
@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             proceedMessage: "Por favor, marque esta casilla si desea continuar",
             termsAccept: 'He leído y acepto los términos y condiciones.',
             termsConfirmation: 'Al marcar la casilla anterior, confirma que ha leído y aceptado los términos y condiciones.',
-            autoRenewal: 'Opto por la renovación automática.',
+
             returnButton: 'Volver',
             submitButtons: {
                 free: 'Por favor, envíe mi código de activación de 7 días a la dirección de correo electrónico anterior.',
@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             proceedMessage: "Seleziona questa casella se vuoi procedere",
             termsAccept: 'Ho letto e accettato i termini e le condizioni.',
             termsConfirmation: 'Selezionando la casella sopra, confermi di aver letto e accettato i termini e le condizioni.',
-            autoRenewal: 'Scelgo il rinnovo automatico.',
+
             returnButton: 'Indietro',
             submitButtons: {
                 free: 'Invia il mio codice di attivazione di 7 giorni all\'indirizzo email sopra indicato.',
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             proceedMessage: "Por favor, marque esta caixa se deseja prosseguir",
             termsAccept: 'Li e aceitei os termos e condições.',
             termsConfirmation: 'Ao marcar a caixa acima, você confirma que leu e aceitou os termos e condições.',
-            autoRenewal: 'Opto pela renovação automática.',
+
             returnButton: 'Voltar',
             submitButtons: {
                 free: 'Por favor, envie meu código de ativação de 7 dias para o endereço de email acima.',
@@ -638,8 +638,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const termsLink = document.getElementById('termsLink');
         const termsAcceptLabel = document.getElementById('termsAcceptLabel');
         const termsConfirmation = document.getElementById('termsConfirmation');
-        const autoRenewalLabel = document.getElementById('autoRenewalLabel');
-
         if (termsLink) {
             termsLink.textContent = t.termsLink;
         }
@@ -667,7 +665,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (termsAcceptLabel) termsAcceptLabel.textContent = t.termsAccept;
         if (termsConfirmation) termsConfirmation.textContent = t.termsConfirmation;
-        if (autoRenewalLabel) autoRenewalLabel.textContent = t.autoRenewal;
         if (proceedMessage) proceedMessage.textContent = t.proceedMessage;
 
         if (returnBtn) {
@@ -950,7 +947,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     requestData.postalCode = formData.get('codePostal') || '';
                     requestData.city = formData.get('ville') || '';
                     requestData.country = formData.get('pays') || '';
-                    requestData.autoRenewal = document.getElementById('autoRenewal')?.checked || false;
                     requestData.currency = currency;
                     requestData.amount = amount;
                 }
