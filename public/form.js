@@ -75,9 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const config = await configResponse.json();
                 stripePublishableKey = config.stripePublishableKey;
             } else {
-                // Fallback to test key if server doesn't provide one
-                stripePublishableKey = 'pk_test_51QgwsQP3dr2cRIwx5Nll9FKqZotSsNwhKChXjloSZmyy49Z9TfWdnaCvdBhhveHfkJQioLT0gtjc2kax5J6KdX3y006odnigC0';
-                log('Using fallback Stripe key');
+                throw new Error('Could not fetch Stripe configuration from server');
             }
 
             stripe = Stripe(stripePublishableKey);

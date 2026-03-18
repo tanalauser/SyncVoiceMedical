@@ -47,7 +47,8 @@ const envSchema = Joi.object({
     SUPABASE_URL: Joi.string().uri().required(),
     SUPABASE_ANON_KEY: Joi.string().required(),
     STRIPE_SECRET_KEY: Joi.string().required(),
-    STRIPE_PRICE_ID: Joi.string().required(),
+    STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
+    STRIPE_PRICE_ID: Joi.string().optional(),
     STRIPE_WEBHOOK_SECRET: Joi.string().required(),
     DEEPGRAM_API_KEY: Joi.string().optional(),
     JWT_SECRET: Joi.string().required(),
@@ -414,14 +415,14 @@ app.get('/api/health', async (req, res) => {
 // Stripe configuration endpoint for form.js
 app.get('/api/config', (req, res) => {
     res.json({
-        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_51QgwsQP3dr2cRIwx5Nll9FKqZotSsNwhKChXjloSZmyy49Z9TfWdnaCvdBhhveHfkJQioLT0gtjc2kax5J6KdX3y006odnigC0'
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY
     });
 });
 
 // Stripe configuration endpoint for payment.html
 app.get('/api/stripe-config', (req, res) => {
     res.json({
-        publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_51QgwsQP3dr2cRIwx5Nll9FKqZotSsNwhKChXjloSZmyy49Z9TfWdnaCvdBhhveHfkJQioLT0gtjc2kax5J6KdX3y006odnigC0'
+        publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
     });
 });
 
@@ -431,7 +432,7 @@ app.get('/api/status', async (req, res) => {
 
         const requiredEnvVars = [
             'EMAIL_PASS', 'EMAIL_USER', 'SUPABASE_URL', 'SUPABASE_ANON_KEY',
-            'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'STRIPE_WEBHOOK_SECRET'
+            'STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY', 'STRIPE_WEBHOOK_SECRET'
         ];
 
         const missingVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
@@ -448,7 +449,7 @@ app.get('/api/status', async (req, res) => {
                 status: 'unknown'
             },
             payments: {
-                configured: !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID),
+                configured: !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY),
                 status: 'unknown'
             },
             transcription: {
