@@ -1135,7 +1135,10 @@ async function processCampaignQueue(jobId) {
                 });
 
                 if (resendError) {
-                    throw new Error(`Resend API error: ${resendError.message || JSON.stringify(resendError)}`);
+                    logger.error(`Campaign ${jobId}: Resend raw error for ${nextEmail.email}: ${JSON.stringify(resendError)}`);
+                    const errName = resendError.name || 'unknown';
+                    const errMsg = resendError.message || JSON.stringify(resendError);
+                    throw new Error(`Resend API error [${errName}]: ${errMsg}`);
                 }
                 logger.info(`Campaign ${jobId}: Resend message id ${resendData?.id || 'n/a'} for ${nextEmail.email}`);
 
@@ -1212,7 +1215,10 @@ async function processCampaignQueue(jobId) {
                     })
                     .eq('id', jobId);
 
-                logger.error(`Campaign ${jobId}: failed to send to ${nextEmail.email}:`, sendError.message);
+                logger.error(`Campaign ${jobId}: failed to send to ${nextEmail.email}: ${sendError.message || sendError.toString() || 'unknown error'}`);
+                if (sendError.stack) {
+                    logger.error(`Campaign ${jobId}: stack: ${sendError.stack}`);
+                }
 
                 // Auto-pause if Gmail daily limit hit repeatedly
                 if (isRateLimitError && consecutiveRateLimitFailures >= MAX_CONSECUTIVE_RATE_LIMITS) {
