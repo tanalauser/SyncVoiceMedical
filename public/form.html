@@ -203,6 +203,14 @@
             color: var(--gray-500);
         }
 
+        .billing-tax-note {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+
         .billing-savings {
             display: inline-block;
             background: var(--accent);
@@ -402,11 +410,13 @@
                         <input type="radio" name="billing" value="monthly" checked>
                         <span class="billing-label" id="monthlyLabel">Monthly</span>
                         <span class="billing-price" id="monthlyPrice">€25<span class="period">/month</span></span>
+                        <span class="billing-tax-note" id="monthlyTaxNote">VAT included</span>
                     </label>
                     <label class="billing-option" id="yearlyOption">
                         <input type="radio" name="billing" value="yearly">
                         <span class="billing-label" id="yearlyLabel">Yearly</span>
                         <span class="billing-price" id="yearlyPrice">€250<span class="period">/year</span></span>
+                        <span class="billing-tax-note" id="yearlyTaxNote">VAT included</span>
                         <span class="billing-savings" id="yearlySavings">Save €50</span>
                     </label>
                 </div>
@@ -518,7 +528,7 @@
                 planFree: 'Free Trial', planPaid: 'Professional',
                 formTitle: 'Create your account', formSubtitle: 'Fill in the information below',
                 monthlyLabel: 'Monthly', yearlyLabel: 'Yearly',
-                monthlyPeriod: '/month', yearlyPeriod: '/year', yearlySavings: 'Save £50',
+                monthlyPeriod: '/month', yearlyPeriod: '/year', yearlySavings: 'Save £50', taxNote: 'VAT included',
                 firstName: 'First Name', lastName: 'Last Name', email: 'Email',
                 company: 'Company / Practice', address: 'Address', postalCode: 'Postal Code',
                 city: 'City', country: 'Country',
@@ -530,7 +540,7 @@
                 planFree: 'Essai Gratuit', planPaid: 'Professionnel',
                 formTitle: 'Créez votre compte', formSubtitle: 'Remplissez les informations ci-dessous',
                 monthlyLabel: 'Mensuel', yearlyLabel: 'Annuel',
-                monthlyPeriod: '/mois', yearlyPeriod: '/an', yearlySavings: 'Économisez 50€',
+                monthlyPeriod: '/mois', yearlyPeriod: '/an', yearlySavings: 'Économisez 50€', taxNote: 'TTC',
                 firstName: 'Prénom', lastName: 'Nom', email: 'Email',
                 company: 'Établissement / Cabinet', address: 'Adresse', postalCode: 'Code postal',
                 city: 'Ville', country: 'Pays',
@@ -542,7 +552,7 @@
                 planFree: 'Kostenlose Testversion', planPaid: 'Professionell',
                 formTitle: 'Konto erstellen', formSubtitle: 'Füllen Sie die Informationen aus',
                 monthlyLabel: 'Monatlich', yearlyLabel: 'Jährlich',
-                monthlyPeriod: '/Monat', yearlyPeriod: '/Jahr', yearlySavings: '50€ sparen',
+                monthlyPeriod: '/Monat', yearlyPeriod: '/Jahr', yearlySavings: '50€ sparen', taxNote: 'inkl. MwSt.',
                 firstName: 'Vorname', lastName: 'Nachname', email: 'E-Mail',
                 company: 'Unternehmen / Praxis', address: 'Adresse', postalCode: 'Postleitzahl',
                 city: 'Stadt', country: 'Land',
@@ -554,7 +564,7 @@
                 planFree: 'Prueba Gratuita', planPaid: 'Profesional',
                 formTitle: 'Crea tu cuenta', formSubtitle: 'Completa la información',
                 monthlyLabel: 'Mensual', yearlyLabel: 'Anual',
-                monthlyPeriod: '/mes', yearlyPeriod: '/año', yearlySavings: 'Ahorra 50€',
+                monthlyPeriod: '/mes', yearlyPeriod: '/año', yearlySavings: 'Ahorra 50€', taxNote: 'IVA incluido',
                 firstName: 'Nombre', lastName: 'Apellido', email: 'Correo electrónico',
                 company: 'Empresa / Consultorio', address: 'Dirección', postalCode: 'Código postal',
                 city: 'Ciudad', country: 'País',
@@ -566,7 +576,7 @@
                 planFree: 'Prova Gratuita', planPaid: 'Professionale',
                 formTitle: 'Crea il tuo account', formSubtitle: 'Compila le informazioni',
                 monthlyLabel: 'Mensile', yearlyLabel: 'Annuale',
-                monthlyPeriod: '/mese', yearlyPeriod: '/anno', yearlySavings: 'Risparmia 50€',
+                monthlyPeriod: '/mese', yearlyPeriod: '/anno', yearlySavings: 'Risparmia 50€', taxNote: 'IVA inclusa',
                 firstName: 'Nome', lastName: 'Cognome', email: 'Email',
                 company: 'Azienda / Studio', address: 'Indirizzo', postalCode: 'CAP',
                 city: 'Città', country: 'Paese',
@@ -578,7 +588,7 @@
                 planFree: 'Teste Gratuito', planPaid: 'Profissional',
                 formTitle: 'Crie sua conta', formSubtitle: 'Preencha as informações',
                 monthlyLabel: 'Mensal', yearlyLabel: 'Anual',
-                monthlyPeriod: '/mês', yearlyPeriod: '/ano', yearlySavings: 'Economize 50€',
+                monthlyPeriod: '/mês', yearlyPeriod: '/ano', yearlySavings: 'Economize 50€', taxNote: 'IVA incluído',
                 firstName: 'Nome', lastName: 'Sobrenome', email: 'Email',
                 company: 'Empresa / Clínica', address: 'Endereço', postalCode: 'CEP',
                 city: 'Cidade', country: 'País',
@@ -659,6 +669,8 @@
             
             document.getElementById('monthlyPrice').innerHTML = `${currentCurrency}25<span class="period">${t.monthlyPeriod}</span>`;
             document.getElementById('yearlyPrice').innerHTML = `${currentCurrency}250<span class="period">${t.yearlyPeriod}</span>`;
+            document.getElementById('monthlyTaxNote').textContent = t.taxNote;
+            document.getElementById('yearlyTaxNote').textContent = t.taxNote;
             document.getElementById('yearlySavings').textContent = currentCurrency === '£' ? 'Save £50' : t.yearlySavings;
             document.getElementById('backLink').href = `index.html?lang=${currentLang}`;
         }
