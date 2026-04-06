@@ -2198,6 +2198,17 @@ app.post('/api/send-activation', async (req, res) => {
                 stripeCustomerId = customer.id;
             }
 
+            // Resolve billing cycle and price server-side from an allow-list.
+            // Never trust a client-supplied amount — that would let anyone pay €0.
+            const billing = (req.body.billing === 'yearly') ? 'yearly' : 'monthly';
+            const requestedCurrency = String(req.body.currency || 'EUR').toUpperCase();
+            const stripeCurrency = (requestedCurrency === 'GBP') ? 'gbp' : 'eur';
+            const PRICES = {
+                monthly: { eur: 2500,  gbp: 2500  }, // €25  / £25
+                yearly:  { eur: 25000, gbp: 25000 }  // €250 / £250
+            };
+            const amount = PRICES[billing][stripeCurrency];
+
             const userData = {
                 email: email.toLowerCase(),
                 first_name: firstName,
@@ -2208,7 +2219,7 @@ app.post('/api/send-activation', async (req, res) => {
                 city: city || null,
                 country: country || null,
                 status: 'lead',
-                subscription_type: 'monthly',
+                subscription_type: billing,
                 language,
                 stripe_customer_id: stripeCustomerId,
                 is_verified: false
@@ -2231,20 +2242,20 @@ app.post('/api/send-activation', async (req, res) => {
                 userId = newUser.id;
             }
 
-            const currency = otherData.currency || 'eur';
-            const amount = otherData.amount || 2500;
-
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
-                currency: currency.toLowerCase(),
+                currency: stripeCurrency,
                 customer: stripeCustomerId,
                 automatic_payment_methods: { enabled: true },
                 metadata: {
                     userEmail: email.toLowerCase(),
                     userName: `${firstName} ${lastName}`,
-                    userId: userId
+                    userId: userId,
+                    billing: billing
                 },
-                description: 'SyncVoice Medical - Monthly Subscription'
+                description: billing === 'yearly'
+                    ? 'SyncVoice Medical - Yearly Subscription'
+                    : 'SyncVoice Medical - Monthly Subscription'
             });
 
             return res.json({
@@ -2632,13 +2643,19 @@ async function handleSuccessfulPayment(paymentIntent) {
             if (user) {
                 const activationCode = user.activation_code || crypto.randomBytes(3).toString('hex').toUpperCase();
 
+                // Honour the billing cycle the user actually paid for.
+                const billing = paymentIntent.metadata.billing === 'yearly' ? 'yearly' : 'monthly';
+                const periodMs = billing === 'yearly'
+                    ? 365 * 24 * 60 * 60 * 1000
+                    : 30 * 24 * 60 * 60 * 1000;
+
                 await supabase
                     .from('users')
                     .update({
                         status: 'paid',
-                        subscription_type: 'monthly',
+                        subscription_type: billing,
                         subscription_start: new Date().toISOString(),
-                        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        subscription_end: new Date(Date.now() + periodMs).toISOString(),
                         is_verified: true,
                         activation_code: activationCode
                     })
