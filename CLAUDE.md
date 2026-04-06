@@ -9,7 +9,8 @@ SyncVoice Medical is a voice-to-text transcription platform for medical professi
 - **Backend**: Node.js + Express
 - **Database**: Supabase (PostgreSQL)
 - **Speech-to-Text**: Deepgram API
-- **Email**: Nodemailer
+- **Email (transactional)**: Nodemailer + Gmail SMTP (activation, password reset, payment confirmation)
+- **Email (bulk campaigns)**: Resend API (doctor outreach, reminders) — EU region `eu-west-1`
 - **Payments**: Stripe
 - **Hosting**: Render.com (auto-deploys from GitHub)
 - **Auth**: JWT + Google OAuth
@@ -96,6 +97,8 @@ Located in `public/languageDetection.js`:
 
 ## Email Campaign System
 
+> **As of 2026-04-06, bulk campaigns are sent via Resend, not Gmail SMTP.** See the "Bulk Email via Resend" section below for provider-specific details, DNS setup, API key management, and the active doctor outreach campaign. The PowerShell commands and template/campaign-name conventions in this section still apply — only the underlying SMTP transport changed.
+
 ### Email Templates
 
 **Email 1 (Initial)** - `getCampaignEmailHtml()`
@@ -177,6 +180,82 @@ All email links are tracked via `/api/track/click`:
 Open tracking via 1x1 pixel: `/api/track/open`
 
 Note: Emails containing `nicolas.tanala` are filtered from stats display.
+
+## Bulk Email via Resend (2026-04-06)
+
+Bulk campaigns (`/api/admin/send-campaign`) are routed through **Resend** instead of Gmail SMTP. Transactional emails (activation, password reset, payment confirmation) still use Nodemailer/Gmail SMTP — only the `processCampaignQueue()` function in `server.js` uses Resend.
+
+### Why Resend
+Gmail SMTP has a 500/day hard limit that made bulk doctor outreach impractical. Resend Pro ($20/month) allows 50 000/month with no daily cap, handles SPF/DKIM automatically, and provides per-email delivery logs.
+
+### Setup completed
+- **Domain**: `syncvoicemedical.com` verified in Resend (EU region `eu-west-1`)
+- **DNS records added to Scaleway/Dedibox** (zone `Vuvuzela_7pRzxCM6`):
+  - `send` MX → `feedback-smtp.eu-west-1.amazonses.com` (priority 10)
+  - `send` TXT → `"v=spf1 include:amazonses.com ~all"`
+  - `resend._domainkey` TXT → DKIM key (long `p=MIGfMA0G...` string)
+  - `_dmarc` TXT → `"v=DMARC1; p=none;"`
+  - Note: TXT values in Dedibox must be wrapped in double quotes
+- **Existing records preserved**: `www` CNAME, NS records — never delete these
+- **Resend plan**: Pro ($20/month) — 50 000 emails/month
+- **API key**: stored as `RESEND_API_KEY` in Render.com env vars
+
+### Code changes (commits d5583e6, a557848)
+- `package.json`: added `resend ^4.8.0`
+- `server.js`:
+  - Line 16: `const { Resend } = require('resend');`
+  - Lines 298–306: Resend client initialized at startup; warns if `RESEND_API_KEY` missing
+  - Constants: `CAMPAIGN_FROM = 'SyncVoice Medical <noreply@syncvoicemedical.com>'`, `CAMPAIGN_REPLY_TO = 'syncvoiceMedical@gmail.com'`
+  - `processCampaignQueue()`: replaced `transporter.sendMail(...)` with `resend.emails.send({ from, to, replyTo, subject, html })`
+  - Early-exit if `RESEND_API_KEY` not configured (marks job as failed)
+  - Rate-limit detection updated: now checks for `rate_limit_exceeded`, `Too many requests`, `daily_quota_exceeded` (Resend) instead of Gmail 550-5.4.5 errors
+  - Winston logging fixed: error messages were being silently dropped as metadata; now inlined into the log string
+
+### Sender configuration
+- **From**: `SyncVoice Medical <noreply@syncvoicemedical.com>`
+- **Reply-To**: `syncvoiceMedical@gmail.com`
+- Resend SDK v4.x uses camelCase `replyTo` (not snake_case `reply_to`)
+
+### Monitoring Resend campaigns
+- **Resend Logs**: https://resend.com/emails — per-email delivery events
+- **Resend Metrics**: https://resend.com/metrics — aggregate bounce/complaint/open rates
+- **Your dashboard**: https://syncvoicemedical.onrender.com/admin-email-stats.html
+- **Render logs**: look for `Campaign <id>: Resend message id <uuid> for <email>` on each successful send
+
+### Doctor outreach campaign — launched 2026-04-06
+- **List**: 6438 GP doctors from Base-Emails (GDPR-compliant B2B French medical list)
+- **Source file**: `C:\NTI\Dev\Base-Emails\Médecins en France_used\MEDECINS_MédecineGénéraleEtOrientationHoméopathie_2751_9751_7000InTotal.txt` (UTF-16 LE, CRLF)
+- **Strategy**: 3-phase gradual rollout to protect brand-new domain reputation
+  - **Phase 1 (warmup)**: 500 emails, `delayMinutes=5`, ~42h → campaign `doctors_fr_resend_warmup` — launched 2026-04-06, id `4a6822c5-6aa2-4d36-9eaf-c769677bc493`
+  - **Phase 2 (scale)**: 2000 emails, `delayMinutes=3`, ~4.2 days → campaign `doctors_fr_resend_batch1` — pending Phase 1 checkpoint
+  - **Phase 3 (full)**: 3938 emails, `delayMinutes=2`, ~5.5 days → campaign `doctors_fr_resend_batch2` — pending Phase 2 checkpoint
+- **Total duration**: ~11.4 days
+- **Checkpoint criteria before advancing phases**: bounce rate < 5%, complaint rate < 0.2%, delivery rate > 90%, Resend domain status still Verified
+
+### Launch command pattern (PowerShell)
+```powershell
+$filePath = "C:\NTI\Dev\Base-Emails\Médecins en France_used\MEDECINS_MédecineGénéraleEtOrientationHoméopathie_2751_9751_7000InTotal.txt"
+$allEmails = [string[]]((Get-Content $filePath | ForEach-Object { $_.Trim() }) | Where-Object { $_ -match "^[^\s@]+@[^\s@]+\.[^\s@]+$" })
+
+# Slice per phase
+$phase1 = $allEmails[0..499]        # 500 emails
+$phase2 = $allEmails[500..2499]     # 2000 emails
+$phase3 = $allEmails[2500..($allEmails.Count - 1)]  # 3938 emails
+
+$body = @{
+    emails = $phase1
+    campaign = "doctors_fr_resend_warmup"
+    delayMinutes = 5
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "https://syncvoicemedical.onrender.com/api/admin/send-campaign" -Method POST -Body $body -ContentType "application/json"
+```
+
+### Troubleshooting Resend issues
+- **"API key is invalid" (401)**: `RESEND_API_KEY` in Render has a typo or stray whitespace. Regenerate key in Resend dashboard → API Keys, paste carefully into Render env vars.
+- **Empty error message in Render logs**: fixed in commit a557848 — Winston was treating `sendError.message` as metadata. Errors now inlined into log strings.
+- **Campaign stuck at `status: running` with progress `n/n`**: processor killed mid-loop by Render redeploy. Pause the campaign manually, then launch a fresh one (failed queue items are not retried automatically).
+- **UTF-16 file encoding**: PowerShell `Get-Content` auto-detects BOM for UTF-16 LE — no conversion needed. Verify with `wc -l` before launching.
 
 ## WebSocket / Desktop Client
 
@@ -261,6 +340,7 @@ Required variables:
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth secret |
 | `BASE_URL` | Application base URL |
+| `RESEND_API_KEY` | Resend API key for bulk campaign sending (Pro plan, EU region) |
 
 ## User Subscription Types
 
