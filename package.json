@@ -30,6 +30,7 @@
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.3",
+    "resend": "^4.8.0",
     "stripe": "^17.7.0",
     "winston": "^3.10.0",
     "ws": "^8.18.3"

@@ -13,6 +13,7 @@ const bcrypt = require('bcrypt');
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const path = require('path');
 const axios = require('axios');
 const WebSocket = require('ws');
@@ -293,6 +294,16 @@ if (process.env.NODE_ENV === 'development') {
 // Serve terms files
 const termsDir = path.join(__dirname, 'terms');
 app.use('/terms', express.static(termsDir));
+
+// Resend client (used for bulk campaigns only — transactional emails still go through Nodemailer/Gmail SMTP)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+if (!resend) {
+    logger.warn('⚠️  RESEND_API_KEY not set — bulk campaigns will fail until it is configured');
+} else {
+    logger.info('✅ Resend client initialized for bulk campaigns');
+}
+const CAMPAIGN_FROM = 'SyncVoice Medical <noreply@syncvoicemedical.com>';
+const CAMPAIGN_REPLY_TO = 'syncvoiceMedical@gmail.com';
 
 // Email transporter
 async function createTransporter() {
@@ -1056,7 +1067,14 @@ async function processCampaignQueue(jobId) {
     let consecutiveRateLimitFailures = 0;
 
     try {
-        const transporter = await createTransporter();
+        if (!resend) {
+            logger.error(`Campaign ${jobId}: RESEND_API_KEY is not configured, aborting`);
+            await supabase
+                .from('email_campaign_jobs')
+                .update({ status: 'failed', updated_at: new Date().toISOString() })
+                .eq('id', jobId);
+            return;
+        }
 
         while (true) {
             // Get job status
@@ -1108,12 +1126,18 @@ async function processCampaignQueue(jobId) {
                     subject = 'Gagnez 2 heures par jour sur vos comptes-rendus médicaux';
                 }
 
-                await transporter.sendMail({
-                    from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                const { data: resendData, error: resendError } = await resend.emails.send({
+                    from: CAMPAIGN_FROM,
                     to: nextEmail.email,
+                    replyTo: CAMPAIGN_REPLY_TO,
                     subject: subject,
                     html: html
                 });
+
+                if (resendError) {
+                    throw new Error(`Resend API error: ${resendError.message || JSON.stringify(resendError)}`);
+                }
+                logger.info(`Campaign ${jobId}: Resend message id ${resendData?.id || 'n/a'} for ${nextEmail.email}`);
 
                 // Mark as sent in queue
                 await supabase
@@ -1160,14 +1184,13 @@ async function processCampaignQueue(jobId) {
 
             } catch (sendError) {
                 const isRateLimitError = sendError.message &&
-                    (sendError.message.includes('550-5.4.5') ||
-                     sendError.message.includes('550 5.4.5') ||
-                     sendError.message.includes('Daily user sending limit') ||
-                     sendError.message.includes('sending limit exceeded'));
+                    (sendError.message.includes('rate_limit_exceeded') ||
+                     sendError.message.includes('Too many requests') ||
+                     sendError.message.includes('daily_quota_exceeded'));
 
                 if (isRateLimitError) {
                     consecutiveRateLimitFailures++;
-                    logger.warn(`Campaign ${jobId}: Gmail daily limit hit for ${nextEmail.email} (${consecutiveRateLimitFailures}/${MAX_CONSECUTIVE_RATE_LIMITS} consecutive)`);
+                    logger.warn(`Campaign ${jobId}: Resend rate limit hit for ${nextEmail.email} (${consecutiveRateLimitFailures}/${MAX_CONSECUTIVE_RATE_LIMITS} consecutive)`);
                 } else {
                     // Non-rate-limit error: reset the counter
                     consecutiveRateLimitFailures = 0;
@@ -1208,7 +1231,7 @@ async function processCampaignQueue(jobId) {
                         })
                         .eq('id', jobId);
 
-                    logger.warn(`Campaign ${jobId}: AUTO-PAUSED after ${MAX_CONSECUTIVE_RATE_LIMITS} consecutive Gmail daily limit errors. ${pendingCount || 0} emails remain pending. Resume tomorrow with /api/admin/campaign-resume/${jobId}`);
+                    logger.warn(`Campaign ${jobId}: AUTO-PAUSED after ${MAX_CONSECUTIVE_RATE_LIMITS} consecutive Resend rate limit errors. ${pendingCount || 0} emails remain pending. Resume with /api/admin/campaign-resume/${jobId}`);
                     break;
                 }
             }
