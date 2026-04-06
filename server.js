@@ -493,130 +493,6 @@ app.get('/api/status', async (req, res) => {
     }
 });
 
-// N8N tracking webhook
-app.post('/api/n8n-tracking', async (req, res) => {
-    try {
-        const { email, event, ...data } = req.body;
-
-        if (!email || !event) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email and event are required'
-            });
-        }
-
-        // Find user by email
-        const { data: user, error: findError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', email.toLowerCase())
-            .single();
-
-        if (findError && findError.code !== 'PGRST116') {
-            throw findError;
-        }
-
-        if (!user) {
-            // Create lead for tracking event from unknown users
-            const { data: newUser, error: insertError } = await supabase
-                .from('users')
-                .insert({
-                    email: email.toLowerCase(),
-                    first_name: data.firstName || 'Unknown',
-                    last_name: data.lastName || 'Unknown',
-                    status: 'lead',
-                    subscription_type: 'free',
-                    language: 'fr',
-                    activation_code: 'PENDING',
-                    is_verified: false
-                })
-                .select()
-                .single();
-
-            if (insertError) throw insertError;
-
-            // Record email event if applicable
-            if (['email_opened', 'email_sent', 'link_clicked'].includes(event)) {
-                const eventType = event === 'email_opened' ? 'opened' : event === 'link_clicked' ? 'clicked' : 'sent';
-                await supabase.from('email_events').insert({
-                    email: email.toLowerCase(),
-                    event_type: eventType,
-                    utm_campaign: data.campaign || 'automated',
-                    link_url: data.link || null
-                });
-            }
-
-            return res.json({
-                success: true,
-                message: `Lead created from ${event}`,
-                userId: newUser.id
-            });
-        }
-
-        // Build update object based on event type
-        const updateData = { updated_at: new Date().toISOString() };
-
-        switch(event) {
-            case 'trial_signup':
-                updateData.trial_start_date = new Date().toISOString();
-                updateData.trial_end_date = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-                updateData.status = 'trial';
-                updateData.is_verified = true;
-                break;
-
-            case 'paid_subscription':
-                updateData.status = 'paid';
-                updateData.subscription_type = data.subscriptionType || 'monthly';
-                updateData.subscription_start = new Date().toISOString();
-                updateData.subscription_end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-                break;
-
-            case 'subscription_cancelled':
-            case 'subscription_expired':
-                updateData.status = 'churned';
-                break;
-
-            case 'reactivated':
-                updateData.status = 'paid';
-                break;
-        }
-
-        // Update user
-        const { error: updateError } = await supabase
-            .from('users')
-            .update(updateData)
-            .eq('id', user.id);
-
-        if (updateError) throw updateError;
-
-        // Record email events
-        if (['email_sent', 'email_opened', 'link_clicked'].includes(event)) {
-            const eventType = event === 'email_opened' ? 'opened' : event === 'link_clicked' ? 'clicked' : 'sent';
-            await supabase.from('email_events').insert({
-                email: email.toLowerCase(),
-                event_type: eventType,
-                utm_campaign: data.campaign,
-                link_url: data.link || null
-            });
-        }
-
-        res.json({
-            success: true,
-            message: `Event '${event}' tracked`,
-            userId: user.id,
-            currentStatus: updateData.status || user.status
-        });
-
-    } catch (error) {
-        logger.error('N8N tracking error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
-    }
-});
-
 // Password reset request route
 app.post('/api/forgot-password', async (req, res) => {
     try {
@@ -2140,19 +2016,6 @@ app.post('/api/detect-churns', async (req, res) => {
             }
         }
 
-        // Send to n8n for win-back campaigns
-        if (churnedEmails.length > 0) {
-            try {
-                await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/churns-detected', {
-                    churns: churnedEmails,
-                    count: churnedEmails.length,
-                    detectedAt: now.toISOString()
-                }, { timeout: 5000 });
-            } catch (webhookError) {
-                logger.warn('n8n churn webhook error:', webhookError.message);
-            }
-        }
-
         res.json({
             success: true,
             message: `Detected ${churnedEmails.length} churned users`,
@@ -2299,7 +2162,26 @@ app.post('/api/send-activation', async (req, res) => {
                 .single();
 
             let userId;
-            let stripeCustomerId = existingUser?.stripe_customer_id;
+            let stripeCustomerId = existingUser?.stripe_customer_id || null;
+
+            // Verify the stored Stripe customer still exists in the CURRENT Stripe account.
+            // It may belong to a deleted customer or to a different test/live environment,
+            // in which case paymentIntents.create({customer}) would throw "No such customer".
+            if (stripeCustomerId) {
+                try {
+                    const existing = await stripe.customers.retrieve(stripeCustomerId);
+                    if (existing && existing.deleted) {
+                        stripeCustomerId = null;
+                    }
+                } catch (err) {
+                    if (err && (err.code === 'resource_missing' || err.statusCode === 404)) {
+                        logger.warn(`Stale stripe_customer_id ${stripeCustomerId} for ${email} — recreating`);
+                        stripeCustomerId = null;
+                    } else {
+                        throw err;
+                    }
+                }
+            }
 
             if (!stripeCustomerId) {
                 const customer = await stripe.customers.create({
@@ -2516,20 +2398,6 @@ app.post('/api/send-activation', async (req, res) => {
                 activation_code: activationCode
             }, activationLink, language)
         });
-
-        // Call n8n webhook
-        try {
-            await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/trial-signup', {
-                email: email.toLowerCase(),
-                firstName,
-                lastName,
-                version,
-                source: otherData.source || 'website',
-                signupDate: new Date().toISOString()
-            }, { headers: { 'Content-Type': 'application/json' }, timeout: 5000 });
-        } catch (webhookError) {
-            logger.debug('n8n webhook non-critical error');
-        }
 
         res.json({
             success: true,
@@ -2777,18 +2645,6 @@ async function handleSuccessfulPayment(paymentIntent) {
                     .eq('id', user.id);
 
                 logger.info(`User ${user.email} marked as paid and active`);
-
-                // Forward to n8n webhook
-                try {
-                    await axios.post('https://n8n.srv1030172.hstgr.cloud/webhook/stripe-webhook', {
-                        type: 'payment_succeeded',
-                        email: user.email,
-                        amount: paymentIntent.amount / 100,
-                        currency: paymentIntent.currency
-                    });
-                } catch (webhookError) {
-                    logger.debug('n8n webhook non-critical error');
-                }
 
                 // Send activation email
                 const lang = user.language || 'en';
