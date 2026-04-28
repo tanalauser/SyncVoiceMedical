@@ -25,6 +25,23 @@ const winston = require('winston');
 // Supabase import
 const { supabase, testConnection, checkSupabaseConnection } = require('./config/supabase');
 
+// Stripe Subscription Price IDs (configured in Stripe Dashboard → Products → SyncVoiceMedical)
+const STRIPE_PRICES = {
+    monthly: {
+        eur: 'price_1QgxITP3dr2cRIwxjyrv5BEe', // €25 / month
+        gbp: 'price_1Sn61bP3dr2cRIwxqGc9MmRX'  // £25 / month
+    },
+    yearly: {
+        eur: 'price_1Sn62NP3dr2cRIwxP9vOgLpE', // €250 / year
+        gbp: 'price_1Sn630P3dr2cRIwxnOVwcf6x'  // £218 / year
+    }
+};
+// Mirror of the above for the response payload (so the client can show the user what they'll pay)
+const STRIPE_PRICE_AMOUNTS = {
+    monthly: { eur: 2500, gbp: 2500 },
+    yearly:  { eur: 25000, gbp: 21800 }
+};
+
 // Create logger
 const logger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'info',
@@ -228,14 +245,29 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
     try {
         switch (event.type) {
             case 'payment_intent.succeeded':
+                // Subscription invoices fire BOTH payment_intent.succeeded and
+                // invoice.payment_succeeded — let the invoice handler own those so we don't
+                // double-update the user record.
+                if (event.data.object.invoice) {
+                    logger.info(`Skipping payment_intent.succeeded for subscription invoice ${event.data.object.invoice}`);
+                    break;
+                }
                 await handleSuccessfulPayment(event.data.object);
                 break;
             case 'payment_intent.payment_failed':
+                if (event.data.object.invoice) break;
                 await handleFailedPayment(event.data.object);
                 break;
             case 'invoice.payment_succeeded':
                 await handleSuccessfulInvoice(event.data.object);
                 break;
+            case 'invoice.payment_failed':
+                await handleFailedInvoice(event.data.object);
+                break;
+            case 'invoice.upcoming':
+                await handleUpcomingInvoice(event.data.object);
+                break;
+            case 'customer.subscription.created':
             case 'customer.subscription.updated':
             case 'customer.subscription.deleted':
                 await handleSubscriptionChange(event.data.object);
@@ -2232,11 +2264,8 @@ app.post('/api/send-activation', async (req, res) => {
             const billing = (req.body.billing === 'yearly') ? 'yearly' : 'monthly';
             const requestedCurrency = String(req.body.currency || 'EUR').toUpperCase();
             const stripeCurrency = (requestedCurrency === 'GBP') ? 'gbp' : 'eur';
-            const PRICES = {
-                monthly: { eur: 2500,  gbp: 2500  }, // €25  / £25
-                yearly:  { eur: 25000, gbp: 25000 }  // €250 / £250
-            };
-            const amount = PRICES[billing][stripeCurrency];
+            const priceId = STRIPE_PRICES[billing][stripeCurrency];
+            const amount = STRIPE_PRICE_AMOUNTS[billing][stripeCurrency];
 
             const userData = {
                 email: email.toLowerCase(),
@@ -2253,6 +2282,10 @@ app.post('/api/send-activation', async (req, res) => {
                 stripe_customer_id: stripeCustomerId,
                 is_verified: false
             };
+
+            if (otherData.password) {
+                userData.password_hash = await hashPassword(otherData.password);
+            }
 
             if (existingUser) {
                 const { error } = await supabase
@@ -2271,28 +2304,35 @@ app.post('/api/send-activation', async (req, res) => {
                 userId = newUser.id;
             }
 
-            const paymentIntent = await stripe.paymentIntents.create({
-                amount: amount,
-                currency: stripeCurrency,
+            // Create a real recurring Subscription (was a one-off PaymentIntent before — that
+            // never actually billed customers a second time). payment_behavior:'default_incomplete'
+            // tells Stripe to wait for the client to confirm the first invoice's PaymentIntent
+            // before activating the subscription. We expand latest_invoice.payment_intent so we
+            // can hand its client_secret to payment.html — same shape the front-end already uses.
+            const subscription = await stripe.subscriptions.create({
                 customer: stripeCustomerId,
-                automatic_payment_methods: { enabled: true },
+                items: [{ price: priceId }],
+                payment_behavior: 'default_incomplete',
+                payment_settings: {
+                    save_default_payment_method: 'on_subscription'
+                },
+                expand: ['latest_invoice.payment_intent'],
                 metadata: {
                     userEmail: email.toLowerCase(),
                     userName: `${firstName} ${lastName}`,
-                    userId: userId,
+                    userId: String(userId),
                     billing: billing
-                },
-                description: billing === 'yearly'
-                    ? 'SyncVoice Medical - Yearly Subscription'
-                    : 'SyncVoice Medical - Monthly Subscription'
+                }
             });
 
             return res.json({
                 success: true,
                 requiresPayment: true,
-                clientSecret: paymentIntent.client_secret,
-                paymentIntentId: paymentIntent.id,
-                userId: userId
+                clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+                subscriptionId: subscription.id,
+                userId: userId,
+                currency: stripeCurrency.toUpperCase(),
+                amount: amount
             });
         }
 
@@ -2742,34 +2782,150 @@ async function handleFailedPayment(failedPayment) {
 
 async function handleSuccessfulInvoice(invoice) {
     try {
-        logger.info('Invoice payment successful:', invoice.id);
+        logger.info(`Invoice payment successful: ${invoice.id} (reason: ${invoice.billing_reason})`);
 
-        if (invoice.customer) {
-            const { data: user } = await supabase
-                .from('users')
-                .select('*')
-                .eq('stripe_customer_id', invoice.customer)
-                .single();
+        if (!invoice.customer) return;
 
-            if (user) {
-                const activationCode = user.activation_code || crypto.randomBytes(3).toString('hex').toUpperCase();
+        const { data: user } = await supabase
+            .from('users')
+            .select('*')
+            .eq('stripe_customer_id', invoice.customer)
+            .single();
 
-                await supabase
-                    .from('users')
-                    .update({
-                        status: 'paid',
-                        subscription_start: new Date().toISOString(),
-                        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                        is_verified: true,
+        if (!user) {
+            logger.warn(`No Supabase user for stripe_customer_id ${invoice.customer}`);
+            return;
+        }
+
+        // Pull the actual billing period from the invoice — Stripe handles month-end edge
+        // cases properly, so don't hard-code 30 days.
+        const line = invoice.lines && invoice.lines.data && invoice.lines.data[0];
+        const periodEnd = line && line.period && line.period.end
+            ? new Date(line.period.end * 1000)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const periodStart = line && line.period && line.period.start
+            ? new Date(line.period.start * 1000)
+            : new Date();
+
+        const activationCode = user.activation_code || crypto.randomBytes(3).toString('hex').toUpperCase();
+
+        await supabase
+            .from('users')
+            .update({
+                status: 'paid',
+                subscription_start: periodStart.toISOString(),
+                subscription_end: periodEnd.toISOString(),
+                is_verified: true,
+                activation_code: activationCode
+            })
+            .eq('id', user.id);
+
+        logger.info(`User ${user.email} paid — subscription_end set to ${periodEnd.toISOString()}`);
+
+        // Only send the activation email on the FIRST invoice of a subscription.
+        // Renewals (billing_reason === 'subscription_cycle') don't need a fresh activation email.
+        if (invoice.billing_reason === 'subscription_create') {
+            const lang = user.language || 'en';
+            const t = messages[lang] || messages.en;
+            try {
+                const activationLink = `${BASE_URL}/api/activate/${activationCode}?email=${encodeURIComponent(user.email)}&lang=${lang}`;
+                const transporter = await createTransporter();
+                await transporter.sendMail({
+                    from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                    to: user.email,
+                    subject: t.subject,
+                    html: createActivationEmailHTML({
+                        first_name: user.first_name,
+                        last_name: user.last_name,
+                        email: user.email,
+                        activationCode,
                         activation_code: activationCode
-                    })
-                    .eq('id', user.id);
-
-                logger.info(`Invoice paid for user ${user.email}`);
+                    }, activationLink, lang)
+                });
+                logger.info(`Activation email sent to ${user.email}`);
+            } catch (emailError) {
+                logger.error('Error sending activation email:', emailError);
             }
         }
     } catch (error) {
         logger.error('Error handling successful invoice:', error);
+    }
+}
+
+async function handleFailedInvoice(invoice) {
+    try {
+        logger.warn(`Invoice payment failed: ${invoice.id} (customer: ${invoice.customer})`);
+        if (!invoice.customer) return;
+
+        const { data: user } = await supabase
+            .from('users')
+            .select('*')
+            .eq('stripe_customer_id', invoice.customer)
+            .single();
+        if (!user) return;
+
+        const lang = user.language || 'en';
+        const amountDue = ((invoice.amount_due || 0) / 100).toFixed(2);
+        const currencySymbol = (invoice.currency || 'eur').toLowerCase() === 'gbp' ? '£' : '€';
+
+        try {
+            const transporter = await createTransporter();
+            await transporter.sendMail({
+                from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                to: user.email,
+                subject: lang === 'fr'
+                    ? 'Échec de paiement — SyncVoice Medical'
+                    : 'Payment failed — SyncVoice Medical',
+                html: createPaymentFailedEmailHTML(user, amountDue, currencySymbol, lang)
+            });
+            logger.info(`Payment-failed email sent to ${user.email}`);
+        } catch (emailError) {
+            logger.error('Error sending payment-failed email:', emailError);
+        }
+    } catch (error) {
+        logger.error('Error handling failed invoice:', error);
+    }
+}
+
+async function handleUpcomingInvoice(invoice) {
+    try {
+        logger.info(`Upcoming invoice: ${invoice.id} for customer ${invoice.customer}`);
+        if (!invoice.customer) return;
+
+        const { data: user } = await supabase
+            .from('users')
+            .select('*')
+            .eq('stripe_customer_id', invoice.customer)
+            .single();
+        if (!user) {
+            logger.warn(`No Supabase user for upcoming-invoice customer ${invoice.customer}`);
+            return;
+        }
+
+        const lang = user.language || 'en';
+        const amountDue = ((invoice.amount_due || 0) / 100).toFixed(2);
+        const currencySymbol = (invoice.currency || 'eur').toLowerCase() === 'gbp' ? '£' : '€';
+        const chargeDate = invoice.next_payment_attempt
+            ? new Date(invoice.next_payment_attempt * 1000)
+            : (invoice.period_end ? new Date(invoice.period_end * 1000) : null);
+        const billing = user.subscription_type || 'monthly';
+
+        try {
+            const transporter = await createTransporter();
+            await transporter.sendMail({
+                from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                to: user.email,
+                subject: lang === 'fr'
+                    ? 'Renouvellement automatique dans 7 jours'
+                    : 'Auto-renewal in 7 days',
+                html: createRenewalWarningEmailHTML(user, amountDue, currencySymbol, chargeDate, billing, lang)
+            });
+            logger.info(`Renewal warning sent to ${user.email}`);
+        } catch (emailError) {
+            logger.error('Error sending renewal warning email:', emailError);
+        }
+    } catch (error) {
+        logger.error('Error handling upcoming invoice:', error);
     }
 }
 
@@ -2928,6 +3084,78 @@ const createActivationEmailHTML = (user, activationLink, lang) => {
         <img src="${BASE_URL}/api/email-open?email=${encodeURIComponent(user.email)}&campaign=trial_activation" width="1" height="1" style="display:none;" alt="">
     </body>
     </html>`;
+};
+
+const createRenewalWarningEmailHTML = (user, amount, currencySymbol, chargeDate, billing, lang) => {
+    const firstName = user.first_name || user.firstName || '';
+    const dateStr = chargeDate
+        ? chargeDate.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '';
+    const cycleLabel = {
+        fr: { monthly: 'mensuel', yearly: 'annuel' },
+        en: { monthly: 'monthly', yearly: 'yearly' },
+        de: { monthly: 'monatlich', yearly: 'jährlich' },
+        es: { monthly: 'mensual', yearly: 'anual' },
+        it: { monthly: 'mensile', yearly: 'annuale' },
+        pt: { monthly: 'mensal', yearly: 'anual' }
+    };
+    const cycle = (cycleLabel[lang] || cycleLabel.en)[billing] || billing;
+
+    const body = {
+        fr: {
+            greeting: `Bonjour ${firstName},`,
+            intro: `Ce message est un rappel automatique : votre abonnement <strong>${cycle}</strong> SyncVoice Medical sera renouvelé dans <strong>7 jours</strong>.`,
+            charge: `Montant prélevé le ${dateStr} : <strong>${currencySymbol}${amount}</strong>`,
+            cancel: `Si vous ne souhaitez pas renouveler, répondez simplement à cet email avant le ${dateStr} et nous annulerons votre abonnement.`,
+            outro: `Merci de votre confiance,<br>L'équipe SyncVoice Medical`
+        },
+        en: {
+            greeting: `Hello ${firstName},`,
+            intro: `This is an automatic reminder: your <strong>${cycle}</strong> SyncVoice Medical subscription will renew in <strong>7 days</strong>.`,
+            charge: `Amount to be charged on ${dateStr}: <strong>${currencySymbol}${amount}</strong>`,
+            cancel: `If you do not wish to renew, simply reply to this email before ${dateStr} and we will cancel your subscription.`,
+            outro: `Thank you,<br>The SyncVoice Medical team`
+        }
+    };
+    const t = body[lang] || body.en;
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+    <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1a5f7a;">SyncVoice Medical</h2>
+        <p>${t.greeting}</p>
+        <p>${t.intro}</p>
+        <p style="background: #f5f5f5; padding: 15px; border-left: 4px solid #1a5f7a;">${t.charge}</p>
+        <p>${t.cancel}</p>
+        <p style="margin-top: 30px;">${t.outro}</p>
+    </body></html>`;
+};
+
+const createPaymentFailedEmailHTML = (user, amount, currencySymbol, lang) => {
+    const firstName = user.first_name || user.firstName || '';
+    const body = {
+        fr: {
+            greeting: `Bonjour ${firstName},`,
+            intro: `Le prélèvement de <strong>${currencySymbol}${amount}</strong> pour votre abonnement SyncVoice Medical a échoué.`,
+            action: `Stripe va automatiquement réessayer dans les prochains jours. Si le problème persiste, vérifiez votre moyen de paiement ou répondez à cet email pour que nous puissions vous aider.`,
+            outro: `L'équipe SyncVoice Medical`
+        },
+        en: {
+            greeting: `Hello ${firstName},`,
+            intro: `The charge of <strong>${currencySymbol}${amount}</strong> for your SyncVoice Medical subscription failed.`,
+            action: `Stripe will automatically retry over the next few days. If the issue persists, please check your payment method or reply to this email so we can help.`,
+            outro: `The SyncVoice Medical team`
+        }
+    };
+    const t = body[lang] || body.en;
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+    <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #c0392b;">SyncVoice Medical</h2>
+        <p>${t.greeting}</p>
+        <p>${t.intro}</p>
+        <p>${t.action}</p>
+        <p style="margin-top: 30px;">${t.outro}</p>
+    </body></html>`;
 };
 
 // Version endpoint
