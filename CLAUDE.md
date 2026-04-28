@@ -344,13 +344,66 @@ Required variables:
 
 ## User Subscription Types
 
-| Type | Duration | Price |
-|------|----------|-------|
-| Free Trial | 7 days | Free |
-| Monthly | 30 days | €29/month |
-| Yearly | 365 days | €199/year |
+| Type | Duration | EUR | GBP |
+|------|----------|-----|-----|
+| Free Trial | 7 days | Free | Free |
+| Monthly | recurring | €25/month | £25/month |
+| Yearly | recurring | €250/year | £218/year |
 
 User status flow: `lead → trial → paid → churned`
+
+Currency is selected by language: `en` → GBP, all others (`fr`, `de`, `es`, `it`, `pt`) → EUR.
+
+## Subscription Payment System (2026-04-28)
+
+Paid signup creates a real **recurring Stripe Subscription**, not a one-off PaymentIntent. This was the rewrite that unblocked the conversion funnel after the doctor outreach campaign produced 0 paid users.
+
+### Flow
+
+1. **Form submit** (`POST /api/send-activation` with `version: 'paid'`):
+   - Creates/updates a Stripe Customer
+   - Hashes and stores password (`bcrypt` → `users.password_hash`)
+   - Calls `stripe.subscriptions.create({ customer, items: [{price: priceId}], payment_behavior: 'default_incomplete', expand: ['latest_invoice.payment_intent'] })`
+   - Returns `clientSecret` from `subscription.latest_invoice.payment_intent.client_secret`
+2. **payment.html** (`/payment.html?clientSecret=...`):
+   - Mounts Stripe Elements with the clientSecret
+   - On submit, calls `stripe.confirmPayment(...)` — same code as before, no change needed for the subscription rework
+3. **Stripe webhooks** (`POST /webhook`):
+   - `payment_intent.succeeded` → **skipped** when part of a subscription invoice (avoids double-handling)
+   - `invoice.payment_succeeded` → `handleSuccessfulInvoice` marks user `paid`, sets `subscription_end` from `invoice.lines[0].period.end`, sends activation email **only on first invoice** (`billing_reason === 'subscription_create'`)
+   - `invoice.payment_failed` → `handleFailedInvoice` notifies user
+   - `invoice.upcoming` → `handleUpcomingInvoice` sends 7-day warning (in practice this rarely fires soon enough — the cron does the work, see below)
+   - `customer.subscription.created/updated/deleted` → `handleSubscriptionChange`
+
+### Stripe configuration
+
+- **Account**: `acct_1QgwsQP3dr2cRIwx` (SARL NTI MEASURE), live mode
+- **Product**: `SyncVoiceMedical` (`prod_Ra7XhGppBh0oTX`)
+- **Price IDs** (hard-coded in `STRIPE_PRICES` constant in server.js, near top):
+  - Monthly EUR €25: `price_1QgxITP3dr2cRIwxjyrv5BEe`
+  - Monthly GBP £25: `price_1Sn61bP3dr2cRIwxqGc9MmRX`
+  - Yearly EUR €250: `price_1Sn62NP3dr2cRIwxP9vOgLpE`
+  - Yearly GBP £218: `price_1Sn630P3dr2cRIwxnOVwcf6x`
+- **Webhook endpoint**: `vibrant-radiance-snapshot` → `https://syncvoicemedical.onrender.com/webhook`, listens to all (~225) events, signing secret stored in Render env `STRIPE_WEBHOOK_SECRET`
+- **API keys** in Render env: `STRIPE_SECRET_KEY` (`sk_live_…`) and `STRIPE_PUBLISHABLE_KEY` (`pk_live_…`). **Both must be from the same account** — the publishable key prefix (after `pk_live_` / `sk_live_`) encodes the account ID, so the first ~12 chars of each must match.
+
+### Renewal warning cron (7 days before)
+
+Stripe's `invoice.upcoming` webhook for auto-renewing subscriptions only fires a few hours before charge — too late for a 7-day warning. So a daily cron in server.js (`dailyRenewalWarnings`) does it instead:
+
+- Runs 90 seconds after server startup, then every 24 hours
+- Queries Supabase for `users` where `status='paid'` and `subscription_end` is in `[now+6 days, now+8 days]`
+- Sends bilingual (FR/EN) renewal warning email via `createRenewalWarningEmailHTML`
+- Dedup via `users.renewal_warning_sent_at` column (timestamptz, nullable). Skips users warned within the last 14 days, so each renewal cycle gets exactly one warning.
+- Required Supabase column (added 2026-04-28): `ALTER TABLE users ADD COLUMN renewal_warning_sent_at timestamptz;`
+
+### TODO — Stripe invoice configuration
+
+Stripe doesn't yet send proper branded invoice PDFs to customers on each renewal. To set up:
+- Stripe Dashboard → Settings → Business → Account details → fill SARL NTI MEASURE business info, VAT number, address
+- Settings → Branding → upload logo, set brand colors (matches our teal `#0e7c86`)
+- Settings → Customer emails → enable "Send finalized invoices to customers" so each renewal triggers a Stripe-sent invoice PDF
+- Once enabled, our `handleSuccessfulInvoice` doesn't need to do anything extra — Stripe handles the PDF + email
 
 ## Troubleshooting
 
