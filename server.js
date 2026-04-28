@@ -2244,19 +2244,47 @@ app.post('/api/send-activation', async (req, res) => {
                 }
             }
 
+            // Map the form's free-text country names to the ISO 3166-1 alpha-2 codes
+            // Stripe requires for address.country. The form select only offers these 12.
+            const COUNTRY_TO_ISO = {
+                'France': 'FR', 'United Kingdom': 'GB', 'Germany': 'DE',
+                'Spain': 'ES', 'Italy': 'IT', 'Portugal': 'PT',
+                'Belgium': 'BE', 'Switzerland': 'CH', 'Netherlands': 'NL',
+                'Austria': 'AT', 'Ireland': 'IE', 'Luxembourg': 'LU'
+            };
+            const countryIso = COUNTRY_TO_ISO[country] || (country && country.length === 2 ? country.toUpperCase() : null);
+
+            // preferred_locales drives the language of every customer-facing Stripe document
+            // (email receipts, invoice PDFs, customer portal). Without this they default to
+            // English regardless of where the customer is.
+            const stripeLocale = ['fr', 'en', 'de', 'es', 'it', 'pt'].includes(language) ? language : 'en';
+
+            const customerPayload = {
+                email: email.toLowerCase(),
+                name: `${firstName} ${lastName}`,
+                metadata: { firstName, lastName, company: company || '' },
+                preferred_locales: [stripeLocale]
+            };
+            if (countryIso || address || city || postalCode) {
+                customerPayload.address = {
+                    line1: address || '',
+                    city: city || '',
+                    postal_code: postalCode || '',
+                    country: countryIso || ''
+                };
+            }
+
             if (!stripeCustomerId) {
-                const customer = await stripe.customers.create({
-                    email: email.toLowerCase(),
-                    name: `${firstName} ${lastName}`,
-                    metadata: { firstName, lastName, company: company || '' },
-                    address: {
-                        line1: address || '',
-                        city: city || '',
-                        postal_code: postalCode || '',
-                        country: country || ''
-                    }
-                });
+                const customer = await stripe.customers.create(customerPayload);
                 stripeCustomerId = customer.id;
+            } else {
+                // Refresh existing customer's locale + address (e.g. if the user now picks French
+                // having previously been served in English, or fixes a typo in their address).
+                try {
+                    await stripe.customers.update(stripeCustomerId, customerPayload);
+                } catch (updateErr) {
+                    logger.warn(`Failed to refresh Stripe customer ${stripeCustomerId}: ${updateErr.message}`);
+                }
             }
 
             // Resolve billing cycle and price server-side from an allow-list.
