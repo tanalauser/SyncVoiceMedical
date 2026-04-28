@@ -1284,7 +1284,7 @@ async function resumeIncompleteCampaigns() {
 // Campaign email template (doctors_fr_v4 - FIXED for email clients)
 function getCampaignEmailHtml(recipientEmail, campaignName) {
     const videoUrl = 'https://drive.google.com/file/d/1xdDmvf6cqxMo6iXbZ6bBzvPs7c46Hx2B/view?usp=sharing';
-    const trialUrl = 'https://syncvoicemedical.onrender.com/?email=' + encodeURIComponent(recipientEmail) + '&lang=fr&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=main_cta';
+    const trialUrl = 'https://syncvoicemedical.onrender.com/form.html?plan=free&email=' + encodeURIComponent(recipientEmail) + '&lang=fr&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=main_cta';
     const unsubUrl = 'https://syncvoicemedical.onrender.com/api/unsubscribe?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName);
 
     return `<!DOCTYPE html>
@@ -1434,7 +1434,7 @@ function getCampaignEmailHtml(recipientEmail, campaignName) {
 // Campaign Email 2 - Soft Reminder (shorter, focuses on video demo)
 function getCampaignEmail2Html(recipientEmail, campaignName) {
     const videoUrl = 'https://drive.google.com/file/d/1xdDmvf6cqxMo6iXbZ6bBzvPs7c46Hx2B/view?usp=sharing';
-    const trialUrl = 'https://syncvoicemedical.onrender.com/?email=' + encodeURIComponent(recipientEmail) + '&lang=fr&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=reminder_cta';
+    const trialUrl = 'https://syncvoicemedical.onrender.com/form.html?plan=free&email=' + encodeURIComponent(recipientEmail) + '&lang=fr&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName) + '&utm_content=reminder_cta';
     const unsubUrl = 'https://syncvoicemedical.onrender.com/api/unsubscribe?email=' + encodeURIComponent(recipientEmail) + '&utm_source=email&utm_campaign=' + encodeURIComponent(campaignName);
 
     return `<!DOCTYPE html>

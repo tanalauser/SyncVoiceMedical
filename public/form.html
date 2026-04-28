@@ -445,6 +445,22 @@
                     <input type="email" id="email" name="email" class="form-input" required>
                 </div>
 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="password">
+                            <span id="passwordLabel">Password</span> <span class="required">*</span>
+                        </label>
+                        <input type="password" id="password" name="password" class="form-input" required minlength="8" autocomplete="new-password">
+                        <small id="passwordHint" style="color:#777;font-size:12px;">At least 8 characters with uppercase, lowercase and numbers</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="confirmPassword">
+                            <span id="confirmPasswordLabel">Confirm Password</span> <span class="required">*</span>
+                        </label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required minlength="8" autocomplete="new-password">
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label" for="company">
                         <span id="companyLabel">Company / Practice</span>
@@ -530,6 +546,10 @@
                 monthlyLabel: 'Monthly', yearlyLabel: 'Yearly',
                 monthlyPeriod: '/month', yearlyPeriod: '/year', yearlySavings: 'Save £50', taxNote: 'VAT included',
                 firstName: 'First Name', lastName: 'Last Name', email: 'Email',
+                password: 'Password', confirmPassword: 'Confirm Password',
+                passwordHint: 'At least 8 characters with uppercase, lowercase and numbers',
+                passwordWeak: 'Password must be at least 8 characters and include uppercase, lowercase and numbers',
+                passwordMismatch: 'Passwords do not match',
                 company: 'Company / Practice', address: 'Address', postalCode: 'Postal Code',
                 city: 'City', country: 'Country',
                 terms: 'I accept the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>',
@@ -542,6 +562,10 @@
                 monthlyLabel: 'Mensuel', yearlyLabel: 'Annuel',
                 monthlyPeriod: '/mois', yearlyPeriod: '/an', yearlySavings: 'Économisez 50€', taxNote: 'TTC',
                 firstName: 'Prénom', lastName: 'Nom', email: 'Email',
+                password: 'Mot de passe', confirmPassword: 'Confirmer le mot de passe',
+                passwordHint: 'Au moins 8 caractères avec majuscules, minuscules et chiffres',
+                passwordWeak: 'Le mot de passe doit contenir au moins 8 caractères, avec majuscules, minuscules et chiffres',
+                passwordMismatch: 'Les mots de passe ne correspondent pas',
                 company: 'Établissement / Cabinet', address: 'Adresse', postalCode: 'Code postal',
                 city: 'Ville', country: 'Pays',
                 terms: "J'accepte les <a href='#'>Conditions d'utilisation</a> et la <a href='#'>Politique de confidentialité</a>",
@@ -554,6 +578,10 @@
                 monthlyLabel: 'Monatlich', yearlyLabel: 'Jährlich',
                 monthlyPeriod: '/Monat', yearlyPeriod: '/Jahr', yearlySavings: '50€ sparen', taxNote: 'inkl. MwSt.',
                 firstName: 'Vorname', lastName: 'Nachname', email: 'E-Mail',
+                password: 'Passwort', confirmPassword: 'Passwort bestätigen',
+                passwordHint: 'Mindestens 8 Zeichen mit Groß-, Kleinbuchstaben und Zahlen',
+                passwordWeak: 'Das Passwort muss mindestens 8 Zeichen lang sein und Groß-, Kleinbuchstaben und Zahlen enthalten',
+                passwordMismatch: 'Passwörter stimmen nicht überein',
                 company: 'Unternehmen / Praxis', address: 'Adresse', postalCode: 'Postleitzahl',
                 city: 'Stadt', country: 'Land',
                 terms: 'Ich akzeptiere die <a href="#">AGB</a> und <a href="#">Datenschutzrichtlinie</a>',
@@ -566,6 +594,10 @@
                 monthlyLabel: 'Mensual', yearlyLabel: 'Anual',
                 monthlyPeriod: '/mes', yearlyPeriod: '/año', yearlySavings: 'Ahorra 50€', taxNote: 'IVA incluido',
                 firstName: 'Nombre', lastName: 'Apellido', email: 'Correo electrónico',
+                password: 'Contraseña', confirmPassword: 'Confirmar contraseña',
+                passwordHint: 'Al menos 8 caracteres con mayúsculas, minúsculas y números',
+                passwordWeak: 'La contraseña debe tener al menos 8 caracteres e incluir mayúsculas, minúsculas y números',
+                passwordMismatch: 'Las contraseñas no coinciden',
                 company: 'Empresa / Consultorio', address: 'Dirección', postalCode: 'Código postal',
                 city: 'Ciudad', country: 'País',
                 terms: 'Acepto los <a href="#">Términos de servicio</a> y la <a href="#">Política de privacidad</a>',
@@ -578,6 +610,10 @@
                 monthlyLabel: 'Mensile', yearlyLabel: 'Annuale',
                 monthlyPeriod: '/mese', yearlyPeriod: '/anno', yearlySavings: 'Risparmia 50€', taxNote: 'IVA inclusa',
                 firstName: 'Nome', lastName: 'Cognome', email: 'Email',
+                password: 'Password', confirmPassword: 'Conferma password',
+                passwordHint: 'Almeno 8 caratteri con maiuscole, minuscole e numeri',
+                passwordWeak: 'La password deve essere lunga almeno 8 caratteri e includere maiuscole, minuscole e numeri',
+                passwordMismatch: 'Le password non corrispondono',
                 company: 'Azienda / Studio', address: 'Indirizzo', postalCode: 'CAP',
                 city: 'Città', country: 'Paese',
                 terms: 'Accetto i <a href="#">Termini di servizio</a> e la <a href="#">Privacy Policy</a>',
@@ -590,6 +626,10 @@
                 monthlyLabel: 'Mensal', yearlyLabel: 'Anual',
                 monthlyPeriod: '/mês', yearlyPeriod: '/ano', yearlySavings: 'Economize 50€', taxNote: 'IVA incluído',
                 firstName: 'Nome', lastName: 'Sobrenome', email: 'Email',
+                password: 'Senha', confirmPassword: 'Confirmar senha',
+                passwordHint: 'Pelo menos 8 caracteres com maiúsculas, minúsculas e números',
+                passwordWeak: 'A senha deve ter pelo menos 8 caracteres e incluir letras maiúsculas, minúsculas e números',
+                passwordMismatch: 'As senhas não coincidem',
                 company: 'Empresa / Clínica', address: 'Endereço', postalCode: 'CEP',
                 city: 'Cidade', country: 'País',
                 terms: 'Aceito os <a href="#">Termos de Serviço</a> e a <a href="#">Política de Privacidade</a>',
@@ -654,6 +694,9 @@
             document.getElementById('firstNameLabel').textContent = t.firstName;
             document.getElementById('lastNameLabel').textContent = t.lastName;
             document.getElementById('emailLabel').textContent = t.email;
+            document.getElementById('passwordLabel').textContent = t.password;
+            document.getElementById('confirmPasswordLabel').textContent = t.confirmPassword;
+            document.getElementById('passwordHint').textContent = t.passwordHint;
             document.getElementById('companyLabel').textContent = t.company;
             document.getElementById('addressLabel').textContent = t.address;
             document.getElementById('postalCodeLabel').textContent = t.postalCode;
@@ -722,13 +765,29 @@
             document.getElementById('registrationForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const submitBtn = document.getElementById('submitBtn');
+                const t = translations[currentLang] || translations.en;
+
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const passwordStrong = password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password);
+
+                if (!passwordStrong) {
+                    alert(t.passwordWeak);
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    alert(t.passwordMismatch);
+                    return;
+                }
+
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<div class="spinner"></div> Processing...';
-                
+
                 const formData = {
                     firstName: document.getElementById('firstName').value,
                     lastName: document.getElementById('lastName').value,
                     email: document.getElementById('email').value,
+                    password: password,
                     company: document.getElementById('company').value,
                     address: document.getElementById('address').value,
                     postalCode: document.getElementById('postalCode').value,
