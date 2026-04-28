@@ -2929,6 +2929,84 @@ async function handleUpcomingInvoice(invoice) {
     }
 }
 
+// Daily cron — Stripe's invoice.upcoming event fires too close to the actual charge
+// (often only a few hours) for auto-renewing subscriptions, so we drive the 7-day
+// warning ourselves from subscription_end. Dedup by writing renewal_warning_sent_at
+// after each send so a user only gets one warning per renewal cycle.
+async function dailyRenewalWarnings() {
+    try {
+        const now = new Date();
+        const lowerBound = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000);
+        const upperBound = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
+        const dedupCutoff = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+        const { data: candidates, error } = await supabase
+            .from('users')
+            .select('id, email, first_name, last_name, language, subscription_type, subscription_end, renewal_warning_sent_at')
+            .eq('status', 'paid')
+            .gte('subscription_end', lowerBound.toISOString())
+            .lte('subscription_end', upperBound.toISOString());
+
+        if (error) {
+            if (error.message && error.message.toLowerCase().includes('renewal_warning_sent_at')) {
+                logger.warn('Renewal warning cron: add column `renewal_warning_sent_at timestamptz` to users table in Supabase to enable.');
+                return;
+            }
+            logger.error('Renewal warning cron query failed:', error);
+            return;
+        }
+
+        if (!candidates || candidates.length === 0) {
+            logger.info('Renewal warning cron: no users in the 7-day window.');
+            return;
+        }
+
+        let sent = 0, skipped = 0, failed = 0;
+        for (const user of candidates) {
+            if (user.renewal_warning_sent_at && new Date(user.renewal_warning_sent_at) > dedupCutoff) {
+                skipped++;
+                continue;
+            }
+
+            try {
+                const lang = user.language || 'en';
+                const billing = user.subscription_type === 'yearly' ? 'yearly' : 'monthly';
+                const isGbp = lang === 'en';
+                const currencySymbol = isGbp ? '£' : '€';
+                const amount = billing === 'yearly'
+                    ? (isGbp ? '218.00' : '250.00')
+                    : '25.00';
+                const chargeDate = new Date(user.subscription_end);
+
+                const transporter = await createTransporter();
+                await transporter.sendMail({
+                    from: `SyncVoice Medical <${process.env.EMAIL_USER}>`,
+                    to: user.email,
+                    subject: lang === 'fr'
+                        ? 'Renouvellement automatique dans 7 jours'
+                        : 'Auto-renewal in 7 days',
+                    html: createRenewalWarningEmailHTML(user, amount, currencySymbol, chargeDate, billing, lang)
+                });
+
+                await supabase
+                    .from('users')
+                    .update({ renewal_warning_sent_at: new Date().toISOString() })
+                    .eq('id', user.id);
+
+                logger.info(`Renewal warning sent to ${user.email} (renewal ${chargeDate.toISOString()})`);
+                sent++;
+            } catch (sendErr) {
+                logger.error(`Renewal warning failed for ${user.email}:`, sendErr.message);
+                failed++;
+            }
+        }
+
+        logger.info(`Renewal warning cron summary: ${sent} sent, ${skipped} already-warned, ${failed} failed`);
+    } catch (err) {
+        logger.error('Unexpected error in dailyRenewalWarnings:', err);
+    }
+}
+
 async function handleSubscriptionChange(subscription) {
     try {
         logger.info('Subscription changed:', subscription.id);
@@ -3484,6 +3562,12 @@ const server = app.listen(PORT, HOST, async () => {
     setTimeout(() => {
         resumeIncompleteCampaigns();
     }, 5000); // Wait 5 seconds for full startup
+
+    // Renewal warning cron — runs once 90s after startup, then every 24h.
+    // Idempotent: dedup is enforced via renewal_warning_sent_at on the user row,
+    // so multiple runs in the same day or restarts mid-day are safe.
+    setTimeout(() => { dailyRenewalWarnings(); }, 90 * 1000);
+    setInterval(() => { dailyRenewalWarnings(); }, 24 * 60 * 60 * 1000);
 });
 
 // WebSocket server setup
