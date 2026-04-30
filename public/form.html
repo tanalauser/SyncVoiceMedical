@@ -745,7 +745,13 @@
             // Use language-based currency instead of country-based
             currentCurrency = getCurrencyFromLanguage(currentLang, countryCode);
             currentPlan = urlParams.get('plan') === 'paid' ? 'paid' : 'free';
-            
+
+            const urlEmail = urlParams.get('email');
+            if (urlEmail) {
+                const emailField = document.getElementById('email');
+                if (emailField) emailField.value = urlEmail;
+            }
+
             // Store country code for later use when changing language
             window.detectedCountryCode = countryCode;
             
